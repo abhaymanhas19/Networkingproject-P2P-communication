@@ -1,0 +1,10 @@
+{% extends 'admin/menu.html' %}
+{% block branding %}
+<a class="item" href="{% url 'admin:index' %}">
+  <img
+    title=""
+    src="/static/images/logo-light.png"
+    alt="{{ site_header|default:_('P2P Networks Admin') }}" />
+</a>
+<div class="header" style="text-align:center; color:grey"><h3> Dashboard Admin</h3></div>
+{% endblock %}

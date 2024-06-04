@@ -1,0 +1,17 @@
+
+
+h1.ui.header {
+    font-size: 1.10rem !important;
+}
+
+h2.ui.header {
+    font-size: 1rem !important;
+}
+
+.ui.header:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+    font-size: 1rem !important;
+}
+
+.inline-related h2{
+    font-size: 1rem !important;
+}
