@@ -24,7 +24,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 
         context["customer_data"] = customers
-
         context["user_info"] = user
         context["message"] = "this is from the dashboard view"
 

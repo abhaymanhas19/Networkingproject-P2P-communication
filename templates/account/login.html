@@ -9,10 +9,10 @@
 
 {% include "partials/head-css.html" %}
 
-<body>
+<body style="background-image: url('/static/images/internet-at-sea.jpeg'); background-size: cover;">
 
-    <div class="bg-gradient-to-r from-black-100 dark:from-gray-700 dark:via-gray-900 dark:to-black">
-
+    {% comment %} <div class="bg-gradient-to-r from-black-100 dark:from-gray-700 dark:via-gray-900 dark:to-black"> {% endcomment %}
+    <div>
         <!-- ============================================================== -->
         <!-- Start Page Content here -->
         <!-- ============================================================== -->
@@ -24,8 +24,8 @@
                 <div class="card overflow-hidden sm:rounded-md rounded-none">
                     <div class="p-6">
                         <a href="{% url 'index' %}" class="block mb-8">
-                            <img class="h-15 block dark:hidden" src="{% static 'images/logo-dark.png' %}" alt="">
-                            <img class="h-15 hidden dark:block" src="{% static 'images/logo-light.png' %}" alt="">
+                            <img class="h-15 block dark:hidden" src="{% static 'images/logo-grey-with-text.png' %}" alt="">
+                            <img class="h-15 hidden dark:block" src="{% static 'images/logo-grey-with-text.png' %}" alt="">
                         </a>
                         {% url 'account_login' as login_url %}
                         <form method="post" action="{% url 'account_login' %}">
@@ -56,7 +56,7 @@
                                 </div>
 
                                 <a href="recoverpw"
-                                    class="text-sm text-primary border-b border-dashed border-primary">Forget Password ?</a>
+                                    class="text-sm text-primary border-b border-dashed border-primary">Forgot Password ?</a>
                             </div>
 
                             <div class="flex justify-center mb-6">

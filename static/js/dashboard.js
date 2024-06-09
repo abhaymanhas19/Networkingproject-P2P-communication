@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
             currentCustomerElement.dataset.customerId = customerId;
             currentCustomerInitials.textContent = customerInitials
 
-
         });
 
         button.addEventListener('touchstart', (event) => {

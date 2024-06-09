@@ -2,6 +2,8 @@
 import decimal
 import datetime
 import logging
+import re
+
 from functools import wraps
 
 
@@ -67,3 +69,24 @@ def log_errors(func):
             _logger.error(e, exc_info=True)
         return return_val
     return inner_func
+
+
+
+
+def camel_to_snake(text):
+  """Converts camelCase text to snake_case.
+
+  Args:
+      text: The camelCase string to convert.
+
+  Returns:
+      The snake_case version of the input string.
+  """
+
+  # Regex Pattern Explanation:
+  # - Look for any uppercase letter A-Z: [A-Z]
+  # - That is preceded by a lowercase letter or number: (?<=[a-z0-9])
+  # - OR any uppercase letter A-Z that is not at the start: (?!^)[A-Z]
+  # - Followed by a lowercase letter: (?=[a-z])
+
+  return re.sub(r'(?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z])', r'_\g', text).lower()

@@ -167,7 +167,14 @@ PEPLINK_CLIENT_SECRET ="a442d62121547623b5e6c26242e2d268"
 SEMANTIC_APP_LIST = [
     {
         "app_label": "dashboard",
-        "models": [{"object_name": "Customer"}, {"object_name": "Organization"}],
+        "models": [{"object_name": "Customer"},
+                   {"object_name": "Organization"},
+                   {"object_name": "Network"},
+                   {"object_name": "MerakiDevice"},
+                   {"object_name": "MerakiNetworkDevice"},
+                   {"object_name": "PeplinkGroup"},
+                   {"object_name": "GroupDevice"},
+                   ],
     },
     {
         "app_label": "auth",

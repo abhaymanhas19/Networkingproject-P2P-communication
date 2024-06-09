@@ -37,6 +37,13 @@ class ProfileInline(SemanticStackedInline):  # Or admin.TabularInline
     can_delete = False
     verbose_name_plural = 'profile'
 
+
+class MerakiNetworkDeviceInline(SemanticTabularInline):
+    model = dashboard_models.MerakiNetworkDevice
+    #readonly_fields = [field.name for field in YourInlineModel._meta.get_fields()]
+    extra = 1
+
+
 class UserAdmin(BaseUserAdmin):
     inlines = (ProfileInline,)
     # list_display = ('username', 'email', 'first_name', 'last_name', 'profile_photo_tag')
@@ -59,15 +66,61 @@ class OrganizationsInline(SemanticTabularInline):
     extra = 1
     autocomplete_fields = ['customer']
 
+class CustomerNetworksInline(SemanticTabularInline):
+    model = dashboard_models.CustomerNetwork
+    extra = 1
+    autocomplete_fields = ['network']
+
+@admin.register(dashboard_models.PeplinkGroup)
+class PeplinkGroupAdmin(SemanticModelAdmin):
+    list_display = ('name', 'org_id', 'group_id')
+    search_fields = ('name', 'org_id', 'group_id')
+    # inlines = [OrganizationsInline, CustomerUsersInline]
+
+class PeplinkGroupsInline(SemanticTabularInline):
+    model = dashboard_models.CustomerPeplinkGroup
+    autocomplete_fields = ['group']
+    extra = 1
+
+
 @admin.register(dashboard_models.Customer)
 class CustomerAdmin(SemanticModelAdmin):
     list_display = ('name', 'contact_person', 'contact_email', 'primary_contact_no', 'secondary_contact_no')
     # list_filter = ('org_type', 'api_enabled')
     search_fields = ('name', 'contact_person', 'contact_email', 'primary_contact_no', 'secondary_contact_no')
-    inlines = [OrganizationsInline, CustomerUsersInline]
+    inlines = [OrganizationsInline, CustomerNetworksInline, PeplinkGroupsInline, CustomerUsersInline]
+
 
 
 @admin.register(dashboard_models.Organization)
 class OrganizationsAdmin(SemanticModelAdmin):
     list_display = ('name', 'org_id', 'org_type', 'org_url', 'api_enabled')
     search_fields = ('name', 'org_id', 'org_type', 'org_url', 'api_enabled')
+
+@admin.register(dashboard_models.Network)
+class NetworkAdmin(admin.ModelAdmin):
+    list_display = ('name', 'network_id', 'organization')
+    search_fields = ('name', 'network_id', 'organization')
+    list_filter = ('organization', 'timezone')
+    inlines = [MerakiNetworkDeviceInline]
+
+@admin.register(dashboard_models.GroupDevice)
+class GroupDeviceAdmin(SemanticModelAdmin):
+    list_filter = ['group_name', 'name']
+    list_display = ('group_name', 'name', 'sn', 'product_id')
+    search_fields = ('name', 'sn', 'product_id')
+
+
+
+@admin.register(dashboard_models.MerakiDevice)
+class MerakiDevice(SemanticModelAdmin):
+    # list_display = ('network.name', 'device.name', 'device.serial')
+    list_filter = ('network_id',)
+    search_fields = ('device_name', 'serial')
+    list_display = ['network', 'networkId','device_name', 'serial', 'mac']
+
+# admin.site.register(dashboard_models.MerakiNetworkDevice, MerakiNetworkDevicesAdmin)
+
+
+
+
