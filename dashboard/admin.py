@@ -43,6 +43,11 @@ class MerakiNetworkDeviceInline(SemanticTabularInline):
     #readonly_fields = [field.name for field in YourInlineModel._meta.get_fields()]
     extra = 1
 
+class UnifiSiteInline(SemanticTabularInline):
+    model = dashboard_models.CustomerUnifiSite
+    extra = 1
+    autocomplete_fields = ['site']
+
 
 class UserAdmin(BaseUserAdmin):
     inlines = (ProfileInline,)
@@ -88,7 +93,7 @@ class CustomerAdmin(SemanticModelAdmin):
     list_display = ('name', 'contact_person', 'contact_email', 'primary_contact_no', 'secondary_contact_no')
     # list_filter = ('org_type', 'api_enabled')
     search_fields = ('name', 'contact_person', 'contact_email', 'primary_contact_no', 'secondary_contact_no')
-    inlines = [OrganizationsInline, CustomerNetworksInline, PeplinkGroupsInline, CustomerUsersInline]
+    inlines = [OrganizationsInline, CustomerNetworksInline, PeplinkGroupsInline, UnifiSiteInline, CustomerUsersInline]
 
 
 
@@ -119,8 +124,14 @@ class MerakiDevice(SemanticModelAdmin):
     search_fields = ('device_name', 'serial')
     list_display = ['network', 'networkId','device_name', 'serial', 'mac']
 
-# admin.site.register(dashboard_models.MerakiNetworkDevice, MerakiNetworkDevicesAdmin)
+@admin.register(dashboard_models.UnifiSite)
+class UnifiSiteAdmin(SemanticModelAdmin):
+    list_display = ('name', '_id', 'desc')
+    search_fields = ('name', 'desc', '_id')
 
 
+@admin.register(dashboard_models.UnifiDevice)
+class UnifiDeviceAdmin(SemanticModelAdmin):
+    list_display = ('site', 'name', 'mac', 'model')
 
 

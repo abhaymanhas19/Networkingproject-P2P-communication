@@ -174,6 +174,8 @@ SEMANTIC_APP_LIST = [
                    {"object_name": "MerakiNetworkDevice"},
                    {"object_name": "PeplinkGroup"},
                    {"object_name": "GroupDevice"},
+                   {"object_name": "UnifiSite"},
+                   {"object_name": "UnifiDevice"},
                    ],
     },
     {

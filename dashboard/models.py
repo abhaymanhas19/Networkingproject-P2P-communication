@@ -485,3 +485,72 @@ class MerakiNetworkDevice(models.Model):
 
     def __str__(self):
         return "{} ({})".format(self.network, self.device)
+
+
+class UnifiSite(models.Model):
+    name = models.CharField("Site Name", max_length=255)
+    _id = models.CharField("Site ID", max_length=255)
+    anonymous_id = models.CharField("Anonymous ID", max_length=255)
+    desc = models.CharField("Description", max_length=255, null=True, blank=True, default='')
+    num_new_alarms = models.IntegerField("Number of New Alarms", null=True, blank=True, default=0)
+    health = ArrayField(
+            models.CharField(
+                max_length=10000,
+                blank=True,
+                null=True),
+            blank=True,
+            null=True,
+            verbose_name="Site Health",
+            help_text="Site Health")
+
+    class Meta:
+        verbose_name = "Unifi Site"
+        verbose_name_plural = "Unifi Sites"
+        unique_together = ('_id', 'anonymous_id', 'name')
+
+    def __str__(self):
+        return f"{self.name} - {self.desc}"
+
+# Unifi Device data
+# { 'adopted': True,
+#     'disabled': False,
+#     'in_gateway_mode': False,
+#     'mac': '74:ac:b9:4c:6d:01',
+#     'model': 'US8P60',
+#     'name': 'SW01- FL01 - Kitchen',
+#     'state': 1,
+#     'type': 'usw'}
+
+class UnifiDevice(models.Model):
+
+    name = models.CharField("Device Name", max_length=255)
+#     _id = models.CharField("Device ID", max_length=255)
+    mac = models.CharField("MAC", max_length=255)
+    model = models.CharField("Model", max_length=255)
+    device_type = models.CharField("Type", max_length=255)
+    state = models.IntegerField("State", null=True, blank=True)
+    in_gateway_mode = models.BooleanField("In Gateway Mode", null=True, blank=True)
+    disabled = models.BooleanField("Disabled", null=True, blank=True)
+
+    site = models.ForeignKey("UnifiSite", on_delete=models.CASCADE, null=True, blank=True, default=None)
+
+    class Meta:
+        verbose_name = "Unifi Device"
+        verbose_name_plural = "Unifi Devices"
+        unique_together = ('name', 'mac')
+
+    def __str__(self):
+        return f"{self.name} - {self.mac}"
+
+
+class CustomerUnifiSite(models.Model):
+
+    customer = models.ForeignKey("dashboard.Customer", on_delete=models.CASCADE)
+    site = models.ForeignKey("dashboard.UnifiSite", on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Customer's Unifi Site"
+        verbose_name_plural = "Customer's Unifi Sites"
+
+    def __str__(self):
+        return "{} ({})".format(self.customer.name, self.site.name)

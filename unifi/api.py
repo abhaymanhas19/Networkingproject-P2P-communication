@@ -38,14 +38,15 @@ class UnifiClient:
     def get(self, path, **kwargs):
         return self._request("GET", path, **kwargs)
 
-    def post(self, path, **kwargs):
-        return self._request("POST", path, **kwargs)
+    # disable for now
+    # def post(self, path, **kwargs):
+    #     return self._request("POST", path, **kwargs)
 
-    def put(self,path, **kwargs):
-        return self._request("PUT", path, **kwargs)
+    # def put(self,path, **kwargs):
+    #     return self._request("PUT", path, **kwargs)
 
-    def delete(self, path, **kwargs):
-        return self._request("DELETE", path, **kwargs)
+    # def delete(self, path, **kwargs):
+    #     return self._request("DELETE", path, **kwargs)
 
 
 # if __name__ == "__main__":

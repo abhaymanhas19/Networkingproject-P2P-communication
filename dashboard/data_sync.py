@@ -5,6 +5,8 @@ from dashboard import models as dashboard_models
 
 from incontrol.client import API as PeplinkAPI
 from meraki import DashboardAPI as MerakiAPI
+from unifiapi import controller as UnifiCtrl
+
 from django.conf import settings
 
 _logger = logging.getLogger(__name__)
@@ -50,13 +52,13 @@ def sync_peplink_networks():
 
     api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
     organizations = api.get_organizations()
-    print(len(organizations))
-    print(organizations)
+    # print(len(organizations))
+    # print(organizations)
     for org in organizations:
         # if not org.api_enabled:
         #      continue
         networks = api.get_groups(org['id'])
-        print(networks)
+        # print(networks)
         for network in networks:
             #dashboard_network = dashboard_models.Network.objects.filter(network_id=network['id']).first()
                 dashboard_network, _ = dashboard_models.Network.objects.get_or_create(
@@ -66,9 +68,9 @@ def sync_peplink_networks():
                     organization=dashboard_models.Organization.objects.get(org_id=org['id'])
                 )
 
-                print(network)
-                for k, v in network.items():
-                      print(f" {k}: {v}")
+                # print(network)
+                # for k, v in network.items():
+                #       print(f" {k}: {v}")
 
                 dashboard_network.network_url = org['url']
                 dashboard_network.timezone = network['timezone']
@@ -135,11 +137,11 @@ def sync_peplink_groups():
 
     api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
     organizations = api.get_organizations()
-    print(len(organizations))
-    print(organizations)
+    # print(len(organizations))
+    # print(organizations)
     for org in organizations:
         groups = api.get_groups(org['id'])
-        print(groups)
+        # print(groups)
         for group in groups:
             #dashboard_network = dashboard_models.Network.objects.filter(network_id=network['id']).first()
                 peplink_group, _ = dashboard_models.PeplinkGroup.objects.get_or_create(
@@ -149,11 +151,11 @@ def sync_peplink_groups():
                     group_type='P'
                     #organization=dashboard_models.Organization.objects.get(org_id=org['id'])
                 )
-                print("------------------------------------------------")
-                print(group)
+                # print("------------------------------------------------")
+                # print(group)
                 for k, v in group.items():
                       print(f" {k}: {v}")
-                print("------------------------------------------------")
+                # print("------------------------------------------------")
                 peplink_group.network_url = org['url']
                 peplink_group.timezone = group['timezone']
                 peplink_group.notes = group.get('notes','')
@@ -194,30 +196,30 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
         organization_id = api._org_id
 
     group_devices = api.get_group_devices(organization_id=organization_id, group_id=group_id)
-    print(f"--------------------------> got {len(group_devices)} group_devices")
+    # print(f"--------------------------> got {len(group_devices)} group_devices")
     for devices in group_devices:
         if devices is None:
             continue
-        print(f"---------------------- -- - -> got {len(devices)} devices")
+        # print(f"---------------------- -- - -> got {len(devices)} devices")
         for device in devices:
             gd = dashboard_models.GroupDevice.objects.filter(device_id=device.get("id"))
             device_loc = api.get_device_location(organization_id, device.get("group_id"), device.get("id"))
             # popping out attributes that are not in the Model
             device_fields = [fld.name for fld in dashboard_models.GroupDevice._meta.get_fields()]
-            print(f"------------>> getting fields for device{device['name']} :{device_fields}")
+            # print(f"------------>> getting fields for device{device['name']} :{device_fields}")
             dkeys = list(device.keys())
             for k in dkeys:
-                if k == 'starlink_status':
-                     print("----------------------->> found starlink status")
+                # if k == 'starlink_status':
+                    #  print("----------------------->> found starlink status")
                 if k not in device_fields:
-                    print(f"----------------------->> removing {k} from device")
+                    # print(f"----------------------->> removing {k} from device")
                     device.pop(k, None)
 
             mdevice_id = device.pop('id')
             device['device_id'] = mdevice_id
 
-            if device.get('starlink_status', None):
-                 print(f"----------------------->> starlink status is {device['starlink_status']}")
+            # if device.get('starlink_status', None):
+            #      print(f"----------------------->> starlink status is {device['starlink_status']}")
             if device_loc:
                 device["latitude"] = device_loc.get("latitude", 0.0)
                 device["longitude"] = device_loc.get("longitude", 0.0)
@@ -254,9 +256,7 @@ def sync_meraki_devices():
             devices = api.networks.getNetworkDevices(network['id'])
             # devices_extra = api.networks.get
             for device in devices:
-                print(f"----->> {device}")
-
-
+                # print(f"----->> {device}")
                 # dashboard_device, _ = dashboard_models.MerakiDevice.objects.get_or_create(
                 #     serial=device['serial'],
                 #     networkId=network['id']
@@ -297,6 +297,58 @@ def sync_meraki_devices():
 #       1) WAN status
 #       2) Device status
 
+
+def sync_unifi_sites():
+    controller = UnifiCtrl(endpoint=settings.UNIFI_ENDPOINT_URL,
+                           username=settings.UNIFI_USERNAME,
+                           password=settings.UNIFI_PASSWORD,
+                           verify=False)
+
+    sites = controller.get('api/stat/sites')
+
+    for site in sites:
+        unifi_site, _  = dashboard_models.UnifiSite.objects.get_or_create(
+            name=site['name'],
+            _id=site['_id'],
+            anonymous_id=site['anonymous_id']
+        )
+        unifi_site.desc = site.get('desc', '')
+        unifi_site.num_new_alarms = site.get('num_new_alarms', 0)
+        unifi_site.health = site.get('health', [])
+        unifi_site.save()
+
+def sync_unifi_devices():
+    controller = UnifiCtrl(endpoint=settings.UNIFI_ENDPOINT_URL,
+                           username=settings.UNIFI_USERNAME,
+                           password=settings.UNIFI_PASSWORD,
+                           verify=False)
+
+    # sites = controller.get('api/stat/sites')
+    sites = dashboard_models.UnifiSite.objects.all()
+
+
+    for site in sites:
+        # get devices
+        devices = controller.get(f"/api/s/{site.name}/stat/device-basic")
+
+        # import pdb; pdb.set_trace()
+
+        for device in devices:
+            unifi_device, _ = dashboard_models.UnifiDevice.objects.get_or_create(
+                name=device.get('name', ''),
+                mac=device['mac']
+            )
+            unifi_device.model=device['model']
+            unifi_device.device_type=device['type']
+            unifi_device.state=device['state']
+            # import pdb;pdb.set_trace()
+            unifi_device.in_gateway_mode=device['in_gateway_mode']
+            unifi_device.disabled=device['disabled']
+
+            unifi_device.site = site
+            unifi_device.save()
+
+
 def sync_all_data():
 
     sync_peplink_organizations()
@@ -306,4 +358,7 @@ def sync_all_data():
     sync_meraki_organizations()
     sync_meraki_networks()
     sync_meraki_devices()
+
+    sync_unifi_sites()
+    sync_unifi_devices()
 
