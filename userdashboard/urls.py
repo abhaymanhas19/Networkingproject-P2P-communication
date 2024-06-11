@@ -56,3 +56,10 @@ urlpatterns = [
 
 
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+
+
+admin.site.site_header = "P2P NETWORKS ADMIN"
+admin.site.site_title = "P2P NETWORKS ADMIN"
+admin.site.index_title = "P2P NETWORKS ADMIN"
