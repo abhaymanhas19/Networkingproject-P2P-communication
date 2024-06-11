@@ -17,6 +17,7 @@ django-semantic-forms==0.1.5
 executing==2.0.1
 frozenlist==1.4.1
 future==1.0.0
+gunicorn==22.0.0
 idna==3.7
 ipython==8.24.0
 jedi==0.19.1
@@ -25,6 +26,7 @@ meraki==1.46.0
 mock==5.1.0
 multidict==6.0.5
 oauthlib==3.2.2
+packaging==24.1
 parso==0.8.4
 pexpect==4.9.0
 pillow==10.3.0
