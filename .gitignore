@@ -5,3 +5,5 @@ db.sqlite3
 local_settings.py
 *.log
 .DS_Store
+dashboard-dev.service
+dashboard-prod.service

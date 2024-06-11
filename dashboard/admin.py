@@ -133,6 +133,6 @@ class UnifiSiteAdmin(SemanticModelAdmin):
 @admin.register(dashboard_models.UnifiDevice)
 class UnifiDeviceAdmin(SemanticModelAdmin):
     list_display = ('site', 'name', 'mac', 'model')
-    list_filter = ('site', 'type')
+    list_filter = ('site', 'device_type')
     search_field = ('name', 'model')
 
