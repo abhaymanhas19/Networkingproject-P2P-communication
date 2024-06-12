@@ -1,5 +1,5 @@
 import logging
-
+import json
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
@@ -56,6 +56,17 @@ class Customer(models.Model):
         first_3_words = self.name.split(" ")[:3]
         initials = "".join([w[0] for w in first_3_words]).upper()
         return initials
+
+    @property
+    def basic_info(self):
+        info = {}
+        info["id"] = self.id
+        info["name"] = self.name
+        info["email"] = self.contact_email
+        info["initials"] = self.initials
+        return info
+        # return json.dumps(info)
+
     def __str__(self):
         return self.name
 
@@ -79,7 +90,6 @@ class CustomerUsers(models.Model):
     class Meta:
         verbose_name = "Portal User"
         verbose_name_plural = "Customer's Portal Users"
-
 
     def __str__(self):
         name = ""

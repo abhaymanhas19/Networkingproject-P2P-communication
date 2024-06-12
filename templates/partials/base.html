@@ -11,6 +11,9 @@
 
     <!-- App favicon -->
     <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+    <script type="text/javascript" src="{% static 'js/jquery.min.js' %}" > </script>
+    <link rel="stylesheet" href="{% static '/leaflet/leaflet.css' %}" />
+    <script src="{% static '/leaflet/leaflet.js' %}"></script>
 
     {% block css %}
         {% block extra_css %} {% endblock extra_css %}

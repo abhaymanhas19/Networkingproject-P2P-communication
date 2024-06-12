@@ -3,7 +3,13 @@ from django.core import serializers
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views import View
-from .models import Organization, CustomerOrganization, CustomerUsers
+from .models import (
+    Customer,
+    Organization,
+    CustomerOrganization,
+    CustomerUsers,
+    GroupDevice,
+    PeplinkGroup)
 
 class OrganizationListView(LoginRequiredMixin, View):
     def get(self, request):
@@ -46,4 +52,15 @@ class CustomerOrganizationListView(LoginRequiredMixin, View):
             return JsonResponse({"error": "Customer not found"}, status=404)
 
 
-#
+# class-based view that returns a list of devices locations
+class DeviceLocationListView(LoginRequiredMixin, View):
+    def get(self, request):
+        # get the current_customer from the session
+        current_customer = request.session.get('current_customer')
+        # get the current customer's peplink groups
+        customer = Customer.objects.get(id=current_customer.get('id'))
+        #peplink_groups = customer.customer_peplink_groups.all()
+        peplink_group_ids = customer.customer_peplink_groups.all().values_list('id', flat=True)
+        # get the devices for the current_customer
+        devices = GroupDevice.objects.filter(group_id__in=peplink_group_ids)
+        return JsonResponse({"message": "Not implemented yet"})

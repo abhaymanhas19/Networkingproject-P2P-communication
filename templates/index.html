@@ -6,10 +6,15 @@
 
 {% block extra_css %}
 {% include "partials/head-css.html" %}
+
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock extra_css %}
 
 {% block pagetitle %}
-    {% include "partials/page-title.html" with pagetitle="Menu" title="Dashboard" %}
+{% with h_title=current_customer.name|default:" - " %}
+    {% comment %} {% include "partials/page-title.html" with pagetitle="Menu" title="Dashboard for "|add:h_title %} {% endcomment %}
+    {% include "partials/page-title.html" with pagetitle="Menu" title=h_title|add:"" %}
+{% endwith %}
 {% endblock pagetitle %}
 
 {% block content %}
@@ -118,7 +123,7 @@
                     </div>
                     <div class="p-6">
 
-                        <div id="spline_area" class="apex-charts" dir="ltr"></div>
+                        <div id="asset-location-map" class="m-10"></div>
                     </div>
                 </div><!--end card-->
             </div>
@@ -148,5 +153,26 @@
 
     <!-- Dashboard Project Page js -->
     <script src="{% static 'js/pages/dashboard.js' %}"></script>
+
+    <script>
+            var asset_markers = [];
+            $(document).ready(function() {
+                var map = L.map('asset-location-map').setView([0, 0], 2);
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }).addTo(map);
+
+                {% if customer_devices %}
+                    {% for dev in customer_devices %}
+                        var marker{{ forloop.counter }} = L.marker([{{ dev.latitude }}, {{ dev.longitude }}]).addTo(map);
+                        marker{{ forloop.counter }}.bindPopup("<b>{{dev.name}}</b><br><p>S/N: {{ dev.sn }}</p><p>{{ dev.status }}</p>").openPopup();
+                        asset_markers.push(marker{{ forloop.counter }});  // Add each marker to the markers array
+                    {% endfor %}
+                {% endif %}
+
+            });
+
+    </script>
 {% endblock extra_js %}
 
