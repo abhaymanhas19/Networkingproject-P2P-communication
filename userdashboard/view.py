@@ -37,7 +37,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         customer_users = CustomerUsers.objects.filter(user=user).select_related('customer')
 
         customers = [cu.customer for cu in customer_users]
-
+        current_customer = {}
         context["current_customer"] = {}
         if 'current_customer' in self.request.session:
             current_customer = self.request.session['current_customer']
@@ -46,10 +46,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             if customers:
                 context["current_customer"] = customers[0].basic_info
                 self.request.session['current_customer'] = customers[0].basic_info
+                current_customer = self.request.session['current_customer']
 
 
         # get customer's devices:
-        devices = get_customer_devices(int(current_customer["id"]))
+        devices = get_customer_devices(int(current_customer.get("id", 0)))
         print(f"devices for customer { current_customer['id']}: {devices}")
         context["customer_devices"] = devices
         context["customer_data"] = customers
