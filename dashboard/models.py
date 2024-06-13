@@ -467,10 +467,10 @@ class MerakiDevice(models.Model):
     status_text = models.CharField("Device Status", max_length=100, null=True, blank=True, default='')
     status_list = models.JSONField("Device Status Details", max_length=10000, null=True, blank=True, default=list)
 
-    publicIp = models.CharField("Public IP Address", max_length=35, null=True, blank=True)
-    gateway = models.CharField("Gateway", max_length=35, null=True, blank=True)
-    primaryDns = models.CharField("Primary DNS", max_length=35, null=True, blank=True)
-    secondaryDns = models.CharField("Secondary DNS", max_length=35, null=True, blank=True)
+    publicIp = models.CharField("Public IP Address", max_length=100, null=True, blank=True)
+    gateway = models.CharField("Gateway", max_length=100, null=True, blank=True)
+    primaryDns = models.CharField("Primary DNS", max_length=100, null=True, blank=True)
+    secondaryDns = models.CharField("Secondary DNS", max_length=100, null=True, blank=True)
 #     lastReportedAt =
 
     class Meta:
