@@ -46,6 +46,7 @@ class Customer(models.Model):
     # these are users who have access to Customer data
     users = models.ManyToManyField("auth.User", through="CustomerUsers", related_name="customers")
     customer_peplink_groups = models.ManyToManyField("dashboard.PeplinkGroup", through="CustomerPeplinkGroup", related_name="peplink_groups")
+    meraki_networks = models.ManyToManyField("dashboard.Network", through="CustomerNetwork", related_name="meraki_networks")
 
     class Meta:
         verbose_name = "Customer Information"
@@ -462,8 +463,16 @@ class MerakiDevice(models.Model):
     firmware = models.CharField("Firmware", max_length=255, null=True, blank=True)
     url = models.CharField("URL", max_length=255, null=True, blank=True)
     details = models.CharField("Details", max_length=255, null=True, blank=True)
-
     network = models.ForeignKey('Network', on_delete=models.CASCADE, null=True, blank=True, default=None)
+    status_text = models.CharField("Device Status", max_length=100, null=True, blank=True, default='')
+    status_list = models.JSONField("Device Status Details", max_length=10000, null=True, blank=True, default=list)
+
+    publicIp = models.CharField("Public IP Address", max_length=35, null=True, blank=True)
+    gateway = models.CharField("Gateway", max_length=35, null=True, blank=True)
+    primaryDns = models.CharField("Primary DNS", max_length=35, null=True, blank=True)
+    secondaryDns = models.CharField("Secondary DNS", max_length=35, null=True, blank=True)
+#     lastReportedAt =
+
     class Meta:
         verbose_name = _("Meraki Device")
         verbose_name_plural = _("Meraki Devices")

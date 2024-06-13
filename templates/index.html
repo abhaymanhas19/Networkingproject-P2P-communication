@@ -18,31 +18,220 @@
 {% endblock pagetitle %}
 
 {% block content %}
-    <div class="grid 2xl:grid-cols-4 gap-6 mb-6">
+<div id="wan-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:70%">
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            WAN Summary
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2">
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle">
+                <div class="overflow-y" style="overflow-y: scroll">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for dev in wan_summary.online_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wan_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wan_summary.offline_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!-- offcanvas -->
+
+<div id="lan-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:70%">
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            WAN Summary
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2">
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle">
+                <div class="overflow-y" style="overflow-y: scroll">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for dev in lan_summary.online_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in lan_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in lan_summary.offline_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!-- offcanvas -->
+
+
+<div id="wireless-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:70%">
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            Wireless Summary
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2">
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle">
+                <div class="overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for dev in wireless_summary.online_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wireless_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wireless_summary.offline_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!-- offcanvas -->
+
+
+
+
+<div class="grid 2xl:grid-cols-4 gap-6 mb-6">
+
+
 
         <div class="2xl:col-span-3">
             <div class="grid xl:grid-cols-4 md:grid-cols-2 gap-6 mb-6">
+                {% comment %}
+                    good_color = "#228B22"
+                    fair_color = "#FFD700"
+                    poor_color = "#FFA500"
+                    critical_color = "#FF0000"
+                {% endcomment %}
                 <div class="card">
                     <div class="card-header flex items-center">
                         <i class="msr"  style="font-size: 24px;">globe_uk</i>
                         <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">WAN STATUS</p>
-                                  {% comment %} text-base mb-1 text-gray-600 dark:text-gray-400 {% endcomment %}
                     </div>
-                    <div class="p-6">
-                        GOOD
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if wan_summary.status_summary.0 != 'None' %}
+                            <button class="btn text-white w-full {% if wan_summary.status_summary.0 == 'Good' or wan_summary.status_summary.0 == 'Fair' %}bg-success{% elif wan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wan_summary.status_summary.0 == 'Critical' %}bg-danger{% elif wan_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
+                                {{ wan_summary.status_summary.0 }}
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full" style="background-color:#64748b">
+                                {{ wan_summary.status_summary.0 }}
+                            </button>
+                        {% endif %}
                     </div>
-                    <div class="p-6 flex space-x-2">
-                        <div class="bg-green-500 w-4 h-4"></div>
-                        <div class="bg-green-500 w-4 h-4"></div>
-                        <div class="bg-green-500 w-4 h-4"></div>
-                        <div class="bg-green-500 w-4 h-4"></div>
-                        <div class="bg-green-500 w-4 h-4"></div>
-                        <div class="bg-red-500 w-4 h-4"></div>
-                        <div class="bg-red-500 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                    </div>
+                    <div class="p-2 flex space-x-2  mt-0">
+                        {% for dev in wan_summary.online_devices %}
+                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wan_summary.dormant_devices %}
+                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wan_summary.offline_devices %}
+                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% if wan_summary.status_summary.0 == 'None' %}
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                        {% endif %}
+                    </div> <!-- content-->
                 </div> <!-- card end -->
                 <div class="card">
                     <div class="card-header flex items-center">
@@ -50,42 +239,44 @@
                         <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">LAN STATUS</p>
                                   {% comment %} text-base mb-1 text-gray-600 dark:text-gray-400 {% endcomment %}
                     </div>
-                    <div class="p-6">
-                        GOOD
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if lan_summary.status_summary.0 != 'None' %}
+                            <button class="btn text-white w-full {% if lan_summary.status_summary.0 == 'Good' or lan_summary.status_summary.0 == 'Fair' %}bg-success{% elif lan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif lan_summary.status_summary.0 == 'Critical' %}bg-danger{% elif lan_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#lan-summary-canvas">
+                                {{ lan_summary.status_summary.0 }}
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full" style="background-color:#64748b">
+                                {{ lan_summary.status_summary.0 }}
+                            </button>
+                        {% endif %}
                     </div>
-                    <div class="p-6 flex space-x-2">
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
+                    <div class="p-2 flex space-x-2  mt-0">
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
                     </div>
                 </div> <!-- card end -->
                 <div class="card">
                     <div class="card-header flex items-center">
                         <i class="msr"  style="font-size: 24px;">wifi</i>
                         <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">WIRELESS STATUS</p>
-                                  {% comment %} text-base mb-1 text-gray-600 dark:text-gray-400 {% endcomment %}
+
                     </div>
-                    <div class="p-6">
-                        GOOD
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if wireless_summary.status_summary.0 != 'None' %}
+                            <button class="btn text-white w-full {% if wireless_summary.status_summary.0 == 'Good' or wireless_summary.status_summary.0 == 'Fair' %}bg-success{% elif wireless_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wireless_summary.status_summary.0 == 'Critical' %}bg-danger{% elif wireless_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wireless-summary-canvas">
+                                {{ wireless_summary.status_summary.0 }}
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full" style="background-color:#64748b">
+                                {{ wireless_summary.status_summary.0 }}
+                            </button>
+                        {% endif %}
                     </div>
-                    <div class="p-6 flex space-x-2">
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
-                        <div class="bg-gray-200 w-4 h-4"></div>
+                    <div class="p-2 flex space-x-2  mt-0">
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
                     </div>
                 </div> <!-- card end -->
 
@@ -95,10 +286,16 @@
                         <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">THREATS</p>
                                   {% comment %} text-base mb-1 text-gray-600 dark:text-gray-400 {% endcomment %}
                     </div>
-                    <div class="p-6">
-                        NONE
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        <button class="btn text-white w-full" style="background-color:#64748b">
+                            None
+                        </button>
                     </div>
-
+                    <div class="p-2 flex space-x-2  mt-0">
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
+                    </div>
                 </div> <!-- card end -->
 
 
@@ -123,7 +320,7 @@
                     </div>
                     <div class="p-6">
 
-                        <div id="asset-location-map" class="m-10"></div>
+                        <div id="asset-location-map" class="m-10 z-10" ></div>
                     </div>
                 </div><!--end card-->
             </div>

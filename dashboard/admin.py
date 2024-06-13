@@ -96,11 +96,11 @@ class CustomerAdmin(SemanticModelAdmin):
     inlines = [OrganizationsInline, CustomerNetworksInline, PeplinkGroupsInline, UnifiSiteInline, CustomerUsersInline]
 
 
-
 @admin.register(dashboard_models.Organization)
 class OrganizationsAdmin(SemanticModelAdmin):
     list_display = ('name', 'org_id', 'org_type', 'org_url', 'api_enabled')
     search_fields = ('name', 'org_id', 'org_type', 'org_url', 'api_enabled')
+    list_filter = ('org_type', 'api_enabled')
 
 @admin.register(dashboard_models.Network)
 class NetworkAdmin(admin.ModelAdmin):
@@ -120,9 +120,9 @@ class GroupDeviceAdmin(SemanticModelAdmin):
 @admin.register(dashboard_models.MerakiDevice)
 class MerakiDevice(SemanticModelAdmin):
     # list_display = ('network.name', 'device.name', 'device.serial')
-    list_filter = ('network_id',)
+    list_filter = ('network_id', 'status_text', 'productType')
     search_fields = ('device_name', 'serial')
-    list_display = ['network', 'networkId','device_name', 'serial', 'mac']
+    list_display = ['network','productType', 'device_name', 'serial', 'mac', 'status_text']
 
 @admin.register(dashboard_models.UnifiSite)
 class UnifiSiteAdmin(SemanticModelAdmin):
@@ -132,7 +132,7 @@ class UnifiSiteAdmin(SemanticModelAdmin):
 
 @admin.register(dashboard_models.UnifiDevice)
 class UnifiDeviceAdmin(SemanticModelAdmin):
-    list_display = ('site', 'name', 'mac', 'model')
-    list_filter = ('site', 'device_type')
-    search_field = ('name', 'model')
+    list_display = ('site', 'device_type', 'name', 'mac', 'model')
+    list_filter = ('site', 'device_type', 'model')
+    search_field = ('name', 'model', 'device_type', 'mac')
 

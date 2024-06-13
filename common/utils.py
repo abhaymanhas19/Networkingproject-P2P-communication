@@ -10,6 +10,51 @@ from functools import wraps
 _logger = logging.getLogger(__name__)
 
 
+def calculate_router_status(offline_devices, dormant_devices, online_devices):
+    """calculates the overall router status
+    based on the total number of offline, dormant and online devices.
+    """
+    good_color = "#228B22"
+    fair_color = "#FFD700"
+    poor_color = "#FFA500"
+    critical_color = "#FF0000"
+
+    total_devices = offline_devices + dormant_devices + online_devices
+    if total_devices <= 0:
+        return ("None", "#808080")
+
+    # Calculate percentages (safe to divide now since total_devices > 0)
+    offline_percent = (offline_devices / total_devices) * 100
+    dormant_percent = (dormant_devices / total_devices) * 100
+    online_percent = (online_devices / total_devices) * 100
+
+    # Check for critical scenarios (all or most offline)
+    if offline_percent == 100:
+        return ("Critical", "#FF0000")  # Red
+    elif offline_percent > 50 or (offline_percent > 0 and dormant_percent > 0):
+        return ("Critical", "#FF0000")  # Red
+
+    # Determine if 'few' applies to offline and dormant
+    few_offline = 10 <= offline_percent <= 25
+    few_dormant = 10 <= dormant_percent <= 25
+
+    # Categorize based on percentages (matching the new table)
+    if online_percent == 100:
+        return ("Good", "#228B22")  # Green
+    elif online_percent > 50:
+        if few_dormant:
+            return ("Good", "#228B22")  # Green
+        else:
+            return ("Good", "#228B22")  # Green
+    else:
+        if few_offline:
+            return ("Fair", "#FFD700")  # Yellow
+        elif few_dormant:
+            return ("Fair", "#FFD700")  # Yellow
+        else:
+            return ("Poor", "#FFA500")  # Orange
+
+
 def to_float(n):
     """
     Converts the input to a floating-point number.

@@ -113,7 +113,13 @@ def sync_meraki_networks():
     for org in organizations:
         if not org['api'].get('enabled', True):
              continue
-        networks = api.organizations.getOrganizationNetworks(org['id'])
+        # skip newly created organizations
+        try:
+            networks = api.organizations.getOrganizationNetworks(org['id'])
+        except Exception as e:
+            _logger.warn(f"Skipping syncing Meraki Networks due to API error: {e}")
+            continue
+
         django_org = dashboard_models.Organization.objects.get(org_type='M', org_id=org['id'])
         for network in networks:
 
@@ -249,19 +255,23 @@ def sync_meraki_devices():
         # skip API-disabled organizations
         if not org['api'].get('enabled', True):
              continue
-        networks = api.organizations.getOrganizationNetworks(org['id'])
+
+        # skip newly created organizations:
+        try:
+            networks = api.organizations.getOrganizationNetworks(org['id'])
+        except Exception as e:
+            _logger.warn(f"Skipping syncing Meraki Devices due to API error: {e}")
+            continue
+
+        # get Organization's device statuses
+        device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'])
+
         django_org = dashboard_models.Organization.objects.get(org_type='M', org_id=org['id'])
         for network in networks:
             django_network = dashboard_models.Network.objects.get(network_id=network['id'])
             devices = api.networks.getNetworkDevices(network['id'])
-            # devices_extra = api.networks.get
-            for device in devices:
-                # print(f"----->> {device}")
-                # dashboard_device, _ = dashboard_models.MerakiDevice.objects.get_or_create(
-                #     serial=device['serial'],
-                #     networkId=network['id']
-                # )
 
+            for device in devices:
                 try:
                     dashboard_device = dashboard_models.MerakiDevice.objects.get(
                         serial=device['serial'],
@@ -269,7 +279,31 @@ def sync_meraki_devices():
                     )
                 except:
                     dashboard_device = dashboard_models.MerakiDevice()
+                status = [s for s in device_statuses if s['serial'] == device['serial']]
+                status_text = ""
+                productType = ""
+                publicIp = ""
+                gateway = ""
+                primaryDns = ""
+                secondaryDns = ""
+                if status:
+                    status_text = status[0].get('status', '')
+                    productType = status[0].get('productType', '')
+                    publicIp = status[0].get('publicIp', '')
+                    gateway = status[0].get('gateway', '')
+                    primaryDns = status[0].get('primaryDns', '')
+                    secondaryDns = status[0].get('secondaryDns', '')
 
+
+
+                dashboard_device.status_text = status_text
+                dashboard_device.status_list = status
+                dashboard_device.publicIp = publicIp
+                dashboard_device.gateway = gateway
+                dashboard_device.primaryDns = primaryDns
+                dashboard_device.secondaryDns = secondaryDns
+
+                dashboard_device.productType = productType
                 dashboard_device.network = django_network
                 dashboard_device.serial = device['serial']
                 dashboard_device.networkId = device['networkId']
@@ -278,7 +312,7 @@ def sync_meraki_devices():
                 dashboard_device.serial = device['serial']
                 dashboard_device.mac = device['mac']
 
-                dashboard_device.productType = device.get('productType', '')
+                #dashboard_device.productType = device.get('productType', '')
                 dashboard_device.lat = device['lat']
                 dashboard_device.lng = device['lng']
                 dashboard_device.model = device['model']
@@ -287,10 +321,10 @@ def sync_meraki_devices():
                 dashboard_device.save()
                 # import pdb; pdb.set_trace()
                 # dashboard_device.save(update_fields=['device_name', 'url', 'serial', 'mac', 'networkId', 'productType', 'lat', 'lng', 'model', 'firmware', 'wan1Ip'])
-                # meraki_network_device, _ = dashboard_models.MerakiNetworkDevice.objects.get_or_create(
-                #     network=django_network,
-                #     device=dashboard_device
-                # )
+                meraki_network_device, _ = dashboard_models.MerakiNetworkDevice.objects.get_or_create(
+                    network=django_network,
+                    device=dashboard_device
+                )
 #TODO: sync unifi sites and devices
 #TODO: add websocket service (django-channels)
 # TODO: websocket endpoints to provide:
