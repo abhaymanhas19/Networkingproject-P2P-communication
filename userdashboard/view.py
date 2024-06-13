@@ -42,7 +42,7 @@ def get_wan_summary(customer_id):
     summary = {}
     try:
         customer = Customer.objects.get(id=customer_id)
-        network_ids = list(customer.customernetwork_set.all().values_list('id', flat=True))
+        network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='appliance')
 
         wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
@@ -75,7 +75,7 @@ def get_lan_summary(customer_id):
     summary = {}
     try:
         customer = Customer.objects.get(id=customer_id)
-        network_ids = list(customer.customernetwork_set.all().values_list('id', flat=True))
+        network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='switch')
 
         lan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
@@ -110,7 +110,7 @@ def get_wireless_summary(customer_id):
     summary = {}
     try:
         customer = Customer.objects.get(id=customer_id)
-        network_ids = list(customer.customernetwork_set.all().values_list('id', flat=True))
+        network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='wireless')
 
         wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
