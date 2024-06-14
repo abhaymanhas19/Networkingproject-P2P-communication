@@ -10,7 +10,7 @@ from django.views.generic import View
 from django.contrib.auth.views import LogoutView
 
 from django.utils.decorators import method_decorator
-from common.utils import calculate_router_status
+from common.utils import calculate_device_status
 
 from dashboard.models import (
     CustomerUsers,
@@ -26,7 +26,8 @@ def get_customer_devices(customer_id):
     customer_devices = None
     try:
         customer = Customer.objects.get(id=customer_id)
-        peplink_group_ids = customer.customer_peplink_groups.all().values_list('id', flat=True)
+        # peplink_group_ids = customer.customer_peplink_groups.all().values_list('id', flat=True)
+        peplink_group_ids = list(customer.customer_peplink_groups.all().values_list('group_id', flat=True))
         customer_devices = GroupDevice.objects.filter(group_id__in=peplink_group_ids)
     except Exception as e:
         pass
@@ -49,14 +50,16 @@ def get_wan_summary(customer_id):
         offline_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
         online_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
-
-        total_devices = len(wan_status_summary)
+        alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
+        # total_devices = len(wan_status_summary)
 
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
         total_offline = len(offline_devices)
+        total_alerting = len(alerting_devices)
 
-        status_summary = calculate_router_status(total_offline, total_dormant, total_online)
+        status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
+
         summary["status_summary"] = status_summary
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
@@ -82,14 +85,17 @@ def get_lan_summary(customer_id):
         offline_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
         online_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+        alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
 
         total_devices = len(lan_status_summary)
 
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
         total_offline = len(offline_devices)
+        total_alerting = len(alerting_devices)
 
-        status_summary = calculate_router_status(total_offline, total_dormant, total_online)
+        status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
+
         summary["status_summary"] = status_summary
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
@@ -117,14 +123,16 @@ def get_wireless_summary(customer_id):
         offline_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
         online_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+        alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
 
         total_devices = len(wan_status_summary)
 
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
         total_offline = len(offline_devices)
+        total_alerting = len(alerting_devices)
 
-        status_summary = calculate_router_status(total_offline, total_dormant, total_online)
+        status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
         summary["status_summary"] = status_summary
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
@@ -135,6 +143,16 @@ def get_wireless_summary(customer_id):
 
     return summary
 
+
+def get_threats_summary(customer_id):
+
+    summary = {}
+    try:
+        customer = Customer.objects.get(id=customer_id)
+        network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
+
+    except:
+        pass
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

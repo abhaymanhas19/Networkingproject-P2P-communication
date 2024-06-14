@@ -48,7 +48,7 @@ def sync_meraki_organizations():
 
 
 def sync_peplink_networks():
-    """syncs peplink networks with dashboard Networks"""
+    """syncs peplink groups with dashboard Networks"""
 
     api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
     organizations = api.get_organizations()
@@ -57,13 +57,13 @@ def sync_peplink_networks():
     for org in organizations:
         # if not org.api_enabled:
         #      continue
-        networks = api.get_groups(org['id'])
+        peplink_groups = api.get_groups(org['id'])
         # print(networks)
-        for network in networks:
+        for group in peplink_groups:
             #dashboard_network = dashboard_models.Network.objects.filter(network_id=network['id']).first()
                 dashboard_network, _ = dashboard_models.Network.objects.get_or_create(
-                    name=network['name'],
-                    network_id=network['id'],
+                    name=group['name'],
+                    network_id=group['id'],
                     # network_type='P',
                     organization=dashboard_models.Organization.objects.get(org_id=org['id'])
                 )
@@ -73,29 +73,29 @@ def sync_peplink_networks():
                 #       print(f" {k}: {v}")
 
                 dashboard_network.network_url = org['url']
-                dashboard_network.timezone = network['timezone']
-                dashboard_network.notes = network.get('notes','')
-                dashboard_network.online_device_count = network['online_device_count']
-                dashboard_network.offline_device_count = network['offline_device_count']
-                dashboard_network.client_count = network['client_count']
-                dashboard_network.country_code = network['country']
-                dashboard_network.address = network['address']
-                dashboard_network.latitude = network['latitude']
-                dashboard_network.longitude = network['longitude']
-                dashboard_network.custom_cert_perm = network['custom_cert_perm']
-                dashboard_network.is_gps_tracking_disabled = network['is_gps_tracking_disabled']
-                dashboard_network.is_suspend_config_update = network['is_suspend_config_update']
-                dashboard_network.is_suspend_device_reporting = network['is_suspend_device_reporting']
-                dashboard_network.is_suspend_live_status = network['is_suspend_live_status']
-                dashboard_network.is_suspend_firmware_upgrade = network['is_suspend_firmware_upgrade']
-                dashboard_network.favorite = network['favorite']
-                dashboard_network.contenthub_threshold_enabled = network.get('contenthub_threshold_enabled','')
-                dashboard_network.pepvpn_enabled = network['pepvpn_enabled']
-                dashboard_network.pepvpn_refuse_legacy = network['pepvpn_refuse_legacy']
-                dashboard_network.auto_portal_cert_update = network['auto_portal_cert_update']
-                dashboard_network.contenthub_threshold = network['contenthub_threshold']
-                dashboard_network.wan_disconnected_notify_time = network['wan_disconnected_notify_time']
-                dashboard_network.is_low_data_usage_mode = network['is_low_data_usage_mode']
+                dashboard_network.timezone = group['timezone']
+                dashboard_network.notes = group.get('notes','')
+                dashboard_network.online_device_count = group['online_device_count']
+                dashboard_network.offline_device_count = group['offline_device_count']
+                dashboard_network.client_count = group['client_count']
+                dashboard_network.country_code = group['country']
+                dashboard_network.address = group['address']
+                dashboard_network.latitude = group['latitude']
+                dashboard_network.longitude = group['longitude']
+                dashboard_network.custom_cert_perm = group['custom_cert_perm']
+                dashboard_network.is_gps_tracking_disabled = group['is_gps_tracking_disabled']
+                dashboard_network.is_suspend_config_update = group['is_suspend_config_update']
+                dashboard_network.is_suspend_device_reporting = group['is_suspend_device_reporting']
+                dashboard_network.is_suspend_live_status = group['is_suspend_live_status']
+                dashboard_network.is_suspend_firmware_upgrade = group['is_suspend_firmware_upgrade']
+                dashboard_network.favorite = group['favorite']
+                dashboard_network.contenthub_threshold_enabled = group.get('contenthub_threshold_enabled','')
+                dashboard_network.pepvpn_enabled = group['pepvpn_enabled']
+                dashboard_network.pepvpn_refuse_legacy = group['pepvpn_refuse_legacy']
+                dashboard_network.auto_portal_cert_update = group['auto_portal_cert_update']
+                dashboard_network.contenthub_threshold = group['contenthub_threshold']
+                dashboard_network.wan_disconnected_notify_time = group['wan_disconnected_notify_time']
+                dashboard_network.is_low_data_usage_mode = group['is_low_data_usage_mode']
 
                 dashboard_network.save()
 

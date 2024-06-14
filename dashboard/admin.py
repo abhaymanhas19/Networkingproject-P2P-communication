@@ -111,7 +111,7 @@ class NetworkAdmin(admin.ModelAdmin):
 
 @admin.register(dashboard_models.GroupDevice)
 class GroupDeviceAdmin(SemanticModelAdmin):
-    list_filter = ['group_name', 'name']
+    list_filter = ['group_name', 'name', 'device_type']
     list_display = ('group_name', 'name', 'sn', 'product_id')
     search_fields = ('name', 'sn', 'product_id')
 

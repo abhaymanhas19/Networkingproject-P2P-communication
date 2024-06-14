@@ -29,8 +29,8 @@
     </div>
     <div class="p-2">
         <div class="overflow-x-auto">
-            <div class="min-w-full inline-block align-middle">
-                <div class="overflow-y" style="overflow-y: scroll">
+            <div class="min-w-full inline-block align-middle flex-container">
+                <div class="table-scrollable-container">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead>
                             <tr>
@@ -49,7 +49,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
-                            {% for dev in wan_summary.dormant_devices %}
+                            {% for dev in wan_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
@@ -63,6 +63,15 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
+
+                            {% for dev in wan_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
 
 
                         </tbody>
@@ -84,8 +93,8 @@
     </div>
     <div class="p-2">
         <div class="overflow-x-auto">
-            <div class="min-w-full inline-block align-middle">
-                <div class="overflow-y" style="overflow-y: scroll">
+            <div class="min-w-full inline-block align-middle flex-container">
+                <div class="table-scrollable-container">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead>
                             <tr>
@@ -104,7 +113,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
-                            {% for dev in lan_summary.dormant_devices %}
+                            {% for dev in lan_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
@@ -120,6 +129,13 @@
                             {% endfor %}
 
 
+                            {% for dev in lan_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -138,17 +154,16 @@
             <span class="material-symbols-rounded">close</span>
         </button>
     </div>
-    <div class="p-2">
-        <div class="overflow-x-auto">
-            <div class="min-w-full inline-block align-middle">
-                <div class="overflow-y-auto">
+    <div class="p-2" style="display:flex; height:100%"> <!--content-->
+
+            <div class="min-w-full inline-block align-middle flex-container">
+                <div class="table-scrollable-container">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead>
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -160,7 +175,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
-                            {% for dev in wireless_summary.dormant_devices %}
+                            {% for dev in wireless_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
@@ -174,23 +189,26 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
-
+                            {% for dev in wireless_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
 
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
+
+    </div> <!--content-->
 </div> <!-- offcanvas -->
 
 
 
 
 <div class="grid 2xl:grid-cols-4 gap-6 mb-6">
-
-
-
         <div class="2xl:col-span-3">
             <div class="grid xl:grid-cols-4 md:grid-cols-2 gap-6 mb-6">
                 {% comment %}
@@ -219,7 +237,7 @@
                         {% for dev in wan_summary.online_devices %}
                             <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
                         {% endfor %}
-                        {% for dev in wan_summary.dormant_devices %}
+                        {% for dev in wan_summary.alerting_devices %}
                             <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
                         {% endfor %}
                         {% for dev in wan_summary.offline_devices %}
@@ -251,10 +269,22 @@
                         {% endif %}
                     </div>
                     <div class="p-2 flex space-x-2  mt-0">
-                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
-                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
-                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
-                    </div>
+                        {% for dev in lan_summary.online_devices %}
+                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in lan_summary.alerting_devices %}
+                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in lan_summary.offline_devices %}
+                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% if lan_summary.status_summary.0 == 'None' %}
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                        {% endif %}
+                    </div> <!-- content-->
                 </div> <!-- card end -->
                 <div class="card">
                     <div class="card-header flex items-center">
@@ -274,10 +304,22 @@
                         {% endif %}
                     </div>
                     <div class="p-2 flex space-x-2  mt-0">
-                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
-                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
-                        <div class="w-4 h-4 bg-gray-500" style="background-color: #64748b"></div>
-                    </div>
+                        {% for dev in wireless_summary.online_devices %}
+                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wireless_summary.alerting_devices %}
+                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wireless_summary.offline_devices %}
+                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% if wireless_summary.status_summary.0 == 'None' %}
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                        {% endif %}
+                    </div> <!-- content-->
                 </div> <!-- card end -->
 
                 <div class="card">

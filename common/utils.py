@@ -10,46 +10,41 @@ from functools import wraps
 _logger = logging.getLogger(__name__)
 
 
-def calculate_router_status(offline_devices, dormant_devices, online_devices):
-    """calculates the overall router status
-    based on the total number of offline, dormant and online devices.
-    """
-    good_color = "#228B22"
-    fair_color = "#FFD700"
-    poor_color = "#FFA500"
-    critical_color = "#FF0000"
+def calculate_device_status(offline_devices, alerting_devices, online_devices, dormant_devices):
+    total_routers = offline_devices + alerting_devices + online_devices
 
-    total_devices = offline_devices + dormant_devices + online_devices
-    if total_devices <= 0:
-        return ("None", "#808080")
-
-    # Calculate percentages (safe to divide now since total_devices > 0)
-    offline_percent = (offline_devices / total_devices) * 100
-    dormant_percent = (dormant_devices / total_devices) * 100
-    online_percent = (online_devices / total_devices) * 100
-
-    # Check for critical scenarios (all or most offline)
-    if offline_percent == 100:
+    # Handle case with no routers
+    if total_routers == 0:
+        return ("None", "#808080")  # Gray
+    if alerting_devices == 0 and offline_devices == 0  and online_devices == 0 and dormant_devices == total_routers:
+        print("----- heheh----")
         return ("Critical", "#FF0000")  # Red
-    elif offline_percent > 50 or (offline_percent > 0 and dormant_percent > 0):
+    if alerting_devices == 0 and offline_devices == 0 and total_routers == online_devices:
+        return ("Good", "#228B22")
+    # Calculate percentages (safe to divide now since total_routers > 0)
+    # Include dormant in offline
+    offline_percent = ((offline_devices) / total_routers) * 100
+    alerting_percent = (alerting_devices / total_routers) * 100
+    online_percent = (online_devices / total_routers) * 100
+
+    # Check for critical scenarios (all or most offline/dormant)
+    if offline_percent == 100 or offline_percent > 50:
         return ("Critical", "#FF0000")  # Red
 
-    # Determine if 'few' applies to offline and dormant
-    few_offline = 10 <= offline_percent <= 25
-    few_dormant = 10 <= dormant_percent <= 25
+    # Determine if 'few' applies to offline and alerting
+    few_offline = offline_percent <= 30
+    few_alerting = alerting_percent <= 30
 
     # Categorize based on percentages (matching the new table)
     if online_percent == 100:
         return ("Good", "#228B22")  # Green
     elif online_percent > 50:
-        if few_dormant:
+        if few_offline:
             return ("Good", "#228B22")  # Green
         else:
-            return ("Good", "#228B22")  # Green
-    else:
-        if few_offline:
             return ("Fair", "#FFD700")  # Yellow
-        elif few_dormant:
+    else:
+        if few_offline and few_alerting:
             return ("Fair", "#FFD700")  # Yellow
         else:
             return ("Poor", "#FFA500")  # Orange

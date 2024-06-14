@@ -1,1 +1,14 @@
 #asset-location-map { height: 350px; }
+
+.flex-container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1;
+}
+
+
+.table-scrollable-container {
+    flex: 1;
+    overflow-y: auto !important;
+    /* border: 1px solid #ccc;  */
+}
