@@ -176,6 +176,7 @@ SEMANTIC_APP_LIST = [
                    {"object_name": "GroupDevice"},
                    {"object_name": "UnifiSite"},
                    {"object_name": "UnifiDevice"},
+                   {"object_name": "DataSyncLog"}
                    ],
     },
     {

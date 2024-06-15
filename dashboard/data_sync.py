@@ -37,14 +37,15 @@ def sync_meraki_organizations():
     organizations = api.organizations.getOrganizations()
 
     for org in organizations:
-
         dashboard_org, _ = dashboard_models.Organization.objects.get_or_create(
-            name=org['name'],
             org_id=org['id'],
-            org_type='M',
-            org_url=org['url'],
-            api_enabled=org['api']['enabled']
+            org_type='M'
         )
+        dashboard_org.name = org['name']
+        dashboard_org.api_enabled = org['api']['enabled']
+        dashboard_org.org_type = 'M'
+        dashboard_org.org_url = org['url']
+        dashboard_org.save()
 
 
 def sync_peplink_networks():

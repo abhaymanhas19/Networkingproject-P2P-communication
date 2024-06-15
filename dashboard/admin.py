@@ -136,3 +136,8 @@ class UnifiDeviceAdmin(SemanticModelAdmin):
     list_filter = ('site', 'device_type', 'model')
     search_field = ('name', 'model', 'device_type', 'mac')
 
+@admin.register(dashboard_models.DataSyncLog)
+class SyslogAdmin(SemanticModelAdmin):
+    list_display = ('sync_time', 'data_type', 'result')
+    list_filter = ('result', 'data_type')
+

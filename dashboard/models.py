@@ -485,6 +485,26 @@ class MerakiDevice(models.Model):
     def __str__(self):
         return f"{self.device_name} - {self.network_id} - SN: {self.serial}"
 
+    @property
+    def sn(self):
+        return self.serial
+
+    @property
+    def name(self):
+        return self.device_name
+
+    @property
+    def status(self):
+        return self.status_text
+
+    @property
+    def latitude(self):
+        return self.lat
+
+    @property
+    def longitude(self):
+        return self.lng
+
 
 class CustomerNetwork(models.Model):
     customer = models.ForeignKey("dashboard.Customer", on_delete=models.CASCADE)
@@ -578,6 +598,16 @@ class CustomerUnifiSite(models.Model):
     def __str__(self):
         return "{} ({})".format(self.customer.name, self.site.name)
 
+
+class DataSyncLog(models.Model):
+    data_type = models.CharField(verbose_name="Data Type", max_length=255, null=True, blank=True, default='')
+    sync_date = models.DateField(verbose_name="Sync Date", auto_now=True)
+    sync_time = models.DateTimeField(verbose_name="Sync Time", auto_now=True)
+    result = models.CharField(verbose_name="Sync Result", max_length=255, null=True, blank=True, default='')
+    message = models.TextField(verbose_name="Message", null=True, blank=True, default='')
+
+    def __str__(self):
+        return f"{self.data_type} - {self.sync_time}"
 
 # class NetworkSecurityEvent(models.Model):
 #     meraki_network = models.ForeignKey("Network", on_delete=models.CASCADE)

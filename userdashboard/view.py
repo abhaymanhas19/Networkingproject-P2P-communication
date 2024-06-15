@@ -2,6 +2,7 @@
 
 import json
 from datetime import timedelta, datetime
+from itertools import chain
 
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout
@@ -27,16 +28,19 @@ from dashboard.models import (
 
 def get_customer_devices(customer_id):
 
-    customer_devices = None
+    combined_devices = []
     try:
         customer = Customer.objects.get(id=customer_id)
         # peplink_group_ids = customer.customer_peplink_groups.all().values_list('id', flat=True)
         peplink_group_ids = list(customer.customer_peplink_groups.all().values_list('group_id', flat=True))
         customer_devices = GroupDevice.objects.filter(group_id__in=peplink_group_ids)
+        # include meraki devices
+        customer_network_ids = list(customer.customernetwork_set.values_list('network__network_id', flat=True))
+        meraki_appliances =  MerakiDevice.objects.filter(networkId__in=customer_network_ids, productType='appliance')
+        combined_devices = list(chain(customer_devices, meraki_appliances))
     except Exception as e:
-        pass
-        print(f"error got: {e}")
-    return customer_devices
+        print(f"======  get_customer_devices  ====>> error got: {e}")
+    return combined_devices
 
 
 # TODO: include the Peplink Routers
@@ -50,17 +54,15 @@ def get_wan_summary(customer_id):
         network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='appliance')
         peplink_devices = []
-        # get peplink devices
+
         try:
-             print(f"========>>> GET peplink devices for customer { customer.name }")
              group_ids = list(customer.customer_peplink_groups.values_list("group_id", flat=True))
              peplink_devices = GroupDevice.objects.filter(group_id__in=group_ids)
-             print(f"========>>> got peplink devices for customer { customer.name } {len(peplink_devices)}")
         except Exception as e:
             print(f"error getting peplink routers {e}")
-            pass
 
-        wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
+
+        #wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
         offline_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
                            + [pd.status_list for pd in peplink_devices if pd.status_list and pd.status.lower()=="offline"]
                            )
@@ -197,7 +199,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         customer_id = int(current_customer.get("id", 0))
         # get customer's devices:
         devices = get_customer_devices(customer_id)
-        print(f"devices for customer { current_customer['id']}: {devices}")
+        # print(f"devices for customer { current_customer['id']}: {devices}")
+        print("==================>")
+        print(devices)
+        print("==================<")
         context["customer_devices"] = devices
         context["customer_data"] = customers
         context["user_info"] = user
