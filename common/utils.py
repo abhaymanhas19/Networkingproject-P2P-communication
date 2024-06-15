@@ -17,7 +17,6 @@ def calculate_device_status(offline_devices, alerting_devices, online_devices, d
     if total_routers == 0:
         return ("None", "#808080")  # Gray
     if alerting_devices == 0 and offline_devices == 0  and online_devices == 0 and dormant_devices == total_routers:
-        print("----- heheh----")
         return ("Critical", "#FF0000")  # Red
     if alerting_devices == 0 and offline_devices == 0 and total_routers == online_devices:
         return ("Good", "#228B22")

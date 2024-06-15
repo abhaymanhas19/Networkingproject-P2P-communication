@@ -395,6 +395,10 @@ class GroupDevice(models.Model):
         return "{} ({})".format(self.name, self.sn)
 
     @property
+    def status_list(self):
+        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.sn, "name": self.name}
+
+    @property
     def interfaces_list(self):
         """converts the stored list of interfaces into Python list"""
         from ast import literal_eval
@@ -573,3 +577,8 @@ class CustomerUnifiSite(models.Model):
 
     def __str__(self):
         return "{} ({})".format(self.customer.name, self.site.name)
+
+
+# class NetworkSecurityEvent(models.Model):
+#     meraki_network = models.ForeignKey("Network", on_delete=models.CASCADE)
+#     event = models.JSONField("Event", null=True, blank=True)

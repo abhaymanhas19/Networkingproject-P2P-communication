@@ -1,5 +1,8 @@
 # LoginRequiredMixin here
+
 import json
+from datetime import timedelta, datetime
+
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,6 +14,7 @@ from django.contrib.auth.views import LogoutView
 
 from django.utils.decorators import method_decorator
 from common.utils import calculate_device_status
+from merakiapi import helper
 
 from dashboard.models import (
     CustomerUsers,
@@ -45,11 +49,26 @@ def get_wan_summary(customer_id):
         customer = Customer.objects.get(id=customer_id)
         network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='appliance')
+        peplink_devices = []
+        # get peplink devices
+        try:
+             print(f"========>>> GET peplink devices for customer { customer.name }")
+             group_ids = list(customer.customer_peplink_groups.values_list("group_id", flat=True))
+             peplink_devices = GroupDevice.objects.filter(group_id__in=group_ids)
+             print(f"========>>> got peplink devices for customer { customer.name } {len(peplink_devices)}")
+        except Exception as e:
+            print(f"error getting peplink routers {e}")
+            pass
 
         wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
-        offline_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
+        offline_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
+                           + [pd.status_list for pd in peplink_devices if pd.status_list and pd.status.lower()=="offline"]
+                           )
+
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
-        online_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+        online_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+                          + [pd.status_list for pd in peplink_devices if pd.status_list and pd.status.lower()=="online"]
+                          )
         alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
         # total_devices = len(wan_status_summary)
 
@@ -145,14 +164,13 @@ def get_wireless_summary(customer_id):
 
 
 def get_threats_summary(customer_id):
-
-    summary = {}
+    summary = {"total": 0, "data":[]}
     try:
-        customer = Customer.objects.get(id=customer_id)
-        network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
-
+        mera = helper.Meraki()
+        summary = mera.get_network_events_for_customer(customer_id)
     except:
         pass
+    return summary
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -186,6 +204,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["wan_summary"] = get_wan_summary(customer_id)
         context["lan_summary"] = get_lan_summary(customer_id)
         context["wireless_summary"] = get_wireless_summary(customer_id)
+        context["threats_summary"] = get_threats_summary(customer_id)
         return context
 
 

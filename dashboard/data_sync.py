@@ -52,8 +52,7 @@ def sync_peplink_networks():
 
     api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
     organizations = api.get_organizations()
-    # print(len(organizations))
-    # print(organizations)
+
     for org in organizations:
         # if not org.api_enabled:
         #      continue
