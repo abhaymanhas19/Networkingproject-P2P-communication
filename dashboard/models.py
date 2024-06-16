@@ -585,6 +585,27 @@ class UnifiDevice(models.Model):
     def __str__(self):
         return f"{self.name} - {self.mac}"
 
+    @property
+    def status(self):
+        STATUS = {0: "offline", 1: "online"}
+        return STATUS[self.state]
+
+    @property
+    def model(self):
+        return ""
+
+    @property
+    def latitude(self):
+        return None
+
+    @property
+    def longitude(self):
+        return None
+
+    @property
+    def status_list(self):
+        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.mac, "name": self.name}
+
 
 class CustomerUnifiSite(models.Model):
 
@@ -607,7 +628,7 @@ class DataSyncLog(models.Model):
     message = models.TextField(verbose_name="Message", null=True, blank=True, default='')
 
     def __str__(self):
-        return f"{self.data_type} - {self.sync_time}"
+        return f"{self.data_type} - {self.sync_time} - {self.result}"
 
 # class NetworkSecurityEvent(models.Model):
 #     meraki_network = models.ForeignKey("Network", on_delete=models.CASCADE)

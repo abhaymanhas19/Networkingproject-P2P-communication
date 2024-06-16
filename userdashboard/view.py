@@ -21,7 +21,8 @@ from dashboard.models import (
     CustomerUsers,
     Customer,
     GroupDevice,
-    MerakiDevice
+    MerakiDevice,
+    UnifiDevice
 )
 
 
@@ -54,6 +55,7 @@ def get_wan_summary(customer_id):
         network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='appliance')
         peplink_devices = []
+        unifi_routers = []
 
         try:
              group_ids = list(customer.customer_peplink_groups.values_list("group_id", flat=True))
@@ -61,15 +63,28 @@ def get_wan_summary(customer_id):
         except Exception as e:
             print(f"error getting peplink routers {e}")
 
+        # get Unifi routers
+        try:
+            unifi_site_ids = list(customer.customerunifisite_set.all().values_list("site__id", flat=True))
+            print(f"================= got {unifi_site_ids} unifi site_ids")
+            unifi_routers = UnifiDevice.objects.filter(site__in=unifi_site_ids, device_type__in=['ugw', 'udm','uxg'])
+            #  group_ids = list(customer.customer_peplink_groups.values_list("group_id", flat=True))
+            #  peplink_devices = GroupDevice.objects.filter(group_id__in=group_ids)
+            print(f"================= got {len(unifi_routers)} unifi routers")
+        except Exception as e:
+            print(f"error getting unifi routers {e}")
+
 
         #wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
         offline_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
                            + [pd.status_list for pd in peplink_devices if pd.status_list and pd.status.lower()=="offline"]
+                           + [ud.status_list for ud in unifi_routers if ud.status_list and ud.status.lower()=="offline"]
                            )
 
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
         online_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
                           + [pd.status_list for pd in peplink_devices if pd.status_list and pd.status.lower()=="online"]
+                          + [ud.status_list for ud in unifi_routers if ud.status_list and ud.status.lower()=="online"]
                           )
         alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
         # total_devices = len(wan_status_summary)
@@ -101,14 +116,22 @@ def get_lan_summary(customer_id):
         customer = Customer.objects.get(id=customer_id)
         network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='switch')
+        unifi_devices = []
+        try:
+            unifi_site_ids = list(customer.customerunifisite_set.all().values_list("site__id", flat=True))
+            unifi_devices = UnifiDevice.objects.filter(site__in=unifi_site_ids, device_type='usw')
+        except Exception as e:
+            print(f"error getting unifi switches {e}")
 
-        lan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
-        offline_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
+        offline_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
+                           + [ud.status_list for ud in unifi_devices if ud.status_list and ud.status.lower()=="offline"])
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
-        online_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+
+        online_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+                           + [ud.status_list for ud in unifi_devices if ud.status_list and ud.status=="online"])
+
         alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
 
-        total_devices = len(lan_status_summary)
 
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
@@ -139,14 +162,20 @@ def get_wireless_summary(customer_id):
         customer = Customer.objects.get(id=customer_id)
         network_ids = list(customer.customernetwork_set.all().values_list('network', flat=True))
         meraki_appliances =  MerakiDevice.objects.filter(network_id__in=network_ids, productType='wireless')
+        # include unifi uaps
+        unifi_devices = []
+        try:
+            unifi_site_ids = list(customer.customerunifisite_set.all().values_list("site__id", flat=True))
+            unifi_devices = UnifiDevice.objects.filter(site__in=unifi_site_ids, device_type='uap')
+        except Exception as e:
+            print(f"error getting unifi APs {e}")
 
-        wan_status_summary = [ma.status_list[0] for ma in meraki_appliances if ma.status_list]
-        offline_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
+        offline_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="offline"]
+                           + [ud.status_list for ud in unifi_devices if ud.status_list and ud.status.lower()=="offline"])
         dormant_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="dormant"]
-        online_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+        online_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
+                          + [ud.status_list for ud in unifi_devices if ud.status_list and ud.status.lower()=="online"])
         alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
-
-        total_devices = len(wan_status_summary)
 
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
