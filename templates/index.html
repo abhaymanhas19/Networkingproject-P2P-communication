@@ -8,6 +8,13 @@
 {% include "partials/head-css.html" %}
 
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<!-- Add Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<!-- Add MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+
 {% endblock extra_css %}
 
 {% block pagetitle %}
@@ -421,6 +428,10 @@
     {% endblock content %}
 
 {% block extra_js %}
+    <!-- Add Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Add MarkerCluster JavaScript -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <!-- Apexcharts js -->
     <script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script>
 
@@ -428,24 +439,36 @@
     <script src="{% static 'js/pages/dashboard.js' %}"></script>
 
     <script>
-            var asset_markers = [];
-            $(document).ready(function() {
-                var map = L.map('asset-location-map').setView([0, 0], 2);
-                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                }).addTo(map);
+        var asset_markers = [];
+        $(document).ready(function() {
+            var map = L.map('asset-location-map').setView([0, 0], 2);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
 
-                {% if customer_devices %}
-                    {% for dev in customer_devices %}
-                        var marker{{ forloop.counter }} = L.marker([{{ dev.latitude }}, {{ dev.longitude }}]).addTo(map);
-                        marker{{ forloop.counter }}.bindPopup("<b>{{dev.name}}</b><br><p>S/N: {{ dev.sn }}</p><p>{{ dev.status }}</p>").openPopup();
-                        asset_markers.push(marker{{ forloop.counter }});  // Add each marker to the markers array
-                    {% endfor %}
-                {% endif %}
+            var markers = L.markerClusterGroup();
 
-            });
+            var icons = {
+                online: L.icon({ iconUrl: '{% static 'images/green-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+                offline: L.icon({ iconUrl:'{% static 'images/red-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+                alerting: L.icon({ iconUrl: '{% static 'images/orange-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+                dormant: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] })
+            };
 
+            {% if customer_devices %}
+                {% for dev in customer_devices %}
+                    var icon = icons['{{ dev.status|lower }}'];  // Get the appropriate icon based on status
+                    var marker = L.marker([{{ dev.latitude }}, {{ dev.longitude }}], { icon: icon })
+                        .bindPopup("<b>{{ dev.name }}</b><br><p>S/N: {{ dev.sn }}</p><p>{{ dev.status }}</p>");
+                    markers.addLayer(marker);
+                    asset_markers.push(marker);
+                {% endfor %}
+            {% endif %}
+
+            // Add the marker cluster group to the map
+            map.addLayer(markers);
+        });
     </script>
 {% endblock extra_js %}
 
