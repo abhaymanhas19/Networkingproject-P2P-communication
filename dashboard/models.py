@@ -395,8 +395,12 @@ class GroupDevice(models.Model):
         return "{} ({})".format(self.name, self.sn)
 
     @property
+    def serial(self):
+        return self.sn
+
+    @property
     def status_list(self):
-        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.sn, "name": self.name}
+        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.serial, "name": self.name}
 
     @property
     def interfaces_list(self):
@@ -586,6 +590,14 @@ class UnifiDevice(models.Model):
         return f"{self.name} - {self.mac}"
 
     @property
+    def sn(self):
+        return self.mac
+
+    @property
+    def serial(self):
+        return self.mac
+
+    @property
     def status(self):
         STATUS = {0: "offline", 1: "online"}
         return STATUS[self.state]
@@ -604,7 +616,7 @@ class UnifiDevice(models.Model):
 
     @property
     def status_list(self):
-        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.mac, "name": self.name}
+        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.serial, "name": self.name}
 
 
 class CustomerUnifiSite(models.Model):
