@@ -73,7 +73,7 @@ class OrganizationsInline(SemanticStackedInline):
     extra = 1
     autocomplete_fields = ['customer']
 
-class CustomerNetworksInline(SemanticTabularInline):
+class CustomerNetworksInline(SemanticStackedInline):
 # class CustomerNetworksInline(admin.StackedInline):
     model = dashboard_models.CustomerNetwork
     extra = 1
