@@ -400,7 +400,11 @@ class GroupDevice(models.Model):
 
     @property
     def status_list(self):
-        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.serial, "name": self.name}
+        return {"model": self.product_name,
+                "status": self.status,
+                "status_text": self.status,
+                "serial": self.serial,
+                "name": self.name}
 
     @property
     def interfaces_list(self):
@@ -571,14 +575,12 @@ class UnifiSite(models.Model):
 class UnifiDevice(models.Model):
 
     name = models.CharField("Device Name", max_length=255)
-#     _id = models.CharField("Device ID", max_length=255)
     mac = models.CharField("MAC", max_length=255)
     model = models.CharField("Model", max_length=255)
     device_type = models.CharField("Type", max_length=255)
     state = models.IntegerField("State", null=True, blank=True)
     in_gateway_mode = models.BooleanField("In Gateway Mode", null=True, blank=True)
     disabled = models.BooleanField("Disabled", null=True, blank=True)
-
     site = models.ForeignKey("UnifiSite", on_delete=models.CASCADE, null=True, blank=True, default=None)
 
     class Meta:
@@ -603,10 +605,6 @@ class UnifiDevice(models.Model):
         return STATUS[self.state]
 
     @property
-    def model(self):
-        return ""
-
-    @property
     def latitude(self):
         return None
 
@@ -616,7 +614,11 @@ class UnifiDevice(models.Model):
 
     @property
     def status_list(self):
-        return {"model": "", "status": self.status, "status_text": self.status, "serial": self.serial, "name": self.name}
+        return {"model": self.model,
+                "status": self.status,
+                "status_text": self.status,
+                "serial": self.serial,
+                "name": self.name}
 
 
 class CustomerUnifiSite(models.Model):
@@ -645,3 +647,49 @@ class DataSyncLog(models.Model):
 # class NetworkSecurityEvent(models.Model):
 #     meraki_network = models.ForeignKey("Network", on_delete=models.CASCADE)
 #     event = models.JSONField("Event", null=True, blank=True)
+
+
+class DeviceStatus(models.Model):
+    ROUTER_STATUS_CHOICES = (
+        ('online', 'Online'),
+        ('offline', 'Offline'),
+        ('alerting', 'Alerting'),
+        ('dormant', 'Dormant'),
+    )
+    ROUTER_TYPE_CHOICES = (
+        ('M', 'Meraki'),
+        ('P', 'Peplink'),
+        ('U', 'Ubiquiti'),
+    )
+    customer = models.ForeignKey("Customer", on_delete=models.CASCADE)
+    device_name = models.CharField("Device Name", max_length=255, null=True, blank=True, default="")
+    device_type = models.CharField("Device Type", max_length=1, choices=ROUTER_TYPE_CHOICES, default='M')
+    status = models.CharField("Status", max_length=50, choices=ROUTER_STATUS_CHOICES, default='offline')
+    as_of_time = models.DateTimeField("As Of Time", auto_now_add=True)
+    network_id = models.CharField(max_length=255, null=True, blank=True, default='')
+    serial = models.CharField(max_length=255, null=True, blank=True, default='')
+    product_type = models.CharField(max_length=255, null=True, blank=True, default='')
+    model = models.CharField(max_length=255, null=True, blank=True, default='')
+    mac = models.CharField(max_length=255, null=True, blank=True, default='')
+    last_reported_at = models.DateTimeField("Last Reported At", null=True, blank=True, default=None)
+    latitude = models.DecimalField("Latitude", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
+    longitude = models.DecimalField("Longitude", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
+
+    class Meta:
+        verbose_name = "Device Status"
+        verbose_name_plural = "Device Statuses"
+
+    def __str__(self):
+        return f"{self.device_name} - {self.status} : [{self.as_of_time}]"
+
+    @property
+    def status_list(self):
+        """
+        A property function that returns a dictionary containing various status-related attributes.
+        NOTE: this is just for compatibility with some existing template code
+        """
+        return {"model": self.model,
+                "status": self.status,
+                "status_text": self.status,
+                "serial": self.serial,
+                "name": self.device_name}

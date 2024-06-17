@@ -92,7 +92,7 @@ class Meraki(object):
         try:
             customer = dm.Customer.objects.get(id=customer_id)
             customer_networks = customer.customernetwork_set.all()
-            print(f"total networks: { len(customer_networks) }")
+
             for cn in customer_networks:
                 network_data = {}
                 network_data["network_id"] = cn.network.network_id

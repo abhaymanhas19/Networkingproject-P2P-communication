@@ -1,6 +1,9 @@
 import json
 import logging
+import pytz
+
 from dateutil import parser
+from datetime import datetime, timedelta
 from dashboard import models as dashboard_models
 
 from incontrol.client import API as PeplinkAPI
@@ -382,6 +385,237 @@ def sync_unifi_devices():
             unifi_device.site = site
             unifi_device.save()
 
+
+
+def sync_meraki_device_statuses():
+    """
+    A function that syncs Meraki device statuses with the dashboard Networks.
+    It retrieves organizations, filters out API-disabled ones, fetches device statuses,
+    iterates over networks and devices, creates device status records in the database,
+    and deletes old device status records based on a data retention period.
+    """
+
+
+    api = MerakiAPI(
+        api_key=settings.MERAKI_API_KEY,
+        base_url=settings.MERAKI_BASE_URL,
+        output_log=False
+    )
+
+    organizations = api.organizations.getOrganizations()
+    fetch_time = datetime.now(tz=pytz.utc)
+    for org in organizations:
+        # skip API-disabled organizations
+        if not org['api'].get('enabled', True):
+             continue
+
+        organization = dashboard_models.Organization.objects.filter(org_id=org['id']).first()
+        # get the customer associated with the organization
+        customer =  organization.customer_set.all().first()
+
+        # skip orgs that are not currently related to a customer
+        if not customer:
+            continue
+
+        try:
+            networks = api.organizations.getOrganizationNetworks(org['id'])
+        except Exception as e:
+            _logger.warn(f"Skipping syncing Meraki Devices due to API error: {e}")
+            continue
+
+        # get Organization's device statuses
+        device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'])
+
+        for network in networks:
+            devices = api.networks.getNetworkDevices(network['id'])
+            # import pdb; pdb.set_trace()
+            for device in devices:
+                # find the device status from the statuses listpyt
+                device_status = [ ds for ds in device_statuses if ds['serial'] == device['serial'] ]
+                if not device_status:
+                    continue
+
+                device_status = device_status[0]
+                # print("================================================================")
+                # print(device_status)
+                # print("================================================================")
+
+                last_reported_at = None
+                try:
+                    date_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+                    last_reported_at = datetime.strptime(device_status.get('lastReportedAt', ''), date_format)
+                except:
+                    pass
+
+                try:
+                    # print("===================== D E V I C E ===========================================")
+                    # print (device)
+                    # print("================================================================")
+
+                    wan_status = dashboard_models.DeviceStatus.objects.create(
+                        customer=customer,
+                        device_name=device.get('name', ''),
+                        device_type='M',
+                        status=device_status.get('status', ''),
+                        network_id=device_status.get('networkId', ''),
+                        serial=device_status.get('serial', ''),
+                        product_type=device_status.get('productType', ''),
+                        model=device_status.get('model',''),
+                        mac=device_status.get('mac',''),
+                        last_reported_at=last_reported_at,
+                        as_of_time=fetch_time,
+                        latitude=device.get('lat', None),
+                        longitude=device.get('lng', None)
+                    )
+                except Exception as e:
+                     _logger.warn(f"Device Status Not Created: {e}")
+    try:
+        dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
+    except Exception as e:
+        _logger.warn(f"Device Status Not Deleted: {e}")
+
+
+
+def sync_peplink_device_statuses():
+    """
+    A function that syncs peplink device statuses with the dashboard Networks.
+    It retrieves organizations, filters out API-disabled ones, fetches device statuses,
+    iterates over networks and devices, creates device status records in the database,
+    and deletes old device status records based on a data retention period.
+    """
+
+    api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
+
+    if not api:
+        _logger.warn("Skipping InControl Devices syncing due to previous ERROR.")
+        return
+    # if not organization_id:
+    organization_id = api._org_id
+    group_id = None
+    group_devices = api.get_group_devices(organization_id=organization_id, group_id=group_id)
+
+    fetch_time = datetime.now(tz=pytz.utc)
+
+    for devices in group_devices:
+        if not devices is None:
+            continue
+
+        dev = devices[0]
+        customer = None
+        try:
+            customer_qset = dashboard_models.CustomerPeplinkGroup.objects.filter(group__group_id=dev['group_id']).first()
+            if not customer_qset:
+                print(f"customer not found for Peplink Group id={dev['group_id']}")
+                continue
+            customer = customer_qset.customer
+        except Exception as e:
+            print(f"got error: {e}")
+            continue
+
+        for device in devices:
+            device_loc = api.get_device_location(organization_id, device.get("group_id"), device.get("id"))
+            latitude = None
+            longitude = None
+
+            if device_loc:
+                latitude = device_loc.get("latitude", None)
+                longitude = device_loc.get("longitude", None)
+
+            last_reported_at = None
+            try:
+                # get the last report timestamp
+                # by comparing the device's 'last_online' and 'offline_at'
+                last_online_time = datetime.fromisoformat(device.get('last_online', ''))
+                offline_at = datetime.fromisoformat(device.get('offline_at', ''))
+                if last_online_time > offline_at:
+                    last_reported_at = last_online_time
+                else:
+                    last_reported_at = offline_at
+            except:
+                pass
+
+            try:
+                wan_status = dashboard_models.DeviceStatus.objects.create(
+                    customer=customer,
+                    device_name=device.get('name', ''),
+                    device_type='P',
+                    status=device.get('status', ''),
+                    network_id=device.get('group_id', ''),
+                    serial=device.get('sn', ''),
+                    product_type=device.get('product_type', ''),
+                    model=device.get('model',''),
+                    # mac=device.get('mac',''),
+                    last_reported_at=last_reported_at,
+                    as_of_time=fetch_time,
+                    latitude=latitude,
+                    longitude=longitude,
+                )
+            except Exception as e:
+                    _logger.warn(f"Device Status Not Created: {e}")
+    try:
+        dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
+    except Exception as e:
+        _logger.warn(f"Device Status Not Deleted: {e}")
+
+
+def sync_unifi_device_statuses():
+
+    controller = UnifiCtrl(endpoint=settings.UNIFI_ENDPOINT_URL,
+                           username=settings.UNIFI_USERNAME,
+                           password=settings.UNIFI_PASSWORD,
+                           verify=False)
+
+    customer_sites = dashboard_models.CustomerUnifiSite.objects.all()
+
+    fetch_time = datetime.now(tz=pytz.utc)
+
+    STATUS = {
+        0: "offline",
+        1: "online"
+    }
+
+    for customer_site in customer_sites:
+        customer = customer_site.customer
+        site = customer_site.site
+
+        devices = controller.get(f"/api/s/{site.name}/stat/device-basic")
+        for device in devices:
+            try:
+                device_status = dashboard_models.DeviceStatus.objects.create(
+                    customer=customer,
+                    device_name=device.get('name', ''),
+                    device_type='U',
+                    status=STATUS[device.get('state', 0)],
+                    network_id=site._id,
+                    serial=device.get('mac', ''),
+                    product_type=device.get('type', ''),
+                    model=device.get('model',''),
+                    last_reported_at=fetch_time,
+                    as_of_time=fetch_time,
+                    latitude=None,
+                    longitude=None,
+                )
+            except Exception as e:
+                    _logger.warn(f"Device Status Not Created: {e}")
+    try:
+        dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
+    except Exception as e:
+        _logger.warn(f"Device Status Not Deleted: {e}")
+
+
+
+            # unifi_device, _ = dashboard_models.UnifiDevice.objects.get_or_create(
+            #     name=device.get('name', ''),
+            #     mac=device['mac']
+            # )
+            # unifi_device.model=device['model']
+            # unifi_device.device_type=device['type']
+            # unifi_device.state=device['state']
+            # # import pdb;pdb.set_trace()
+            # unifi_device.in_gateway_mode=device['in_gateway_mode']
+            # unifi_device.disabled=device['disabled']
+
+            # unifi_device.site = site
 
 def sync_all_data():
 

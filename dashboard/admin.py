@@ -141,3 +141,15 @@ class SyslogAdmin(SemanticModelAdmin):
     list_display = ('sync_time', 'data_type', 'result')
     list_filter = ('result', 'data_type')
 
+@admin.register(dashboard_models.DeviceStatus)
+class DeviceStatusAdmin(SemanticModelAdmin):
+    list_display = ('customer', 'device_name', 'device_type', 'product_type', 'status', 'as_of_time')
+    list_filter = ('status', 'customer', 'device_type', 'product_type', 'network_id', 'product_type')
+    search_fields = ('serial', 'product_type', 'network_id', 'product_type')
+
+
+# network_id =
+# serial = mod
+# product_type
+# model = mode
+# mac = models
