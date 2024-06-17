@@ -38,15 +38,16 @@ class ProfileInline(SemanticStackedInline):  # Or admin.TabularInline
     verbose_name_plural = 'profile'
 
 
-class MerakiNetworkDeviceInline(SemanticTabularInline):
+class MerakiNetworkDeviceInline(SemanticStackedInline):
     model = dashboard_models.MerakiNetworkDevice
     #readonly_fields = [field.name for field in YourInlineModel._meta.get_fields()]
     extra = 1
 
-class UnifiSiteInline(SemanticTabularInline):
+class UnifiSiteInline(SemanticStackedInline):
     model = dashboard_models.CustomerUnifiSite
     extra = 1
     autocomplete_fields = ['site']
+    can_delete = True
 
 
 class UserAdmin(BaseUserAdmin):
@@ -61,20 +62,23 @@ admin.site.unregister(auth_models.User)
 admin.site.register(auth_models.User, UserAdmin)
 
 
-class CustomerUsersInline(SemanticTabularInline):
+class CustomerUsersInline(SemanticStackedInline):
     model = dashboard_models.CustomerUsers
     extra = 1
     autocomplete_fields = ['user']
 
-class OrganizationsInline(SemanticTabularInline):
+class OrganizationsInline(SemanticStackedInline):
     model = dashboard_models.CustomerOrganization
+    can_delete = True
     extra = 1
     autocomplete_fields = ['customer']
 
 class CustomerNetworksInline(SemanticTabularInline):
+# class CustomerNetworksInline(admin.StackedInline):
     model = dashboard_models.CustomerNetwork
     extra = 1
     autocomplete_fields = ['network']
+    can_delete = True
 
 @admin.register(dashboard_models.PeplinkGroup)
 class PeplinkGroupAdmin(SemanticModelAdmin):
@@ -82,7 +86,7 @@ class PeplinkGroupAdmin(SemanticModelAdmin):
     search_fields = ('name', 'org_id', 'group_id')
     # inlines = [OrganizationsInline, CustomerUsersInline]
 
-class PeplinkGroupsInline(SemanticTabularInline):
+class PeplinkGroupsInline(SemanticStackedInline):
     model = dashboard_models.CustomerPeplinkGroup
     autocomplete_fields = ['group']
     extra = 1
@@ -94,6 +98,7 @@ class CustomerAdmin(SemanticModelAdmin):
     # list_filter = ('org_type', 'api_enabled')
     search_fields = ('name', 'contact_person', 'contact_email', 'primary_contact_no', 'secondary_contact_no')
     inlines = [OrganizationsInline, CustomerNetworksInline, PeplinkGroupsInline, UnifiSiteInline, CustomerUsersInline]
+    can_delete = True
 
 
 @admin.register(dashboard_models.Organization)
@@ -114,7 +119,6 @@ class GroupDeviceAdmin(SemanticModelAdmin):
     list_filter = ['group_name', 'name', 'device_type']
     list_display = ('group_name', 'name', 'sn', 'product_id')
     search_fields = ('name', 'sn', 'product_id')
-
 
 
 @admin.register(dashboard_models.MerakiDevice)

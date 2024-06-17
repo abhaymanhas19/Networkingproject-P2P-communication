@@ -4,6 +4,8 @@ import json
 from datetime import timedelta, datetime
 from itertools import chain
 
+from django.db.models import Max, F
+
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -22,7 +24,8 @@ from dashboard.models import (
     Customer,
     GroupDevice,
     MerakiDevice,
-    UnifiDevice
+    UnifiDevice,
+    DeviceStatus
 )
 
 
@@ -105,6 +108,100 @@ def get_wan_summary(customer_id):
         print(f"error got: {e}")
 
     return summary
+
+def get_wan_summary2(customer_id):
+    """get WAN summary from the database
+    this assumes that the device records and synced at closed intervals
+    """
+    summary = {}
+    try:
+        customer = Customer.objects.get(id=customer_id)
+        latest_device_statuses = (
+            DeviceStatus.objects
+            .filter(
+                customer_id=customer_id,
+                product_type__in=['appliance', 'ugw', 'udm', 'uxg']
+            )
+            .values('device_name', 'status','model', 'serial')
+            .annotate(as_of_time=Max('as_of_time'))
+            .filter(as_of_time=F('as_of_time'))
+        )
+        print("======================latest_device_statuses==========================")
+        print(f"{latest_device_statuses}")
+        print("======================GETTING LIST==========================")
+
+        offline_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="offline"]
+        dormant_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="dormant"]
+        online_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="online"]
+        alerting_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="alerting"]
+
+        print(f"======================GETTING LIST END ==========================")
+
+        total_online = len(online_devices)
+        total_dormant = len(dormant_devices)
+        total_offline = len(offline_devices)
+        total_alerting = len(alerting_devices)
+
+        print("======================COUND STATUSES ==========================")
+        status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
+
+        summary["status_summary"] = status_summary
+        summary["online_devices"] = online_devices
+        summary["dormant_devices"] = dormant_devices
+        summary["offline_devices"] = offline_devices
+    except Exception as e:
+        pass
+        print(f"error got: {e}")
+
+    return summary
+
+
+def get_lan_summary2(customer_id):
+    """get LAN summary from the database
+    this assumes that the device records and synced at closed intervals
+    """
+    summary = {}
+    try:
+        customer = Customer.objects.get(id=customer_id)
+        latest_device_statuses = (
+            DeviceStatus.objects
+            .filter(
+                customer_id=customer_id,
+                product_type__in=['switch', 'usw']
+            )
+            .values('device_name', 'status','model', 'serial')
+            .annotate(as_of_time=Max('as_of_time'))
+            .filter(as_of_time=F('as_of_time'))
+        )
+        print("======================latest_device_statuses==========================")
+        print(f"{latest_device_statuses}")
+        print("======================GETTING LIST==========================")
+
+        offline_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="offline"]
+        dormant_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="dormant"]
+        online_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="online"]
+        alerting_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="alerting"]
+
+        print(f"======================GETTING LIST END ==========================")
+
+        total_online = len(online_devices)
+        total_dormant = len(dormant_devices)
+        total_offline = len(offline_devices)
+        total_alerting = len(alerting_devices)
+
+        print("======================COUND STATUSES ==========================")
+        status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
+
+        summary["status_summary"] = status_summary
+        summary["online_devices"] = online_devices
+        summary["dormant_devices"] = dormant_devices
+        summary["offline_devices"] = offline_devices
+    except Exception as e:
+        pass
+        print(f"error got: {e}")
+
+    return summary
+
 
 #TODO: include the Peplink /Devices
 def get_lan_summary(customer_id):
@@ -194,6 +291,53 @@ def get_wireless_summary(customer_id):
     return summary
 
 
+def get_wireless_summary2(customer_id):
+    """get wireless summary from the database
+    this assumes that the device records and synced at closed intervals
+    """
+    summary = {}
+    try:
+        customer = Customer.objects.get(id=customer_id)
+        latest_device_statuses = (
+            DeviceStatus.objects
+            .filter(
+                customer_id=customer_id,
+                product_type__in=['uap', 'wireless']
+            )
+            .values('device_name', 'status','model', 'serial')
+            .annotate(as_of_time=Max('as_of_time'))
+            .filter(as_of_time=F('as_of_time'))
+        )
+        print("======================latest_device_statuses==========================")
+        print(f"{latest_device_statuses}")
+        print("======================GETTING LIST==========================")
+
+        offline_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="offline"]
+        dormant_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="dormant"]
+        online_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="online"]
+        alerting_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="alerting"]
+
+        print(f"======================GETTING LIST END ==========================")
+
+        total_online = len(online_devices)
+        total_dormant = len(dormant_devices)
+        total_offline = len(offline_devices)
+        total_alerting = len(alerting_devices)
+
+        print("======================COUND STATUSES ==========================")
+        status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
+
+        summary["status_summary"] = status_summary
+        summary["online_devices"] = online_devices
+        summary["dormant_devices"] = dormant_devices
+        summary["offline_devices"] = offline_devices
+    except Exception as e:
+        pass
+        print(f"error got: {e}")
+
+    return summary
+
+
 def get_threats_summary(customer_id):
     summary = {"total": 0, "data":[]}
     try:
@@ -235,9 +379,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["customer_devices"] = devices
         context["customer_data"] = customers
         context["user_info"] = user
-        context["wan_summary"] = get_wan_summary(customer_id)
-        context["lan_summary"] = get_lan_summary(customer_id)
-        context["wireless_summary"] = get_wireless_summary(customer_id)
+        context["wan_summary"] = get_wan_summary2(customer_id)
+        context["lan_summary"] = get_lan_summary2(customer_id)
+        context["wireless_summary"] = get_wireless_summary2(customer_id)
         context["threats_summary"] = get_threats_summary(customer_id)
         return context
 

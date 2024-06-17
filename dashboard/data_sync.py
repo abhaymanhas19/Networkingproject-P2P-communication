@@ -367,10 +367,17 @@ def sync_unifi_devices():
     for site in sites:
         # get devices
         devices = controller.get(f"/api/s/{site.name}/stat/device-basic")
-
-        # import pdb; pdb.set_trace()
+        devices_full = controller.get(f"/api/s/{site.name}/stat/device")
+        # https://13.92.211.202:8443/api/s/niowoodv/stat/device
 
         for device in devices:
+            dvc = {}
+            try:
+                dvc_info = [info for info in devices_full if info['mac'] == device.get('mac','') ]
+                dvc = dvc_info[0]
+            except Exception as e:
+                pass
+
             unifi_device, _ = dashboard_models.UnifiDevice.objects.get_or_create(
                 name=device.get('name', ''),
                 mac=device['mac']
@@ -381,7 +388,7 @@ def sync_unifi_devices():
             # import pdb;pdb.set_trace()
             unifi_device.in_gateway_mode=device['in_gateway_mode']
             unifi_device.disabled=device['disabled']
-
+            unifi_device.serial=dvc.get('serial','')
             unifi_device.site = site
             unifi_device.save()
 
@@ -579,15 +586,24 @@ def sync_unifi_device_statuses():
         site = customer_site.site
 
         devices = controller.get(f"/api/s/{site.name}/stat/device-basic")
+        devices_full = controller.get(f"/api/s/{site.name}/stat/device-basic")
         for device in devices:
             try:
+                # find the matching mac in devices_full
+                dvc = {}
+                try:
+                    dvc_info = [info for info in devices_full if info['mac'] == device.get('mac','') ]
+                    dvc = dvc_info[0]
+                except Exception as e:
+                    pass
                 device_status = dashboard_models.DeviceStatus.objects.create(
                     customer=customer,
                     device_name=device.get('name', ''),
                     device_type='U',
                     status=STATUS[device.get('state', 0)],
                     network_id=site._id,
-                    serial=device.get('mac', ''),
+                    serial=dvc.get('serial', ''),
+                    mac=device.get('mac',''),
                     product_type=device.get('type', ''),
                     model=device.get('model',''),
                     last_reported_at=fetch_time,

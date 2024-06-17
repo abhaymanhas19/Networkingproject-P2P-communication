@@ -582,6 +582,7 @@ class UnifiDevice(models.Model):
     in_gateway_mode = models.BooleanField("In Gateway Mode", null=True, blank=True)
     disabled = models.BooleanField("Disabled", null=True, blank=True)
     site = models.ForeignKey("UnifiSite", on_delete=models.CASCADE, null=True, blank=True, default=None)
+    serial = models.CharField("Serial", null=True, blank=True, max_length=255, default='')
 
     class Meta:
         verbose_name = "Unifi Device"
@@ -593,11 +594,7 @@ class UnifiDevice(models.Model):
 
     @property
     def sn(self):
-        return self.mac
-
-    @property
-    def serial(self):
-        return self.mac
+        return self.serial
 
     @property
     def status(self):
