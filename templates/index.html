@@ -492,7 +492,7 @@
                 type: 'bar',
                 data: [],
                 options: {
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             stacked: true
@@ -526,6 +526,7 @@
                     },
                     success: function(data) {
                         historyChart.data = data;
+
                         historyChart.update();
                         //var ctx = document.getElementById('deviceStatusChart').getContext('2d');
                         {% comment %} var myChart = new Chart(ctx, {
