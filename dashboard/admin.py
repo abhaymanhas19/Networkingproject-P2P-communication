@@ -1,5 +1,7 @@
 
+from django import forms
 from django.contrib import admin
+from django.db import models
 from django.contrib.auth import models as auth_models
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
@@ -73,12 +75,24 @@ class OrganizationsInline(SemanticStackedInline):
     extra = 1
     autocomplete_fields = ['customer']
 
+
+class CustomNetworkAutocomplete(forms.ModelChoiceField):
+    queryset = dashboard_models.Network.objects.all()
+    widget = forms.Select
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+
 class CustomerNetworksInline(SemanticStackedInline):
 # class CustomerNetworksInline(admin.StackedInline):
     model = dashboard_models.CustomerNetwork
     extra = 1
-    autocomplete_fields = ['network']
     can_delete = True
+    formfield_overrides = {
+        models.ForeignKey: {'widget': CustomNetworkAutocomplete}
+    }
+
 
 @admin.register(dashboard_models.PeplinkGroup)
 class PeplinkGroupAdmin(SemanticModelAdmin):
@@ -151,9 +165,3 @@ class DeviceStatusAdmin(SemanticModelAdmin):
     list_filter = ('status', 'customer', 'device_type', 'product_type', 'network_id', 'product_type')
     search_fields = ('serial', 'product_type', 'network_id', 'product_type')
 
-
-# network_id =
-# serial = mod
-# product_type
-# model = mode
-# mac = models

@@ -1,6 +1,16 @@
 import logging
 import json
-from django.db import models
+
+import pandas as pd
+import pytz
+
+from datetime import datetime, timedelta
+
+from django.db import models, connection
+from django.db.models import Count, Avg
+from django.db.models.functions import TruncHour
+
+
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
 from django.utils.translation import gettext as _
@@ -690,3 +700,147 @@ class DeviceStatus(models.Model):
                 "status_text": self.status,
                 "serial": self.serial,
                 "name": self.device_name}
+    @classmethod
+    def get_wan_history_json(cls, customer_id, period='hour', start_date=None, end_date=None):
+
+        if not end_date:
+            # default to current time
+            end_date = datetime.now(tz=pytz.utc)
+        if not start_date:
+            # default to 1 month ago
+            start_date = end_date - timedelta(days=30)
+
+        #ensure end_date does not exceed current time
+        if end_date > datetime.now(tz=pytz.utc):
+            end_date = datetime.now(tz=pytz.utc)
+
+        # ensure end_date is not before start_date
+        if end_date < start_date:
+            end_date = start_date
+
+
+
+    @classmethod
+    def get_median_device_status(cls, customer_id, time_group='1h'):
+        interval_mapping = {
+            '1h': ('minute', '1 hour'),
+            '6h': ('hour', '24 hour'),
+            '24h': ('hour', '1 week'),
+            '1w': ('day', '1 week'),
+            '1mo': ('week', '1 month'),
+        }
+
+        _5_minute_group = "- (EXTRACT(minute FROM as_of_time)::int %% 5) * INTERVAL '1 minute' "
+        extra_field = ""
+        if time_group == '1h':
+            extra_field = _5_minute_group
+
+        if time_group not in interval_mapping:
+            raise ValueError("Invalid interval specified")
+
+        interval_bin = interval_mapping[time_group][0]
+        period_start = interval_mapping[time_group][1]
+        result = []
+
+        query_params = [interval_bin, int(customer_id)]
+        select_query = f"""
+                    WITH daily_counts AS (
+                    SELECT
+                    date_trunc(%s, as_of_time) {extra_field} AS interval,
+                    status,
+                    COUNT(DISTINCT(serial)) AS count
+                    FROM
+                    public.dashboard_devicestatus
+                    WHERE
+                    customer_id =%s AND
+                    as_of_time >= now() - interval '{period_start}' AND
+                    as_of_time <= now() AND
+                    product_type IN ('appliance', 'ugw', 'udm', 'uxg')
+                    GROUP BY
+                    1, 2
+                    ),
+                    ranked_counts AS (
+                    SELECT
+                    interval,
+                    status,
+                    count,
+                    ROW_NUMBER() OVER (PARTITION BY interval, status ORDER BY count) AS row_num,
+                    COUNT(*) OVER (PARTITION BY interval, status) AS total_counts
+                    FROM
+                    daily_counts
+                    ),
+                    median_counts AS (
+                    SELECT
+                    interval,
+                    status,
+                    count
+                    FROM
+                    ranked_counts
+                    WHERE
+                    row_num = (total_counts + 1) / 2
+                    OR (total_counts %% 2 = 0 AND row_num = (total_counts + 2) / 2)
+                    )
+                    SELECT
+                    to_char(interval, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
+                    COALESCE(MAX(CASE WHEN status = 'online' THEN count END), 0) AS median_online,
+                    COALESCE(MAX(CASE WHEN status = 'offline' THEN count END), 0) AS median_offline,
+                    COALESCE(MAX(CASE WHEN status = 'alerting' THEN count END), 0) AS median_alerting
+                    FROM
+                    median_counts
+                    GROUP BY
+                    1
+                    ORDER BY
+                    formatted_interval
+                    """
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute(
+                    select_query,
+                    params=query_params
+                    )
+
+
+                result = cursor.fetchall()
+
+            except Exception as e:
+                _logger.warn("error fetching historical device status: {}".format(e))
+
+        # Formatting result for ChartJS
+        labels = []
+        median_online = []
+        median_offline = []
+        median_alerting = []
+
+        for row in result:
+            labels.append(row[0])  # Adjust format as needed
+            median_online.append(row[1])
+            median_offline.append(row[2])
+            median_alerting.append(row[3])
+
+        chart_data = {
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Online',
+                    'data': median_online,
+                    'backgroundColor': 'rgba(28, 180, 84, 0.8)',
+                    'borderColor': 'rgba(75, 192, 192, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Offline',
+                    'data': median_offline,
+                    'backgroundColor': 'rgba(180, 00, 00, 0.8)',
+                    'borderColor': 'rgba(255, 99, 132, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Alerting',
+                    'data': median_alerting,
+                    'backgroundColor': 'rgba(255, 166, 00, 0.8)',
+                    'borderColor': 'rgba(255, 206, 86, 1)',
+                    'borderWidth': 1
+                }
+            ]
+        }
+        return json.dumps(chart_data)

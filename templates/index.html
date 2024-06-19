@@ -386,12 +386,26 @@
             </div>
             <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Historical Data</h4>
-                    </div>
-                    <div class="p-6">
+                    <div class="card-header" style="display:flex;justify-content: space-between;align-items: center;">
+                        <h4 class="card-title">WAN Historical Data</h4>
+                        <div>
+                            <button id="btn-period-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
+                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
+                                    data-period="1h">1 hour<i class="mgc_down_line text-lg"></i></button>
 
-                        <div id="spline_area" class="apex-charts" dir="ltr"></div>
+                            <div class="period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
+                                <a id="hist-1-hour" data-period="1h"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 hour</a>
+                                <a id="hist-6-hours" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hours</a>
+                                <a id="hist-24-hour" data-period="24h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">24 hours</a>
+                                <a id="hist-1-week" data-period="1w" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
+                                <a id="hist-1-month" data-period="1mo" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="p-6" style="position: relative; height:45vh; width:75vw">
+
+                        <canvas id="deviceStatusChart" class="apex-charts" dir="ltr"></canvas>
                     </div>
                 </div><!--end card-->
             </div>
@@ -407,7 +421,7 @@
                     </div>
                 </div><!--end card-->
             </div>
-            <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+            {% comment %} <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
                 <div class="card">
                     <div class="card-header">
                         <h4 class="card-title">Others</h4>
@@ -417,7 +431,7 @@
                         <div id="spline_area" class="apex-charts" dir="ltr"></div>
                     </div>
                 </div><!--end card-->
-            </div>
+            </div> {% endcomment %}
 
         </div>
         {% comment %} div class="2xl:col-span-3"> {% endcomment %}
@@ -434,9 +448,9 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <!-- Apexcharts js -->
     <script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Dashboard Project Page js -->
-    <script src="{% static 'js/pages/dashboard.js' %}"></script>
+    {% comment %} <script src="{% static 'js/pages/dashboard.js' %}"></script> {% endcomment %}
 
     <script>
         var asset_markers = [];
@@ -469,6 +483,77 @@
             // Add the marker cluster group to the map
             map.addLayer(markers);
         });
+
+        $(document).ready(function() {
+            var customer_id = {{ current_customer.id }};  // Replace with dynamic value if needed
+            var interval = 'day'; // Replace with dynamic value if needed
+            var ctx = document.getElementById('deviceStatusChart').getContext('2d');
+            var historyChart = new Chart(ctx, {
+                type: 'bar',
+                data: [],
+                options: {
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+            });
+
+            $(".period-selection a").on("click", function(event) {
+                event.preventDefault(); // Prevent the default anchor behavior
+                var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
+                $("#btn-period-selection").data("period", periodValue); // Set the data-period value to the button
+                console.log("button");
+                console.log($("#btn-period-selection").text());
+                $("#btn-period-selection").text($(this).text());
+
+                $.ajax({
+                    url: "{% url 'device_status_chart' %}",
+                    type: "GET",
+                    data: {
+                        customer_id: customer_id,
+                        interval: interval,
+                        time_group: $("#btn-period-selection").data("period")
+                    },
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                        console.log("ajax")
+                    },
+                    success: function(data) {
+                        historyChart.data = data;
+                        historyChart.update();
+                        //var ctx = document.getElementById('deviceStatusChart').getContext('2d');
+                        {% comment %} var myChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: data,
+                            options: {
+                                scales: {
+                                    x: {
+                                        stacked: true
+                                    },
+                                    y: {
+                                        stacked: true
+                                    }
+                                }
+                            }
+                        }); {% endcomment %}
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("AJAX Error:", status, error);
+                    }
+                });
+
+            });
+            // call the click event of the default time group button
+            $('#hist-6-hours').click();
+
+        });
     </script>
+
+
 {% endblock extra_js %}
 

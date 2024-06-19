@@ -378,6 +378,11 @@ def sync_unifi_devices():
             except Exception as e:
                 pass
 
+            # If serial is not available in the API endpoint
+            # we will just combine the device_id and MAC address
+            serial_num = f"{dvc.get('_id','')}_{dvc.get('mac','')}"
+
+            # import pdb;pdb.set_trace()
             unifi_device, _ = dashboard_models.UnifiDevice.objects.get_or_create(
                 name=device.get('name', ''),
                 mac=device['mac']
@@ -388,7 +393,7 @@ def sync_unifi_devices():
             # import pdb;pdb.set_trace()
             unifi_device.in_gateway_mode=device['in_gateway_mode']
             unifi_device.disabled=device['disabled']
-            unifi_device.serial=dvc.get('serial','')
+            unifi_device.serial=dvc.get('serial', serial_num)
             unifi_device.site = site
             unifi_device.save()
 
@@ -596,13 +601,15 @@ def sync_unifi_device_statuses():
                     dvc = dvc_info[0]
                 except Exception as e:
                     pass
+                serial_num = f"{dvc.get('_id','')}_{dvc.get('mac','')}"
+
                 device_status = dashboard_models.DeviceStatus.objects.create(
                     customer=customer,
                     device_name=device.get('name', ''),
                     device_type='U',
                     status=STATUS[device.get('state', 0)],
                     network_id=site._id,
-                    serial=dvc.get('serial', ''),
+                    serial=dvc.get('serial', serial_num),
                     mac=device.get('mac',''),
                     product_type=device.get('type', ''),
                     model=device.get('model',''),

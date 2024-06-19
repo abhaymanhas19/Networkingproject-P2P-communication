@@ -1,6 +1,8 @@
+import json
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import serializers
 from django.db.models import Q
+from django.db import connection
 from django.http import JsonResponse
 from django.views import View
 from .models import (
@@ -9,7 +11,8 @@ from .models import (
     CustomerOrganization,
     CustomerUsers,
     GroupDevice,
-    PeplinkGroup)
+    PeplinkGroup,
+    DeviceStatus)
 
 class OrganizationListView(LoginRequiredMixin, View):
     def get(self, request):
@@ -64,3 +67,21 @@ class DeviceLocationListView(LoginRequiredMixin, View):
         # get the devices for the current_customer
         devices = GroupDevice.objects.filter(group_id__in=peplink_group_ids)
         return JsonResponse({"message": "Not implemented yet"})
+
+
+class DeviceStatusChartView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        customer_id = request.GET.get('customer_id')
+        interval = request.GET.get('interval', 'day')
+        time_group = request.GET.get('time_group', 'day')
+
+        if not customer_id:
+            return JsonResponse({'error': 'customer_id is required'}, status=400)
+
+        try:
+            chart_data_json = DeviceStatus.get_median_device_status(customer_id, time_group)
+            chart_data = json.loads(chart_data_json)
+
+            return JsonResponse(chart_data)
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)

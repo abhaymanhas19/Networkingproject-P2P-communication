@@ -23,6 +23,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 
 from userdashboard.view import index_view, logout_view, SetCurrentCustomerView
+# from dashboard.urls import
 
 
 urlpatterns = [
@@ -33,6 +34,7 @@ urlpatterns = [
     path("", view=index_view, name="index"),
 
     path("api/current_customer", SetCurrentCustomerView.as_view(), name="current_customer"),
+    path("api/d/", include("dashboard.urls")),
     # All Auth
     path("accounts/", include("allauth.urls")),
     #path("accounts/profile/", TemplateView.as_view(template_name="profile.html")),
