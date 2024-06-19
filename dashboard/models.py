@@ -724,8 +724,8 @@ class DeviceStatus(models.Model):
     def get_median_device_status(cls, customer_id, time_group='1h'):
         interval_mapping = {
             '1h': ('minute', '1 hour'),
-            '6h': ('hour', '24 hour'),
-            '24h': ('hour', '1 week'),
+            '6h': ('hour', '6 hour'),
+            '24h': ('hour', '24 hour'),
             '1w': ('day', '1 week'),
             '1mo': ('week', '1 month'),
         }
