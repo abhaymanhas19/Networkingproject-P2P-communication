@@ -2,6 +2,7 @@
 
 h1.ui.header {
     font-size: 1.10rem !important;
+    text-transform: uppercase;
 }
 
 h2.ui.header {
@@ -14,4 +15,15 @@ h2.ui.header {
 
 .inline-related h2{
     font-size: 1rem !important;
+}
+
+
+.module h2 {
+    font-size: 1.10rem !important;
+    text-transform: uppercase;
+}
+
+.ui.segment.inline-related h3,
+.ui.segment.inline-related h3 * { /* Target all elements inside h3 */
+  font-size: 1.10rem !important;
 }
