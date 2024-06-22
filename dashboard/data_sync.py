@@ -205,30 +205,25 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
         organization_id = api._org_id
 
     group_devices = api.get_group_devices(organization_id=organization_id, group_id=group_id)
-    # print(f"--------------------------> got {len(group_devices)} group_devices")
+
     for devices in group_devices:
         if devices is None:
             continue
-        # print(f"---------------------- -- - -> got {len(devices)} devices")
+
         for device in devices:
             gd = dashboard_models.GroupDevice.objects.filter(device_id=device.get("id"))
             device_loc = api.get_device_location(organization_id, device.get("group_id"), device.get("id"))
-            # popping out attributes that are not in the Model
+
             device_fields = [fld.name for fld in dashboard_models.GroupDevice._meta.get_fields()]
-            # print(f"------------>> getting fields for device{device['name']} :{device_fields}")
+
             dkeys = list(device.keys())
             for k in dkeys:
-                # if k == 'starlink_status':
-                    #  print("----------------------->> found starlink status")
                 if k not in device_fields:
-                    # print(f"----------------------->> removing {k} from device")
                     device.pop(k, None)
 
             mdevice_id = device.pop('id')
             device['device_id'] = mdevice_id
 
-            # if device.get('starlink_status', None):
-            #      print(f"----------------------->> starlink status is {device['starlink_status']}")
             if device_loc:
                 device["latitude"] = device_loc.get("latitude", 0.0)
                 device["longitude"] = device_loc.get("longitude", 0.0)
@@ -238,8 +233,6 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
             if gd:
                 gd.update(**device)
             else:
-                # gd_id = device.pop("id")
-                # device["device_id"] = gd_id
                 dashboard_models.GroupDevice.objects.create(**device)
 
 
@@ -443,7 +436,7 @@ def sync_meraki_device_statuses():
             # import pdb; pdb.set_trace()
             for device in devices:
                 # find the device status from the statuses listpyt
-                device_status = [ ds for ds in device_statuses if ds['serial'] == device['serial'] ]
+                device_status = [ ds for ds in device_statuses if ds.get('serial','x') == device.get('serial','y') ]
                 if not device_status:
                     continue
 
@@ -480,7 +473,7 @@ def sync_meraki_device_statuses():
                         longitude=device.get('lng', None)
                     )
                 except Exception as e:
-                     _logger.warn(f"Device Status Not Created: {e}")
+                     _logger.warn(f"Device Status Not Created: {e}", exc_info=True)
     try:
         dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
     except Exception as e:
@@ -509,7 +502,7 @@ def sync_peplink_device_statuses():
     fetch_time = datetime.now(tz=pytz.utc)
 
     for devices in group_devices:
-        if not devices is None:
+        if not devices:
             continue
 
         dev = devices[0]
@@ -522,10 +515,14 @@ def sync_peplink_device_statuses():
             customer = customer_qset.customer
         except Exception as e:
             print(f"got error: {e}")
+            _logger.error(f"Error while getting Customer for CustomerPeplinkGroup:  {e}", exc_info=True)
             continue
 
         for device in devices:
-            device_loc = api.get_device_location(organization_id, device.get("group_id"), device.get("id"))
+
+            device_loc = (api.get_device_location(organization_id=organization_id,
+                                                  group_id=device.get("group_id"),
+                                                  device_id=device.get("id")))
             latitude = None
             longitude = None
 
@@ -563,11 +560,11 @@ def sync_peplink_device_statuses():
                     longitude=longitude,
                 )
             except Exception as e:
-                    _logger.warn(f"Device Status Not Created: {e}")
+                _logger.error(f"Device Status Not Created: {e}", exc_info=True)
     try:
         dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
     except Exception as e:
-        _logger.warn(f"Device Status Not Deleted: {e}")
+        _logger.error(f"Device Status Not Deleted: {e}", exc_info=True)
 
 
 def sync_unifi_device_statuses():
@@ -581,17 +578,23 @@ def sync_unifi_device_statuses():
 
     fetch_time = datetime.now(tz=pytz.utc)
 
-    STATUS = {
-        0: "offline",
-        1: "online"
-    }
+    STATUS = {0: "offline",
+              1: "online",
+              2: "pending adoption",
+              4: "updating",
+              5: "provisioning",
+              6: "unreachable",
+              7: "adopting",
+              9: "adoption error",
+              10: "adoption failed",
+              11: "isolated"}
 
     for customer_site in customer_sites:
         customer = customer_site.customer
         site = customer_site.site
 
         devices = controller.get(f"/api/s/{site.name}/stat/device-basic")
-        devices_full = controller.get(f"/api/s/{site.name}/stat/device-basic")
+        devices_full = controller.get(f"/api/s/{site.name}/stat/device")
         for device in devices:
             try:
                 # find the matching mac in devices_full
@@ -601,15 +604,14 @@ def sync_unifi_device_statuses():
                     dvc = dvc_info[0]
                 except Exception as e:
                     pass
-                serial_num = f"{dvc.get('_id','')}_{dvc.get('mac','')}"
 
                 device_status = dashboard_models.DeviceStatus.objects.create(
                     customer=customer,
                     device_name=device.get('name', ''),
                     device_type='U',
-                    status=STATUS[device.get('state', 0)],
+                    status=STATUS.get(device.get('state', 0), 'Unknown'),
                     network_id=site._id,
-                    serial=dvc.get('serial', serial_num),
+                    serial=dvc.get('serial', ''),
                     mac=device.get('mac',''),
                     product_type=device.get('type', ''),
                     model=device.get('model',''),
@@ -619,7 +621,7 @@ def sync_unifi_device_statuses():
                     longitude=None,
                 )
             except Exception as e:
-                    _logger.warn(f"Device Status Not Created: {e}")
+                _logger.warn(f"Device Status Not Created: {e}", exc_info=True)
     try:
         dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
     except Exception as e:

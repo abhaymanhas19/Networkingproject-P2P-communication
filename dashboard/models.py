@@ -33,6 +33,8 @@ class Organization(models.Model):
     org_type = models.CharField("Organization Type", max_length=255, choices=PROVIDER_CHOICES, default='P')
     org_url = models.URLField("Organization URL", max_length=255, null=True, blank=True)
     api_enabled = models.BooleanField("Enable API", default=True)
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         unique_together = ('org_id', 'org_type')
         verbose_name = "Meraki/Peplink Organization"
@@ -58,6 +60,8 @@ class Customer(models.Model):
     customer_peplink_groups = models.ManyToManyField("dashboard.PeplinkGroup", through="CustomerPeplinkGroup", related_name="peplink_groups")
     meraki_networks = models.ManyToManyField("dashboard.Network", through="CustomerNetwork", related_name="meraki_networks")
 
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         verbose_name = "Customer Information"
         verbose_name_plural = "Customer Information"
@@ -125,7 +129,8 @@ class Network(models.Model):
     timezone = models.CharField("Timezone", max_length=255, default="UTC")
     notes = models.TextField("Notes", null=True, blank=True, default="")
     product_types = models.CharField("Product Types", max_length=255, null=True, blank=True, default="[]")
-
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         unique_together = ('network_id', 'organization')
         verbose_name = "Meraki Network"
@@ -168,8 +173,9 @@ class PeplinkGroup(models.Model):
     is_low_data_usage_mode = models.BooleanField("Low Data Usage Mode", default=False)
     gps_location_sampling = models.IntegerField("GPS Location Sampling", default=2)
     min_heartbreak_interval = models.IntegerField("Min Heartbreak Interval", default=0)
-
     customer = models.ForeignKey(Customer, related_name="peplink_groups", on_delete=models.CASCADE, null=True,blank=True)
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
 
     class Meta:
         unique_together = ('org_id', 'group_id')
@@ -397,6 +403,9 @@ class GroupDevice(models.Model):
             default=0.0,
             help_text="Last known location (Longitude)")
 
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+
     class Meta:
         verbose_name = "Peplink Group Device"
         verbose_name_plural = "Peplink Group Devices"
@@ -414,7 +423,8 @@ class GroupDevice(models.Model):
                 "status": self.status,
                 "status_text": self.status,
                 "serial": self.serial,
-                "name": self.name}
+                "name": self.name,
+                "device_name": self.name}
 
     @property
     def interfaces_list(self):
@@ -493,7 +503,8 @@ class MerakiDevice(models.Model):
     gateway = models.CharField("Gateway", max_length=100, null=True, blank=True)
     primaryDns = models.CharField("Primary DNS", max_length=100, null=True, blank=True)
     secondaryDns = models.CharField("Secondary DNS", max_length=100, null=True, blank=True)
-#     lastReportedAt =
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
 
     class Meta:
         verbose_name = _("Meraki Device")
@@ -563,6 +574,8 @@ class UnifiSite(models.Model):
             null=True,
             verbose_name="Site Health",
             help_text="Site Health")
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
 
     class Meta:
         verbose_name = "Unifi Site"
@@ -593,7 +606,8 @@ class UnifiDevice(models.Model):
     disabled = models.BooleanField("Disabled", null=True, blank=True)
     site = models.ForeignKey("UnifiSite", on_delete=models.CASCADE, null=True, blank=True, default=None)
     serial = models.CharField("Serial", null=True, blank=True, max_length=255, default='')
-
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         verbose_name = "Unifi Device"
         verbose_name_plural = "Unifi Devices"
@@ -608,8 +622,22 @@ class UnifiDevice(models.Model):
 
     @property
     def status(self):
-        STATUS = {0: "offline", 1: "online"}
-        return STATUS[self.state]
+        """
+        translate the status code to its name
+        ref: https://github.com/Art-of-WiFi/UniFi-API-client/blob/d36a088101e3422e98be1c042afdebaf5f190e8b/src/Client.php#L3379
+        """
+        STATUS = {0: "offline",
+                  1: "online",
+                  2: "pending adoption",
+                  4: "updating",
+                  5: "provisioning",
+                  6: "unreachable",
+                  7: "adopting",
+                  9: "adoption error",
+                  10: "adoption failed",
+                  11: "isolated"}
+
+        return STATUS.get(self.state, f'Unknown State {self.state}')
 
     @property
     def latitude(self):
@@ -625,7 +653,8 @@ class UnifiDevice(models.Model):
                 "status": self.status,
                 "status_text": self.status,
                 "serial": self.serial,
-                "name": self.name}
+                "name": self.name,
+                "device_name": self.name}
 
 
 class CustomerUnifiSite(models.Model):
@@ -662,6 +691,16 @@ class DeviceStatus(models.Model):
         ('offline', 'Offline'),
         ('alerting', 'Alerting'),
         ('dormant', 'Dormant'),
+        # Unifi-specific statuses
+        ('pending adoption', 'Pending Adoption'),
+        ('updating', 'Updating'),
+        ('provisioning', 'Provisioning'),
+        ('unreachable', 'Unreachable'),
+        ('adopting', 'Adopting'),
+        ('adoption error', 'Adoption Error'),
+        ('adoption failed', 'Adoption Failed'),
+        ('isolated', 'Isolated')
+
     )
     ROUTER_TYPE_CHOICES = (
         ('M', 'Meraki'),
@@ -681,6 +720,7 @@ class DeviceStatus(models.Model):
     last_reported_at = models.DateTimeField("Last Reported At", null=True, blank=True, default=None)
     latitude = models.DecimalField("Latitude", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
     longitude = models.DecimalField("Longitude", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
+    heading = models.DecimalField("Heading", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
 
     class Meta:
         verbose_name = "Device Status"
@@ -699,7 +739,8 @@ class DeviceStatus(models.Model):
                 "status": self.status,
                 "status_text": self.status,
                 "serial": self.serial,
-                "name": self.device_name}
+                "name": self.device_name,
+                "device_name": self.device_name}
     @classmethod
     def get_wan_history_json(cls, customer_id, period='hour', start_date=None, end_date=None):
 
@@ -719,9 +760,8 @@ class DeviceStatus(models.Model):
             end_date = start_date
 
 
-
     @classmethod
-    def get_median_device_status(cls, customer_id, time_group='1h'):
+    def get_median_device_status(cls, customer_id, time_group='1h', calculation_method='median'):
         interval_mapping = {
             '1h': ('minute', '1 hour'),
             '6h': ('hour', '6 hour'),
@@ -731,116 +771,144 @@ class DeviceStatus(models.Model):
         }
 
         _5_minute_group = "- (EXTRACT(minute FROM as_of_time)::int %% 5) * INTERVAL '1 minute' "
-        extra_field = ""
-        if time_group == '1h':
-            extra_field = _5_minute_group
+        extra_field = _5_minute_group if time_group == '1h' else ""
 
         if time_group not in interval_mapping:
             raise ValueError("Invalid interval specified")
+
+        if calculation_method not in ['median', 'average']:
+            raise ValueError("Invalid calculation method specified")
 
         interval_bin = interval_mapping[time_group][0]
         period_start = interval_mapping[time_group][1]
         result = []
 
         query_params = [interval_bin, int(customer_id)]
-        select_query = f"""
-                    WITH daily_counts AS (
+
+        if calculation_method == 'median':
+            select_query = f"""
+                WITH daily_counts AS (
                     SELECT
-                    date_trunc(%s, as_of_time) {extra_field} AS interval,
-                    status,
-                    COUNT(DISTINCT(serial)) AS count
+                        date_trunc(%s, as_of_time) {extra_field} AS interval,
+                        status,
+                        COUNT(DISTINCT(serial)) AS count
                     FROM
-                    public.dashboard_devicestatus
+                        public.dashboard_devicestatus
                     WHERE
-                    customer_id =%s AND
-                    as_of_time >= now() - interval '{period_start}' AND
-                    as_of_time <= now() AND
-                    product_type IN ('appliance', 'ugw', 'udm', 'uxg')
+                        customer_id = %s AND
+                        as_of_time >= now() - interval '{period_start}' AND
+                        as_of_time <= now() AND
+                        product_type IN ('appliance', 'ugw', 'udm', 'uxg')
                     GROUP BY
-                    1, 2
-                    ),
-                    ranked_counts AS (
+                        1, 2
+                ),
+                ranked_counts AS (
                     SELECT
-                    interval,
-                    status,
-                    count,
-                    ROW_NUMBER() OVER (PARTITION BY interval, status ORDER BY count) AS row_num,
-                    COUNT(*) OVER (PARTITION BY interval, status) AS total_counts
+                        interval,
+                        status,
+                        count,
+                        ROW_NUMBER() OVER (PARTITION BY interval, status ORDER BY count) AS row_num,
+                        COUNT(*) OVER (PARTITION BY interval, status) AS total_counts
                     FROM
-                    daily_counts
-                    ),
-                    median_counts AS (
+                        daily_counts
+                ),
+                median_counts AS (
                     SELECT
-                    interval,
-                    status,
-                    count
+                        interval,
+                        status,
+                        count
                     FROM
-                    ranked_counts
+                        ranked_counts
                     WHERE
-                    row_num = (total_counts + 1) / 2
-                    OR (total_counts %% 2 = 0 AND row_num = (total_counts + 2) / 2)
-                    )
-                    SELECT
+                        row_num = (total_counts + 1) / 2
+                        OR (total_counts %% 2 = 0 AND row_num = (total_counts + 2) / 2)
+                )
+                SELECT
                     to_char(interval, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
                     COALESCE(MAX(CASE WHEN status = 'online' THEN count END), 0) AS median_online,
                     COALESCE(MAX(CASE WHEN status = 'offline' THEN count END), 0) AS median_offline,
                     COALESCE(MAX(CASE WHEN status = 'alerting' THEN count END), 0) AS median_alerting
-                    FROM
+                FROM
                     median_counts
-                    GROUP BY
+                GROUP BY
                     1
-                    ORDER BY
+                ORDER BY
                     formatted_interval
-                    """
+            """
+        else:  # calculation_method == 'average'
+            select_query = f"""
+                SELECT
+                    to_char(date_trunc(%s, as_of_time) {extra_field}, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
+                    COALESCE(AVG(CASE WHEN status = 'online' THEN count END), 0) AS avg_online,
+                    COALESCE(AVG(CASE WHEN status = 'offline' THEN count END), 0) AS avg_offline,
+                    COALESCE(AVG(CASE WHEN status = 'alerting' THEN count END), 0) AS avg_alerting
+                FROM (
+                    SELECT
+                        date_trunc(%s, as_of_time) {extra_field} AS interval,
+                        status,
+                        COUNT(DISTINCT(serial)) AS count
+                    FROM
+                        public.dashboard_devicestatus
+                    WHERE
+                        customer_id = %s AND
+                        as_of_time >= now() - interval '{period_start}' AND
+                        as_of_time <= now() AND
+                        product_type IN ('appliance', 'ugw', 'udm', 'uxg')
+                    GROUP BY
+                        1, 2
+                ) AS subquery
+                GROUP BY
+                    1
+                ORDER BY
+                    formatted_interval
+            """
+            query_params.append(interval_bin)  # Add interval_bin again for the nested subquery
+
         with connection.cursor() as cursor:
             try:
-                cursor.execute(
-                    select_query,
-                    params=query_params
-                    )
-
-
+                cursor.execute(select_query, params=query_params)
                 result = cursor.fetchall()
-
             except Exception as e:
                 _logger.warn("error fetching historical device status: {}".format(e))
+                raise e  # Re-raise the exception after logging
 
         # Formatting result for ChartJS
         labels = []
-        median_online = []
-        median_offline = []
-        median_alerting = []
+        online_counts = []
+        offline_counts = []
+        alerting_counts = []
 
         for row in result:
             labels.append(row[0])  # Adjust format as needed
-            median_online.append(row[1])
-            median_offline.append(row[2])
-            median_alerting.append(row[3])
+            online_counts.append(row[1])
+            offline_counts.append(row[2])
+            alerting_counts.append(row[3])
 
         chart_data = {
             'labels': labels,
             'datasets': [
                 {
                     'label': 'Online',
-                    'data': median_online,
+                    'data': online_counts,
                     'backgroundColor': 'rgba(28, 180, 84, 0.8)',
                     'borderColor': 'rgba(75, 192, 192, 1)',
                     'borderWidth': 1
                 },
                 {
                     'label': 'Offline',
-                    'data': median_offline,
-                    'backgroundColor': 'rgba(180, 00, 00, 0.8)',
+                    'data': offline_counts,
+                    'backgroundColor': 'rgba(180, 0, 0, 0.8)',
                     'borderColor': 'rgba(255, 99, 132, 1)',
                     'borderWidth': 1
                 },
                 {
                     'label': 'Alerting',
-                    'data': median_alerting,
-                    'backgroundColor': 'rgba(255, 166, 00, 0.8)',
+                    'data': alerting_counts,
+                    'backgroundColor': 'rgba(255, 166, 0, 0.8)',
                     'borderColor': 'rgba(255, 206, 86, 1)',
                     'borderWidth': 1
                 }
             ]
         }
+
         return json.dumps(chart_data)

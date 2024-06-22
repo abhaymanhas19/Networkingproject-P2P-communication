@@ -1,11 +1,13 @@
 # LoginRequiredMixin here
 
 import json
+import logging
 from datetime import timedelta, datetime
 from itertools import chain
 
-from django.db.models import Max, F
+from django.conf import settings
 
+from django.db.models import Max, F
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -14,10 +16,12 @@ from django.http import JsonResponse
 from django.views.generic.base import TemplateView
 from django.views.generic import View
 from django.contrib.auth.views import LogoutView
-
+from django.utils import timezone
 from django.utils.decorators import method_decorator
-from common.utils import calculate_device_status
+
 from merakiapi import helper
+
+from common.utils import calculate_device_status
 
 from dashboard.models import (
     CustomerUsers,
@@ -28,7 +32,7 @@ from dashboard.models import (
     DeviceStatus
 )
 
-
+_logger = logging.getLogger(__name__)
 
 def get_customer_devices(customer_id):
 
@@ -116,33 +120,38 @@ def get_wan_summary2(customer_id):
     summary = {}
     try:
         customer = Customer.objects.get(id=customer_id)
+        latest_device_statuses_filter = {}
+
+        # if not settings.DEBUG:
+        #     ten_minutes_ago = timezone.now() - timedelta(minutes=10)
+        #     latest_device_statuses_filter['as_of_time__gte'] = ten_minutes_ago
+        # else:
+        #     print("allowing old reccords to be used for uptime")
+
         latest_device_statuses = (
             DeviceStatus.objects
             .filter(
                 customer_id=customer_id,
-                product_type__in=['appliance', 'ugw', 'udm', 'uxg']
+                product_type__in=['appliance', 'ugw', 'udm', 'uxg'],
+                **latest_device_statuses_filter
             )
             .values('device_name', 'status','model', 'serial')
             .annotate(as_of_time=Max('as_of_time'))
             .filter(as_of_time=F('as_of_time'))
         )
-        print("======================latest_device_statuses==========================")
-        print(f"{latest_device_statuses}")
-        print("======================GETTING LIST==========================")
 
         offline_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="offline"]
         dormant_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="dormant"]
         online_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="online"]
         alerting_devices = [dev for dev in latest_device_statuses if dev and dev['status']=="alerting"]
 
-        print(f"======================GETTING LIST END ==========================")
+        # print(f"======================GETTING LIST END ==========================")
 
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
         total_offline = len(offline_devices)
         total_alerting = len(alerting_devices)
 
-        print("======================COUND STATUSES ==========================")
         status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
 
         summary["status_summary"] = status_summary
@@ -150,8 +159,7 @@ def get_wan_summary2(customer_id):
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
     except Exception as e:
-        pass
-        print(f"error got: {e}")
+        _logger.error(f"Error getting WAN summary: {e}", exc_info=True)
 
     return summary
 
@@ -197,8 +205,7 @@ def get_lan_summary2(customer_id):
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
     except Exception as e:
-        pass
-        print(f"error got: {e}")
+        _logger.error(f"Error getting LAN summary: {e}", exc_info=True)
 
     return summary
 
@@ -285,8 +292,7 @@ def get_wireless_summary(customer_id):
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
     except Exception as e:
-        pass
-        print(f"error got: {e}")
+        _logger.error(f"Error getting wireless summary: {e}", exc_info=True)
 
     return summary
 
@@ -324,7 +330,7 @@ def get_wireless_summary2(customer_id):
         total_offline = len(offline_devices)
         total_alerting = len(alerting_devices)
 
-        print("======================COUND STATUSES ==========================")
+        print("======================COUNTING STATUSES ==========================")
         status_summary = calculate_device_status(total_offline, total_alerting, total_online, total_dormant)
 
         summary["status_summary"] = status_summary
@@ -332,8 +338,7 @@ def get_wireless_summary2(customer_id):
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
     except Exception as e:
-        pass
-        print(f"error got: {e}")
+        _logger.error(f"Error getting wireless summary: {e}", exc_info=True)
 
     return summary
 
@@ -373,15 +378,15 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         # get customer's devices:
         devices = get_customer_devices(customer_id)
         # print(f"devices for customer { current_customer['id']}: {devices}")
-        print("==================>")
-        print(devices)
-        print("==================<")
+        # print("==================>")
+        # print(devices)
+        # print("==================<")
         context["customer_devices"] = devices
         context["customer_data"] = customers
         context["user_info"] = user
-        context["wan_summary"] = get_wan_summary2(customer_id)
-        context["lan_summary"] = get_lan_summary2(customer_id)
-        context["wireless_summary"] = get_wireless_summary2(customer_id)
+        context["wan_summary"] = get_wan_summary(customer_id)
+        context["lan_summary"] = get_lan_summary(customer_id)
+        context["wireless_summary"] = get_wireless_summary(customer_id)
         context["threats_summary"] = get_threats_summary(customer_id)
         return context
 

@@ -103,9 +103,10 @@ class Meraki(object):
                 cne = []
 
                 try:
-                    cne = self.client.appliance.getNetworkApplianceSecurityEvents(networkId=cn.network.network_id, timespan=8)
+                    cne = self.client.appliance.getNetworkApplianceSecurityEvents(networkId=cn.network.network_id, timespan=30)
                 except Exception as e:
                     print(f"error getting network events: {e}")
+                    _logger.error(f"error getting network events: {e}", exc_info=True)
 
 
                 for ne in cne:
