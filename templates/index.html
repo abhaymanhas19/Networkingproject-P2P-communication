@@ -53,21 +53,21 @@
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wan_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wan_summary.offline_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
 
@@ -117,21 +117,21 @@
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in lan_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in lan_summary.offline_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
 
@@ -178,21 +178,21 @@
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wireless_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wireless_summary.offline_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wireless_summary.dormant_devices %}
@@ -375,7 +375,7 @@
                         {% else %}
                             <button class="btn text-white w-full bg-success" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
                                 No threats!
-                            </button>
+                            </button>\
                         {% endif %}
                     </div>
 
@@ -459,25 +459,30 @@
                 </div>
                 <div class="overflow-y-auto mt-3">
                     <div style="display:flex;justify-content: space-between;align-items: center;">
-                        <p class="text-gray-800 dark:text-gray-200 text-lg" style="padding-left:30px">
-                            Device Details here
-                        </p>
+                        <div style="padding-left:30px">
+                            <p id="tracking-device-name-serial" class="text-gray-800 dark:text-gray-200 text-lg">DEVICE NAME (s/n)</p>
+                            <span id="tracking-device-model" class="text-gray-800 dark:text-gray-200 text-sm">Model: </span>
+                            <span id="tracking-device-mac" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">MAC:</span>
+                            <span id="tracking-device-loc" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">loc: (lat,lng)</span>
+                            <span id="tracking-device-heading" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">heading: </span>
+                            <span id="tracking-device-last-reported" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">Last Reported: DATE</span>
+                        </div>
                         <div style="padding-right:40px; z-index:5000">
                             <button id="btn-track-period" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
                                     class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
-                                    data-period="30m">30 minutes<i class="mgc_down_line text-lg"></i></button>
+                                    data-period="360">6 hours<i class="mgc_down_line text-lg"></i></button>
 
                             <div class="track-period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
-                                <a id="track-30min" data-period="30m"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">30 Minutes</a>
-                                <a id="track-6hr" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hour</a>
-                                <a id="track-1w" data-period="1w" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
-                                <a id="track-1mo" data-period="1mo" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
+                                <a id="track-30min" data-period="30"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">30 Minutes</a>
+                                <a id="track-6hr" data-period="360" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hour</a>
+                                <a id="track-1w" data-period="10080" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
+                                <a id="track-1mo" data-period="43800" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
                             </div>
 
                         </div>
                     </div>
                     <div class="p-6">
-                        <div id="gps-history-map" class="m-10" style="height: 40vw;"></div>
+                        <div id="gps-history-map" class="m-10" style="height: 35vw;"></div>
                     </div>
                 </div>
                 <div class="flex justify-end items-center gap-4 mt-auto">
@@ -522,6 +527,8 @@
             btn.click();
             gpsHistoryMap.invalidateSize();
 
+            updateLocation(serial);
+
         }
         window.showModal = showModal;
 
@@ -549,8 +556,12 @@
             {% for dev in customer_devices %}
                 var buttonHTML ="";
                 {% if dev.group_type == 'peplink' %}
+
                     buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
+
                 {% endif %}
+
+                buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
 
                 var icon = icons['{{ dev.status|lower }}'];  // Get the appropriate icon based on status
                 var marker = L.marker([{{ dev.latitude }}, {{ dev.longitude }}], { icon: icon })
@@ -589,8 +600,6 @@
             event.preventDefault(); // Prevent the default anchor behavior
             var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
             $("#btn-period-selection").data("period", periodValue); // Set the data-period value to the button
-            console.log("button");
-            console.log($("#btn-period-selection").text());
             $("#btn-period-selection").text($(this).text());
 
             $.ajax({
@@ -627,30 +636,74 @@
         // Function to be called every 3 minutes
         function updateLocation(serial) {
             console.log("Updating location for serial:", serial);
+
+            var period = $("#btn-track-period").data("period");
             $.ajax({
-                url: "{% url 'device_status_chart' %}", /*TODO: create an endpoint thatreturns the gps loc list */
+                url: "{% url 'device_location_history' %}",
                 type: "GET",
                 data: {
                     serial: serial,
+                    period_minutes: period
                 },
                 beforeSend: function(xhr, settings) {
                     xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
                 },
                 success: function(data) {
+                    console.log(data);
+
+                    if (data.result == 0){
+                        console.log("Error: " + data.message);
+                    }
+                    $("#btn-track-period").data("serial", data.device_info.serial);
+                    $("#tracking-device-name-serial").text(`${data.device_info.name}  (${data.device_info.serial})`);
+                    $("#tracking-device-model").text(`Model: ${data.device_info.model}`);
+                    $("#tracking-device-mac").text(`MAC: ${data.device_info.mac}`);
+                    $("#tracking-device-loc").text(`loc: (${data.last_location})`);
+                    $("#tracking-device-heading").text(`heading: ${data.device_info.heading}`);
+                    $("#tracking-device-last-reported").text(`Last Reported At: ${data.device_info.last_reported_at}`);
+
                     //TODO: PLOT THE POLYLINE
+                    try {
+                        var polyline = L.polyline(data.coordinates, {color: 'red', weight: 8}).addTo(gpsHistoryMap);
+                        gpsHistoryMap.fitBounds(polyline.getBounds());
+                        var currentZoom = gpsHistoryMap.getZoom();
+                        gpsHistoryMap.setZoom(currentZoom - 2);
+                    }catch(error){
+                        console.log(error);
+                    }
+                    try {
+                        var marker = L.marker(data.last_location).addTo(gpsHistoryMap);
+                        var popUpHTML = `<b>${data.device_info.name}</b>`;
+                        marker.bindPopup(popUpHTML).openPopup();
+                        marker.on('click', function(e) {
+                            marker.openPopup();
+                        });
+                        gpsHistoryMap.panTo(marker.getLatLng());
+                    }catch(error){
+                        console.log(error);
+                    }
                 },
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", status, error);
                 }
             });
-        }
+        } //end function
+
+        $(".track-period-selection  a").on("click", function(event) {
+            event.preventDefault(); // Prevent the default anchor behavior
+            var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
+            $("#btn-track-period").data("period", periodValue); // Set the data-period value to the button
+            $("#btn-track-period").text($(this).text());
+
+            updateLocation($("#btn-track-period").data("serial"))
+        });
 
         // Timer variable
         let timerInterval;
 
 
         function startTimer() {
-            const serialNumber = "your-serial-number";
+            //const serialNumber = "your-serial-number";
             //timerInterval = setInterval(() => updateLocation(serialNumber), 180000);
             //document.getElementById("controlButton").textContent = "Stop Timer";
         }

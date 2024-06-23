@@ -1,10 +1,16 @@
+
 import json
+import logging
+from datetime import timedelta
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import serializers
 from django.db.models import Q
 from django.db import connection
 from django.http import JsonResponse
 from django.views import View
+from django.utils import timezone
+
 from .models import (
     Customer,
     Organization,
@@ -12,7 +18,11 @@ from .models import (
     CustomerUsers,
     GroupDevice,
     PeplinkGroup,
-    DeviceStatus)
+    DeviceStatus,
+    MerakiDevice)
+
+
+_logger = logging.getLogger(__name__)
 
 class OrganizationListView(LoginRequiredMixin, View):
     def get(self, request):
@@ -85,3 +95,117 @@ class DeviceStatusChartView(LoginRequiredMixin, View):
             return JsonResponse(chart_data)
         except ValueError as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+
+class DeviceLocationHistoryView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        serial = request.GET.get('serial', None)
+        # default to 30
+        period_minutes = request.GET.get('period_minutes', 60*24*5)
+
+        if not serial:
+            return JsonResponse({'error': 'serial is required'}, status=400)
+
+        try:
+            period_minutes = int(period_minutes)
+        except ValueError:
+            # print("========ERROR: period_minutes must be an integer")
+            _logger.warning(f'period_minutes must be an integer: {period_minutes}', exc_info=True)
+            period_minutes = 30
+
+        result = {
+            "result": 0,
+            "message": "",
+            "times": [],
+            "coordinates": [],
+            "headings": [],
+            "last_location": [],
+            "device_info": {
+                "serial": serial,
+                "model": "",
+                "mac": "",
+                "last_reported_at": "",
+                "name": "",
+            },
+        }
+
+        n_minutes_ago = timezone.now() - timedelta(minutes=period_minutes)
+        try:
+            dev = (GroupDevice.objects.filter(sn=serial).first()
+                   or MerakiDevice.objects.filter(serial=serial).first())
+            if dev:
+                device_name = ""
+                device_serial = ""
+                device_last_loc = []
+                device_last_seen = ""
+                device_model = ""
+
+                if isinstance(dev, GroupDevice):
+                    device_name = dev.name
+                    device_last_loc = [dev.latitude, dev.longitude]
+                    device_last_seen = dev.location_timestamp
+                    device_model = dev.product_name
+                    device_mac = dev.lan_mac
+                elif isinstance(dev, MerakiDevice):
+                    device_name = dev.device_name
+                    device_last_loc = [dev.lat, dev.lng]
+                    device_last_seen = dev.last_updated_at
+                    device_model = dev.model
+                    device_mac = dev.mac
+
+                # print(f"=============got the {'Peplink' if isinstance(dev, GroupDevice) else 'Meraki'} record")
+                result["device_info"]["model"] = device_model
+                result["device_info"]["name"] = device_name
+                result["device_info"]["mac"] = device_mac
+                result["device_info"]["heading"] = ""
+                result["device_info"]["last_reported_at"] = device_last_seen
+                result["last_location"] = device_last_loc
+
+
+            # print(f"Getting device location history for: {serial}")
+            status_list = DeviceStatus.objects.filter(
+                serial=serial,
+                as_of_time__gte=n_minutes_ago,
+            ).values_list('as_of_time', 'latitude', 'longitude', 'heading', 'device_name', 'mac', 'last_reported_at', 'model').order_by('as_of_time')
+            #chart_data = json.loads(map_data_json)
+            times = []
+            coordinates = []
+            headings = []
+            last_location = []
+            print(f"Got  {len(status_list)}  device location history for: {serial}")
+            status_len = len(status_list)
+            for idx, status in enumerate(status_list):
+                if not status[1]:
+                    return JsonResponse(result)
+
+                times.append(status[0].strftime('%Y-%m-%d %H:%M:%S'))
+                coordinates.append([status[1], status[2]])
+                headings.append(status[3])
+
+                if idx == status_len-1:
+                    last_location = (status[1], status[2])
+                    # print("===============GOT HERE")
+                    result["last_location"] = last_location
+                    result["device_info"] = {
+                        "name": status[4],
+                        "serial": serial,
+                        "mac": status[5],
+                        "last_reported_at": status[6].strftime('%Y-%m-%d %H:%M:%S'),
+                        "heading": status[3],
+                        "model": status[7]
+                    }
+
+            result["times"] = times
+            result["coordinates"] = coordinates
+            result["headings"] = headings
+            result['result'] = 1
+
+
+            return JsonResponse(result)
+        except (ValueError, Exception) as e:
+            # print("========>>>>>ERROR: ", e)
+            _logger.error(e, exc_info=True)
+            result["result"] = 0
+            result["message"] = f"ERROR: {e}"
+            return JsonResponse(result, status=400)
+

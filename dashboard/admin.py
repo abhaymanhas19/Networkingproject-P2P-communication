@@ -152,7 +152,7 @@ class UnifiSiteAdmin(SemanticModelAdmin):
 class UnifiDeviceAdmin(SemanticModelAdmin):
     list_display = ('site', 'device_type', 'name', 'mac')
     list_filter = ('site', 'device_type')
-    search_fields = ('name', 'device_type', 'mac')
+    search_fields = ('name', 'device_type', 'mac','serial')
 
 
 @admin.register(dashboard_models.DataSyncLog)

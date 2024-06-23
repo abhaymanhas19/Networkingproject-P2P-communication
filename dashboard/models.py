@@ -1,6 +1,7 @@
 import logging
 import json
 
+
 import pandas as pd
 import pytz
 
@@ -13,7 +14,11 @@ from django.db.models.functions import TruncHour
 
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
+from django.utils import timezone
 from django.utils.translation import gettext as _
+
+from common.utils import calculate_heading
+
 
 _logger = logging.getLogger(__name__)
 
@@ -741,6 +746,34 @@ class DeviceStatus(models.Model):
                 "serial": self.serial,
                 "name": self.device_name,
                 "device_name": self.device_name}
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.as_of_time = timezone.now()
+            previous_record = None
+            heading = None
+
+            if self.latitude or self.longitude:
+                past_24_hours = self.as_of_time - timedelta(hours=24)
+                previous_record = DeviceStatus.objects.filter(
+                    mac=self.mac,
+                    serial=self.serial,
+                    as_of_time__lt=self.as_of_time,
+                    as_of_time__gte=past_24_hours
+                ).order_by('-as_of_time').first()
+
+            if previous_record:
+                try:
+                    heading = calculate_heading(previous_record.latitude,
+                                                previous_record.longitude,
+                                                self.latitude,
+                                                self.longitude)
+                    self.heading = heading
+                except:
+                    pass
+
+        super(DeviceStatus, self).save(*args, **kwargs)
+
     @classmethod
     def get_wan_history_json(cls, customer_id, period='hour', start_date=None, end_date=None):
 

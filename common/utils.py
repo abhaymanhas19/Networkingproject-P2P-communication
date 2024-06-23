@@ -2,6 +2,7 @@
 import decimal
 import datetime
 import logging
+import math
 import re
 
 from functools import wraps
@@ -129,3 +130,42 @@ def camel_to_snake(text):
   # - Followed by a lowercase letter: (?=[a-z])
 
   return re.sub(r'(?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z])', r'_\g', text).lower()
+
+
+def calculate_heading(start_lat, start_lng, end_lat, end_lng):
+    """
+    Calculate the heading from start coordinates (start_lat, start_lng)
+    to end coordinates (end_lat, end_lng).
+
+    Parameters:
+    - start_lat: Latitude of the start point in decimal degrees
+    - start_lng: Longitude of the start point in decimal degrees
+    - end_lat: Latitude of the end point in decimal degrees
+    - end_lng: Longitude of the end point in decimal degrees
+
+    Returns:
+    - heading: Heading in degrees from the start point to the end point
+    """
+    # Convert decimal degrees to radians
+    start_lat = math.radians(start_lat)
+    start_lng = math.radians(start_lng)
+    end_lat = math.radians(end_lat)
+    end_lng = math.radians(end_lng)
+
+    # Calculate the difference in longitude
+    d_lng = end_lng - start_lng
+
+    # Calculate the components of the formula
+    x = math.sin(d_lng) * math.cos(end_lat)
+    y = math.cos(start_lat) * math.sin(end_lat) - math.sin(start_lat) * math.cos(end_lat) * math.cos(d_lng)
+
+    # Calculate the initial heading
+    initial_heading = math.atan2(x, y)
+
+    # Convert the heading from radians to degrees
+    initial_heading = math.degrees(initial_heading)
+
+    # Normalize the heading to 0-360 degrees
+    heading = (initial_heading + 360) % 360
+
+    return heading
