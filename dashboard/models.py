@@ -912,7 +912,19 @@ class DeviceStatus(models.Model):
         alerting_counts = []
 
         for row in result:
-            labels.append(row[0])  # Adjust format as needed
+            #labels.append(row[0])  # Adjust format as needed
+            date_string = row[0]
+            if time_group in ('1w', '1mo'):
+                date_object = datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
+                # Format datetime object into desired string
+                formatted_date = date_object.strftime("%d-%b-%y").upper()
+                if time_group == '1mo':
+                    iso_year, iso_week_num, _ = date_object.isocalendar()
+                    formatted_date = formatted_date + f" (W{iso_week_num})"
+                labels.append(formatted_date)
+            else:
+                labels.append(row[0])
+
             online_counts.append(row[1])
             offline_counts.append(row[2])
             alerting_counts.append(row[3])
