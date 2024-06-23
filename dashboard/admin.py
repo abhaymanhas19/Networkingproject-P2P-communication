@@ -113,6 +113,7 @@ class CustomerAdmin(SemanticModelAdmin):
     search_fields = ('name', 'contact_person', 'contact_email', 'primary_contact_no', 'secondary_contact_no')
     inlines = [OrganizationsInline, CustomerNetworksInline, PeplinkGroupsInline, UnifiSiteInline, CustomerUsersInline]
     can_delete = True
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
 
 
 @admin.register(dashboard_models.Organization)
@@ -120,6 +121,8 @@ class OrganizationsAdmin(SemanticModelAdmin):
     list_display = ('name', 'org_id', 'org_type', 'org_url', 'api_enabled')
     search_fields = ('name', 'org_id', 'org_type', 'org_url', 'api_enabled')
     list_filter = ('org_type', 'api_enabled')
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
+
 
 @admin.register(dashboard_models.Network)
 class NetworkAdmin(admin.ModelAdmin):
@@ -127,12 +130,14 @@ class NetworkAdmin(admin.ModelAdmin):
     search_fields = ('name', 'network_id', 'organization')
     list_filter = ('organization', 'timezone')
     inlines = [MerakiNetworkDeviceInline]
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
 
 @admin.register(dashboard_models.GroupDevice)
 class GroupDeviceAdmin(SemanticModelAdmin):
     list_filter = ['group_name', 'name', 'device_type']
     list_display = ('group_name', 'name', 'sn', 'product_id')
     search_fields = ('name', 'sn', 'product_id')
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
 
 
 @admin.register(dashboard_models.MerakiDevice)
@@ -141,18 +146,20 @@ class MerakiDevice(SemanticModelAdmin):
     list_filter = ('network_id', 'status_text', 'productType')
     search_fields = ('device_name', 'serial')
     list_display = ['network','productType', 'device_name', 'serial', 'mac', 'status_text']
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
 
 @admin.register(dashboard_models.UnifiSite)
 class UnifiSiteAdmin(SemanticModelAdmin):
     list_display = ('name', '_id', 'desc')
     search_fields = ('name', 'desc', '_id')
-
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
 
 @admin.register(dashboard_models.UnifiDevice)
 class UnifiDeviceAdmin(SemanticModelAdmin):
     list_display = ('site', 'device_type', 'name', 'mac')
     list_filter = ('site', 'device_type')
     search_fields = ('name', 'device_type', 'mac','serial')
+    readonly_fields = ['last_updated_at', 'created_at', 'pk']
 
 
 @admin.register(dashboard_models.DataSyncLog)
