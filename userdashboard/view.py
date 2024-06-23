@@ -107,6 +107,7 @@ def get_wan_summary(customer_id):
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
+        summary["alerting_devices"] = alerting_devices
     except Exception as e:
         pass
         print(f"error got: {e}")
@@ -204,6 +205,7 @@ def get_lan_summary2(customer_id):
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
+        summary["alerting_devices"] = alerting_devices
     except Exception as e:
         _logger.error(f"Error getting LAN summary: {e}", exc_info=True)
 
@@ -248,6 +250,7 @@ def get_lan_summary(customer_id):
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
+        summary["alerting_devices"] = alerting_devices
     except Exception as e:
         pass
         print(f"error got: {e}")
@@ -280,7 +283,7 @@ def get_wireless_summary(customer_id):
         online_devices = ([ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="online"]
                           + [ud.status_list for ud in unifi_devices if ud.status_list and ud.status.lower()=="online"])
         alerting_devices = [ma.status_list[0] for ma in meraki_appliances if ma.status_list and ma.status_text=="alerting"]
-
+        # import pdb; pdb.set_trace()
         total_online = len(online_devices)
         total_dormant = len(dormant_devices)
         total_offline = len(offline_devices)
@@ -291,6 +294,7 @@ def get_wireless_summary(customer_id):
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
+        summary["alerting_devices"] = alerting_devices
     except Exception as e:
         _logger.error(f"Error getting wireless summary: {e}", exc_info=True)
 
@@ -337,6 +341,7 @@ def get_wireless_summary2(customer_id):
         summary["online_devices"] = online_devices
         summary["dormant_devices"] = dormant_devices
         summary["offline_devices"] = offline_devices
+        summary["alerting_devices"] = alerting_devices
     except Exception as e:
         _logger.error(f"Error getting wireless summary: {e}", exc_info=True)
 

@@ -85,6 +85,7 @@ class Meraki(object):
             "total": 0,
             "data": []
         }
+        one_day = 86400
         # get seven_days_ago from current datetime
         seven_days_ago = datetime.now() - timedelta(days=7)
         seven_days_ago_str = seven_days_ago.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
@@ -103,7 +104,7 @@ class Meraki(object):
                 cne = []
 
                 try:
-                    cne = self.client.appliance.getNetworkApplianceSecurityEvents(networkId=cn.network.network_id, timespan=30)
+                    cne = self.client.appliance.getNetworkApplianceSecurityEvents(networkId=cn.network.network_id, timespan=one_day+2)
                 except Exception as e:
                     print(f"error getting network events: {e}")
                     _logger.error(f"error getting network events: {e}", exc_info=True)

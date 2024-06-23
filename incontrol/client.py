@@ -121,6 +121,7 @@ class API(object):
         status_code = getattr(response, 'status_code', None)
         if (status_code == 200
                 and response.json().get("resp_code") in ('SUCCESS', 'PENDING')):
+            _logger.info(f"Successfully fetched data from {endpoint_url}: {response.json()}")
             return response.json().get("data", None)
         elif status_code in (401, 403):
             # retry using new token
