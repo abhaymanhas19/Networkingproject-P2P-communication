@@ -831,7 +831,7 @@ class DeviceStatus(models.Model):
                         customer_id = %s AND
                         as_of_time >= now() - interval '{period_start}' AND
                         as_of_time <= now() AND
-                        product_type IN ('appliance', 'ugw', 'udm', 'uxg')
+                        product_type IN ('appliance', 'ugw', 'udm', 'uxg', 'balancemax')
                     GROUP BY
                         1, 2
                 ),
@@ -886,7 +886,7 @@ class DeviceStatus(models.Model):
                         customer_id = %s AND
                         as_of_time >= now() - interval '{period_start}' AND
                         as_of_time <= now() AND
-                        product_type IN ('appliance', 'ugw', 'udm', 'uxg')
+                        product_type IN ('appliance', 'ugw', 'udm', 'uxg', 'balancemax')
                     GROUP BY
                         1, 2
                 ) AS subquery
