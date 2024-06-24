@@ -51,21 +51,21 @@
 
                             {% for dev in wan_summary.online_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wan_summary.alerting_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
                                 </tr>
                             {% endfor %}
                             {% for dev in wan_summary.offline_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
                                 </tr>
@@ -73,7 +73,7 @@
 
                             {% for dev in wan_summary.dormant_devices %}
                                 <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.device_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
                                 </tr>
