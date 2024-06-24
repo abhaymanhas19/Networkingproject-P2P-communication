@@ -549,7 +549,8 @@
             online: L.icon({ iconUrl: '{% static 'images/green-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
             offline: L.icon({ iconUrl:'{% static 'images/red-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
             alerting: L.icon({ iconUrl: '{% static 'images/orange-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            dormant: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] })
+            dormant: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+            unknown: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] })
         };
 
         {% if customer_devices %}
@@ -563,7 +564,7 @@
 
                 buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
 
-                var icon = icons['{{ dev.status|lower }}'];  // Get the appropriate icon based on status
+                var icon = icons['{{ dev.status|lower }}'] ?? icons['unknown'];
                 var marker = L.marker([{{ dev.latitude }}, {{ dev.longitude }}], { icon: icon })
                     .bindPopup(`<b>{{ dev.name }}</b><br><p>S/N: {{ dev.sn }}</p><p>{{ dev.status }}</p> ${buttonHTML}`);
                 markers.addLayer(marker);
