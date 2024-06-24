@@ -442,7 +442,7 @@ def sync_meraki_device_statuses():
         organization = dashboard_models.Organization.objects.filter(org_id=org['id']).first()
         # get the customer associated with the organization.
         # if org has no associated customer, we will try to get it from the network later
-        customer =  organization.customer_set.all().first()
+        org_customer =  organization.customer_set.all().first()
 
         try:
             networks = api.organizations.getOrganizationNetworks(org['id'])
@@ -455,13 +455,16 @@ def sync_meraki_device_statuses():
         org_devices = api.organizations.getOrganizationDevices(org['id'])
 
         for network in networks:
-            if not customer:
+            customer = None
+            if not org_customer:
                 dashboard_network = dashboard_models.Network.objects.filter(network_id=network['id']).first()
                 if dashboard_network:
                     try:
                         customer = dashboard_network.customernetwork_set.all().first().customer
                     except:
                         pass
+            else:
+                customer = org_customer
 
             if not customer:
                 msg = f"\n\n=======>> skipping this network as it has no customer {network['id']}"
