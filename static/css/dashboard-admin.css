@@ -3,6 +3,9 @@
 h1.ui.header {
     font-size: 1.10rem !important;
     text-transform: uppercase;
+    padding: 10px;
+    background-color: lightgray;
+    margin-left:-15px;
 }
 
 h2.ui.header {
@@ -21,6 +24,9 @@ h2.ui.header {
 .module h2 {
     font-size: 1.10rem !important;
     text-transform: uppercase;
+    padding: 10px;
+    background-color: lightgray;
+    margin-left: 0px !important;
 }
 
 .ui.segment.inline-related h3,
