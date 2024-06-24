@@ -127,7 +127,7 @@ class OrganizationsAdmin(SemanticModelAdmin):
 @admin.register(dashboard_models.Network)
 class NetworkAdmin(admin.ModelAdmin):
     list_display = ('name', 'network_id', 'organization')
-    search_fields = ('name', 'network_id', 'organization')
+    search_fields = ('name', 'network_id', 'organization__name')
     list_filter = ('organization', 'timezone')
     inlines = [MerakiNetworkDeviceInline]
     readonly_fields = ['last_updated_at', 'created_at', 'pk']

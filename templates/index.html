@@ -662,6 +662,20 @@
                     $("#tracking-device-heading").text(`heading: ${data.device_info.heading}`);
                     $("#tracking-device-last-reported").text(`Last Reported At: ${data.device_info.last_reported_at}`);
 
+                    //clear all markers and polylines
+                    try{
+                        for (var i in gpsHistoryMap._layers) {
+                            if (gpsHistoryMap._layers[i] instanceof L.Marker) {
+                                gpsHistoryMap.removeLayer(gpsHistoryMap._layers[i]);
+                            }
+                            if (gpsHistoryMap._layers[i] instanceof L.Polyline) {
+                                gpsHistoryMap.removeLayer(gpsHistoryMap._layers[i]);
+                            }
+                        }
+                    }catch(e){
+                        ;
+                    }
+
                     //TODO: PLOT THE POLYLINE
                     try {
                         var polyline = L.polyline(data.coordinates, {color: 'red', weight: 8}).addTo(gpsHistoryMap);
