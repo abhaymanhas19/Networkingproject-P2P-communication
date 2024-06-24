@@ -276,7 +276,8 @@ def sync_meraki_devices():
 
         # get Organization's device statuses
         device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'], perPage=1000)
-
+        # if org['id'] in ('595601050719760428', 595601050719760428):
+        #     import pdb;pdb.set_trace()
         django_org = dashboard_models.Organization.objects.get(org_type='M', org_id=org['id'])
 
         org_devices = api.organizations.getOrganizationDevices(org['id'])
@@ -303,6 +304,7 @@ def sync_meraki_devices():
                 gateway = ""
                 primaryDns = ""
                 secondaryDns = ""
+
                 if status:
                     status_text = status[0].get('status', '')
                     productType = status[0].get('productType', '')
@@ -310,6 +312,8 @@ def sync_meraki_devices():
                     gateway = status[0].get('gateway', '')
                     primaryDns = status[0].get('primaryDns', '')
                     secondaryDns = status[0].get('secondaryDns', '')
+                else:
+                    status_text = "offline"
 
 
 
@@ -443,17 +447,23 @@ def sync_meraki_device_statuses():
         # get the customer associated with the organization.
         # if org has no associated customer, we will try to get it from the network later
         org_customer =  organization.customer_set.all().first()
-
+        # if org['id'] in(595601050719760428, '595601050719760428'):
+        #     pass
+        #     import pdb;pdb.set_trace()
         try:
             networks = api.organizations.getOrganizationNetworks(org['id'])
         except Exception as e:
-            _logger.warn(f"Skipping syncing Meraki Devices due to API error: {e}")
+            msg = f"\n\n====\nSkipping syncing Meraki Devices due to API error: {e}"
+            print(msg)
+            _logger.warn(msg)
             continue
-
+        # print(f"\n\n--------\ngot networks for organization {org['name']}: {len(networks)}")
+        # print(f"customer for org: {org['name']}: {org_customer}\n")
+        # continue
         # get Organization's device statuses
         device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'])
-        org_devices = api.organizations.getOrganizationDevices(org['id'])
-
+        #org_devices = api.organizations.getOrganizationDevices(org['id'])
+        skipped_networks = []
         for network in networks:
             customer = None
             if not org_customer:
@@ -467,7 +477,8 @@ def sync_meraki_device_statuses():
                 customer = org_customer
 
             if not customer:
-                msg = f"\n\n=======>> skipping this network as it has no customer {network['id']}"
+                skipped_networks.append((org['name'], network['name'], network['id']))
+                msg = f"\n\n=======>> skipping this network as it has no customer {network['id']}\n"
                 #skip this network be cause it is not associated with a customer
                 print(msg)
                 _logger.warn(msg, exc_info=True)
@@ -475,15 +486,26 @@ def sync_meraki_device_statuses():
 
             devices = api.networks.getNetworkDevices(network['id'])
             for device in devices:
-                # find the device status from the statuses listpyt
-                device_status = [ ds for ds in device_statuses if ds.get('serial','x') == device.get('serial','y') ]
+                # find the device status from the statuses list
+                device_status = [ ds for ds in device_statuses if ds.get('serial') == device.get('serial') ]
+                # if network['id'] == 'N_624874448297705472':
+                #     pass
+                #     import pdb; pdb.set_trace()
+
                 if not device_status:
-                    msg = f"\n\n=======>> skipping this device as it has no status {device.get('serial','--no-serial--')}\n\n"
+                    # if status is not found, we treat it as offline
+                    device_status = {
+                        'status': 'offline',
+                        'serial': device.get('serial'),
+                        'networkId': network['id'],
+                        'model':device.get('model'),
+                        'mac':device.get('mac')
+                    }
+                    msg = f"\n\n=======>> No status {device.get('serial','--no-serial--')}. Treat as offline \n\n"
                     print(msg)
                     _logger.warn(msg, exc_info=True)
-                    continue
-
-                device_status = device_status[0]
+                else:
+                    device_status = device_status[0]
                 # print("================================================================")
                 # print(device_status)
                 # print("================================================================")
@@ -496,10 +518,6 @@ def sync_meraki_device_statuses():
                     pass
 
                 try:
-                    # print("===================== D E V I C E ===========================================")
-                    # print (device)
-                    # print("================================================================")
-
                     wan_status = dashboard_models.DeviceStatus.objects.create(
                         customer=customer,
                         device_name=device.get('name', ''),
@@ -517,6 +535,7 @@ def sync_meraki_device_statuses():
                     )
                 except Exception as e:
                      _logger.warn(f"Device Status Not Created: {e}", exc_info=True)
+        print(f"\n\n =====\nskipped networks: {skipped_networks}\n\n")
     try:
         dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
     except Exception as e:
