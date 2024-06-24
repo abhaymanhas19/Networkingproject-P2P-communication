@@ -419,6 +419,29 @@ class GroupDevice(models.Model):
         return "{} ({})".format(self.name, self.sn)
 
     @property
+    def last_reported_at(self):
+        last_reported = None
+
+        last_offline_date =  datetime(1970, 1, 1)
+        last_online_date =  datetime(1970, 1, 1)
+        try:
+            last_offline_date = datetime.strptime(self.offline_at, "%Y-%m-%dT%H:%M:%S")
+        except:
+            pass
+
+        try:
+            last_online_date = datetime.strptime(self.last_online, "%Y-%m-%dT%H:%M:%S")
+        except:
+            pass
+
+        if last_online_date > last_offline_date:
+            last_reported = self.last_online
+        else:
+            last_reported = self.offline_at
+
+        return last_reported
+
+    @property
     def serial(self):
         return self.sn
 
@@ -519,6 +542,23 @@ class MerakiDevice(models.Model):
     def __str__(self):
         return f"{self.device_name} - {self.network_id} - SN: {self.serial}"
 
+    @property
+    def last_reported_at(self):
+        last_reported = ''
+        if self.status_list:
+            try:
+                last_reported = self.status_list[0].get('lastReportedAt', '')
+                return last_reported
+            except:
+                pass
+            # if the status_list does not contain a list
+            try:
+                last_reported = self.status_list.get('lastReportedAt', '')
+                return last_reported
+            except:
+                pass
+
+        return last_reported
     @property
     def sn(self):
         return self.serial

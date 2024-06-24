@@ -465,7 +465,7 @@
                             <span id="tracking-device-mac" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">MAC:</span>
                             <span id="tracking-device-loc" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">loc: (lat,lng)</span>
                             <span id="tracking-device-heading" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">heading: </span>
-                            <span id="tracking-device-last-reported" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">Last Reported: DATE</span>
+                            <span id="tracking-device-last-reported" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">Location Timestamp: DATE</span>
                         </div>
                         <div style="padding-right:40px; z-index:5000">
                             <button id="btn-track-period" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
@@ -660,7 +660,7 @@
                     $("#tracking-device-mac").text(`MAC: ${data.device_info.mac}`);
                     $("#tracking-device-loc").text(`loc: (${data.last_location})`);
                     $("#tracking-device-heading").text(`heading: ${data.device_info.heading}`);
-                    $("#tracking-device-last-reported").text(`Last Reported At: ${data.device_info.last_reported_at}`);
+                    $("#tracking-device-last-reported").text(`Location Timestamp: ${data.device_info.last_reported_at}`);
 
                     //clear all markers and polylines
                     try{

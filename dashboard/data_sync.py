@@ -313,9 +313,13 @@ def sync_meraki_devices():
                     primaryDns = status[0].get('primaryDns', '')
                     secondaryDns = status[0].get('secondaryDns', '')
                 else:
-                    status_text = "offline"
-
-
+                    status_text = settings.MISSING_STATUS_TEXT
+                    status = {"status": status_text,
+                              "productType": "",
+                              "publicIp": "",
+                              "gateway": "",
+                              "primaryDns": "",
+                              "secondaryDns": ""}
 
                 dashboard_device.status_text = status_text
                 dashboard_device.status_list = status

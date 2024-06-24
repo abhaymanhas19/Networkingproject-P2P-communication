@@ -149,7 +149,7 @@ class DeviceLocationHistoryView(LoginRequiredMixin, View):
                 elif isinstance(dev, MerakiDevice):
                     device_name = dev.device_name
                     device_last_loc = [dev.lat, dev.lng]
-                    device_last_seen = dev.last_updated_at
+                    device_last_seen = dev.last_reported_at
                     device_model = dev.model
                     device_mac = dev.mac
 

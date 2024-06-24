@@ -179,7 +179,6 @@ SEMANTIC_APP_LIST = [
                    {"object_name": "UnifiDevice"},
                    {"object_name": "DataSyncLog"},
                    {"object_name": "DeviceStatus"}
-
                    ],
     },
     {
@@ -187,6 +186,9 @@ SEMANTIC_APP_LIST = [
         "models": [{"object_name": "User"}, {"object_name": "Group"}],
     },
 ]
+
+# the status to use when Status is not available in the APIs
+MISSING_STATUS_TEXT = 'unknown'
 
 # This is just for additional settings if you don't want to user .env
 # LOCAL SETTINGS
