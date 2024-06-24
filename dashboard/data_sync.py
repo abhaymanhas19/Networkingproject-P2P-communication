@@ -11,6 +11,8 @@ from meraki import DashboardAPI as MerakiAPI
 from unifiapi import controller as UnifiCtrl
 
 from django.conf import settings
+from django.db.models import Q
+
 
 _logger = logging.getLogger(__name__)
 
@@ -112,13 +114,13 @@ def sync_meraki_networks():
         output_log=False
     )
     organizations = api.organizations.getOrganizations()
-
+    #meraki_org_processed = 0
     for org in organizations:
         if not org['api'].get('enabled', True):
              continue
         # skip newly created organizations
         try:
-            networks = api.organizations.getOrganizationNetworks(org['id'])
+            networks = api.organizations.getOrganizationNetworks(organizationId=org['id'], perPage=1000)
         except Exception as e:
             _logger.warn(f"Skipping syncing Meraki Networks due to API error: {e}")
             continue
@@ -137,6 +139,7 @@ def sync_meraki_networks():
             dashboard_network.notes = network.get('notes','')
             dashboard_network.product_types = json.dumps(network['productTypes'])
             dashboard_network.save()
+        # meraki_org_processed += 1
 
 
 
@@ -246,12 +249,24 @@ def sync_meraki_devices():
         output_log=False
     )
     organizations = api.organizations.getOrganizations()
-
+    # run_summary = {
+    #     "org-id": {
+    #         "network-id": {
+    #             "device-id": 0
+    #         }
+    #     }
+    # }
+    # print("=====================================================")
+    # print("===================== merkaki devices ===============")
+    # print("=====================================================")
     for org in organizations:
         # skip API-disabled organizations
-        if not org['api'].get('enabled', True):
-             continue
 
+        # print(f"\n\n ==========>> ORGANIZATION: {org['id']}\n")
+        if not org['api'].get('enabled', True):
+            #  print(f"============== = = = = SKIPPING ORG {org['id']}")
+             continue
+        # run_summary[org['id']] = {}
         # skip newly created organizations:
         try:
             networks = api.organizations.getOrganizationNetworks(org['id'])
@@ -260,10 +275,16 @@ def sync_meraki_devices():
             continue
 
         # get Organization's device statuses
-        device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'])
+        device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'], perPage=1000)
 
         django_org = dashboard_models.Organization.objects.get(org_type='M', org_id=org['id'])
+
+        org_devices = api.organizations.getOrganizationDevices(org['id'])
+
+
         for network in networks:
+            # print(f"\n=======Network: {network['name']}\n")
+            # run_summary[org['id']][network['id']] = 0
             django_network = dashboard_models.Network.objects.get(network_id=network['id'])
             devices = api.networks.getNetworkDevices(network['id'])
 
@@ -315,12 +336,16 @@ def sync_meraki_devices():
                 dashboard_device.firmware = device['firmware']
                 dashboard_device.wan1Ip = device.get('wan1Ip', '')
                 dashboard_device.save()
-                # import pdb; pdb.set_trace()
-                # dashboard_device.save(update_fields=['device_name', 'url', 'serial', 'mac', 'networkId', 'productType', 'lat', 'lng', 'model', 'firmware', 'wan1Ip'])
+
+                # run_summary[org['id']][network['id']] += 1
+
                 meraki_network_device, _ = dashboard_models.MerakiNetworkDevice.objects.get_or_create(
                     network=django_network,
                     device=dashboard_device
                 )
+    # print("\n\nRun Summary:")
+    # print(run_summary)
+
 #TODO: sync unifi sites and devices
 #TODO: add websocket service (django-channels)
 # TODO: websocket endpoints to provide:
@@ -415,12 +440,9 @@ def sync_meraki_device_statuses():
              continue
 
         organization = dashboard_models.Organization.objects.filter(org_id=org['id']).first()
-        # get the customer associated with the organization
+        # get the customer associated with the organization.
+        # if org has no associated customer, we will try to get it from the network later
         customer =  organization.customer_set.all().first()
-
-        # skip orgs that are not currently related to a customer
-        if not customer:
-            continue
 
         try:
             networks = api.organizations.getOrganizationNetworks(org['id'])
@@ -430,14 +452,32 @@ def sync_meraki_device_statuses():
 
         # get Organization's device statuses
         device_statuses = api.organizations.getOrganizationDevicesStatuses(org['id'])
+        org_devices = api.organizations.getOrganizationDevices(org['id'])
 
         for network in networks:
+            if not customer:
+                dashboard_network = dashboard_models.Network.objects.filter(network_id=network['id']).first()
+                if dashboard_network:
+                    try:
+                        customer = dashboard_network.customernetwork_set.all().first().customer
+                    except:
+                        pass
+
+            if not customer:
+                msg = f"\n\n=======>> skipping this network as it has no customer {network['id']}"
+                #skip this network be cause it is not associated with a customer
+                print(msg)
+                _logger.warn(msg, exc_info=True)
+                continue
+
             devices = api.networks.getNetworkDevices(network['id'])
-            # import pdb; pdb.set_trace()
             for device in devices:
                 # find the device status from the statuses listpyt
                 device_status = [ ds for ds in device_statuses if ds.get('serial','x') == device.get('serial','y') ]
                 if not device_status:
+                    msg = f"\n\n=======>> skipping this device as it has no status {device.get('serial','--no-serial--')}\n\n"
+                    print(msg)
+                    _logger.warn(msg, exc_info=True)
                     continue
 
                 device_status = device_status[0]
@@ -500,6 +540,17 @@ def sync_peplink_device_statuses():
     group_devices = api.get_group_devices(organization_id=organization_id, group_id=group_id)
 
     fetch_time = datetime.now(tz=pytz.utc)
+    api_group_devices = [devices for devices in group_devices if devices]
+    #api_group_device_ids = [dev.get('id') for dev in api_group_devices if dev]
+
+    api_group_device_ids = [dev.get('id') for sublist in api_group_devices for dev in sublist]
+
+    # get all dashboard.models.GroupDevices that are not in group_devices list
+    group_device_qset = dashboard_models.GroupDevice.objects.filter(~Q(device_id__in=api_group_device_ids))
+    if  len(group_device_qset) == 0:
+        _logger.info(f"======== sync_peplink_device_statuses: ALL GROUP DEVICES ARE IN SYNC  ========", exc_info=True)
+    else:
+        _logger.warn(f"======== sync_peplink_device_statuses: SOME GROUP DEVICES ARE NOT IN SYNC: {group_device_qset} ========", exc_info=True)
 
     for devices in group_devices:
         if not devices:
