@@ -137,7 +137,7 @@ class GroupDeviceAdmin(SemanticModelAdmin):
     list_filter = ['group_name', 'name', 'device_type']
     list_display = ('group_name', 'name', 'sn', 'product_id')
     search_fields = ('name', 'sn', 'product_id')
-    readonly_fields = ['last_updated_at', 'created_at', 'pk']
+    readonly_fields = ['last_updated_at', 'created_at', 'pk', 'internal_class']
 
 
 @admin.register(dashboard_models.MerakiDevice)
@@ -146,7 +146,7 @@ class MerakiDevice(SemanticModelAdmin):
     list_filter = ('network_id', 'status_text', 'productType')
     search_fields = ('device_name', 'serial')
     list_display = ['network','productType', 'device_name', 'serial', 'mac', 'status_text']
-    readonly_fields = ['last_updated_at', 'created_at', 'pk']
+    readonly_fields = ['last_updated_at', 'created_at', 'pk', 'internal_class']
 
 @admin.register(dashboard_models.UnifiSite)
 class UnifiSiteAdmin(SemanticModelAdmin):
@@ -159,7 +159,7 @@ class UnifiDeviceAdmin(SemanticModelAdmin):
     list_display = ('site', 'device_type', 'name', 'mac')
     list_filter = ('site', 'device_type')
     search_fields = ('name', 'device_type', 'mac','serial')
-    readonly_fields = ['last_updated_at', 'created_at', 'pk']
+    readonly_fields = ['last_updated_at', 'created_at', 'pk', 'internal_class']
 
 
 @admin.register(dashboard_models.DataSyncLog)

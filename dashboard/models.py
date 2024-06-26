@@ -410,6 +410,7 @@ class GroupDevice(models.Model):
 
     last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
     created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
 
     class Meta:
         verbose_name = "Peplink Group Device"
@@ -533,6 +534,7 @@ class MerakiDevice(models.Model):
     secondaryDns = models.CharField("Secondary DNS", max_length=100, null=True, blank=True)
     last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
     created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+    internal_class = models.CharField("Internal Class", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
 
     class Meta:
         verbose_name = _("Meraki Device")
@@ -653,6 +655,8 @@ class UnifiDevice(models.Model):
     serial = models.CharField("Serial", null=True, blank=True, max_length=255, default='')
     last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
     created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
+
     class Meta:
         verbose_name = "Unifi Device"
         verbose_name_plural = "Unifi Devices"

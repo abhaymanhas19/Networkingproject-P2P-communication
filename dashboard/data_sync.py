@@ -226,7 +226,7 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
 
             mdevice_id = device.pop('id')
             device['device_id'] = mdevice_id
-
+            device['internal_class'] = 'peplink'
             if device_loc:
                 device["latitude"] = device_loc.get("latitude", 0.0)
                 device["longitude"] = device_loc.get("longitude", 0.0)
@@ -343,6 +343,7 @@ def sync_meraki_devices():
                 dashboard_device.model = device['model']
                 dashboard_device.firmware = device['firmware']
                 dashboard_device.wan1Ip = device.get('wan1Ip', '')
+                dashboard_device.internal_class = 'meraki'
                 dashboard_device.save()
 
                 # run_summary[org['id']][network['id']] += 1
@@ -421,6 +422,7 @@ def sync_unifi_devices():
             unifi_device.disabled=device['disabled']
             unifi_device.serial=dvc.get('serial', serial_num)
             unifi_device.site = site
+            unifi_device.internal_class = 'unifi'
             unifi_device.save()
 
 
