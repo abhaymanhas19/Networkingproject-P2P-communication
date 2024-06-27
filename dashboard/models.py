@@ -434,18 +434,55 @@ class GroupDevice(models.Model):
         return tmp
 
     @property
-    def starlink_statuses(self):
+    def starlink_interface(self):
+        """returns the interface that is connected via Starlink"""
+        starlink = {}
+        for interface in self.interfaces_list:
+            if "starlink" in interface["status"].lower():
+                starlink = interface
+                break
+        return starlink
 
+    @property
+    def starlink_status_dict(self):
         from ast import literal_eval
-        tmp = []
+        tmp = {}
         if self.starlink_status:
-            for status in self.starlink_status:
-                try:
-                    tmp.append(literal_eval(status))
-                except Exception:
-                    _logger.warn("Could not convert interface data to Python data type. {}".format(status))
-                    pass
+            status = self.starlink_status[0]
+            try:
+                tmp = literal_eval(status)
+            except Exception:
+                _logger.warn("Could not convert interface data to Python data type. {}".format(status))
+                pass
         return tmp
+
+    @property
+    def starlink_throughput(self):
+        if self.starlink_status_dict:
+            throughput = {"uplink":"", "downlink":""}
+            ul = self.starlink_status_dict['dishGetStatus']['uplinkThroughputBps']
+            dl = self.starlink_status_dict['dishGetStatus']['downlinkThroughputBps']
+
+            # round ul to 2 decimals
+            ul = round(ul, 2)
+            dl = round(dl, 2)
+
+            ul_str = f"{ul} Bps"
+            dl_str = f"{dl} Bps"
+            if ul >= 1000000:
+                ul = ul / 1000000
+                ul_str = f"{ul} Mbps"
+
+            if dl >= 1000000:
+                dl = dl / 1000000
+                dl_str = f"{dl} Mbps"
+
+
+            throughput['uplink'] = ul_str
+            throughput['downlink'] = dl_str
+
+            return throughput
+        return {}
 
     @property
     def incontrol_group(self):

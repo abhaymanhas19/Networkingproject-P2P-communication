@@ -1,5 +1,5 @@
 {% extends "partials/base.html" %}
-
+{% comment %} {% load json_script %} {% endcomment %}
 {% load static %}
 
 {% block title %}Device Details{% endblock title %}
@@ -16,9 +16,9 @@
 <div class="flex flex-col gap-6">
     <div class="card">
         <div class="card-header">
-            <p class="text-sm text-gray-500 dark:text-gray-500">
-                GENERAL INFORMATION
-            </p>
+            <div class="icon-text-container">
+                <i class="msr">info</i><span>GENERAL INFORMATION</span>
+            </div>
         </div>
         <div class="p-6">
             <h3 class="text-lg font-bold text-gray-800 dark:text-white">
@@ -26,32 +26,95 @@
             </h3>
 
         </div>
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle">
+                <div class="overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr></tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">IP Address:</td>
+                                {% if device.starlink_interface %}
+                                    <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                        {{ device.starlink_interface.ip }}
+                                    </td>
+                                {% else %}
+                                <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
+                                {% endif %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                            </tr>
+
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Alerts</td>
+                                {% if device.starlink_status_dict %}
+                                    <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{device.starlink_status_dict.dishGetStatus.alerts}}</td>
+                                {% else %}
+                                <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
+                                {% endif %}
+
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+
+
     </div>
     <div class="card">
         <div class="card-header flex justify-between items-center">
-            <p class="text-sm text-gray-500 dark:text-gray-500">
-                STARLINK DETAILS
-            </p>
+            <div class="icon-text-container">
+                <i class="msr">satellite_alt</i><span>STARLINK STATUS</span>
+            </div>
             <button data-fc-type="collapse" data-fc-target="collapseStarlinkDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
                 Collapse <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
             </button>
         </div>
         <div class="p-6">
-            <h3 class="text-lg font-bold text-gray-800 dark:text-white">
-                Card title
-            </h3>
-            <div id="collapseStarlinkDetails" class="hidden w-full overflow-hidden transition-[height] duration-300">
+            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-hidden transition-[height] duration-300">
                 {% if device.starlink_status %}
-                <p>
-                    <pre>
-                        {% comment %} {{ device.starlink_status }} {% endcomment %}
-                    </pre>
-                </p>
+                <div class="card flex justify-between items-center"  style="width:250px">
+                    <div class="canvas-container">
+                        <h2>Latency</h2>
+                        <canvas id="speed-gauge" width="250px" height="250px"></canvas>
+                        <div id="speed-gauge-text"></div><span id="speed-gauge-uom">ms</span>
+                    </div>
+                    <div id="bandwidth-container" style="margin-left: 20px">
+                        <div id="bandwidth-dl-container"><h3>Bandwidth(DL)</h3><p><h1 class="bandwidth-value">{{ device.starlink_throughput.downlink }}</h1></p></div>
+                        <br/>
+                        <div id="bandwidth-ul-container"><h3>Bandwidth(uL)</h3><p><h1 class="bandwidth-value">{{ device.starlink_throughput.uplink }}</h1></p></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-left:10px; border-width: 1px;boder-color:white;">
+                    <div class="">
+                        <div id="starlink-bandwidth-chart"></div>
+                    </div>
+                </div>
+
+                <div class="card flex justify-between items-center"  style="width:250px; margin-top:20px;">
+                    <div class="canvas-container">
+                        <h2>Obstruction</h2>
+                        <canvas id="obstruction-gauge" width="250px" height="250px"></canvas>
+                        <div id="obstruction-gauge-text"></div><span id="obstruction-gauge-uom">%</span>
+                    </div>
+                    <div id="uptime-container" style="margin-left: 20px">
+                        <div id="starlink-uptime-chart"></div>
+                    </div>
+                </div>
                 {% else %}
                 <pre>
-                   no starlink
+                   No Starlink Status
                 </pre>
                 {% endif %}
+
+
+
             </div>
 
         </div>
@@ -80,9 +143,198 @@
     </div>
 
 </div>
+
+<style>
+    .icon-text-container {
+        display: flex;
+        align-items: center;
+    }
+    .icon-text-container span {
+        margin-left: 10px; /* Adjust the value to set the desired space */
+    }
+    #bandwidth-dl-container,
+    #bandwidth-ul-container{
+        width: 160px;
+    }
+
+    #bandwidth-container h3{
+        font-size: 12px;
+    }
+
+    #bandwidth-container h1.bandwidth-value{
+        font-size: 18px;
+    }
+
+    .canvas-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    .canvas-container h2{
+        text-align: center;
+    }
+    #speed-gauge-text,
+    #obstruction-gauge-text {
+        position: absolute;
+        bottom: 10px; /* Adjust this value as needed */
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        font-size: 1.5rem;
+        background-color: transparent;
+        padding: 5px; /* Optional: Adds some padding around the text */
+    }
+
+    #speed-gauge-uom,
+    #obstruction-gauge-uom{
+        position: absolute;
+        bottom: 0px; /* Adjust this value as needed */
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        font-size: 1rem;
+        background-color: transparent;
+        padding: 5px; /* Optional: Adds some padding around the text */
+    }
+</style>
 {% endblock content %}
 
 {% block extra_js %}
+<script src="{% static '/js/gauge.min.js'%}"></script>
+<script src="{% static '/libs/apexcharts/apexcharts.min.js' %}"></script>
 
+<script>
+    var maxVal = 250;
+    var latency = 0;
+
+    currVal = 0;
+
+    {% if device.starlink_status_dict %}
+        latency = {{ device.starlink_status_dict.dishGetStatus.popPingLatencyMs }};
+        currVal = {{ device.starlink_status_dict.dishGetStatus.popPingLatencyMs }};
+    {% endif %}
+
+    {% if device.starlink_status_dict.dishGetStatus.popPingLatencyMs > 250 %}
+         maxVal = {{ device.starlink_status_dict.dishGetStatus.popPingLatencyMs }};
+    {% endif %}
+    var opts = {
+        angle: -0.25,
+        lineWidth: 0.2,
+        pointer: {
+          length: 0.6,
+          strokeWidth: 0.05,
+          color: '#000000'
+        },
+        staticZones: [
+           {strokeStyle: "#00FF00", min: 0, max: 50},
+           {strokeStyle: "#99FF33", min: 50, max: 100},
+           {strokeStyle: "#FFFF00", min: 100, max: 150},
+           {strokeStyle: "#FFA500", min: 150, max: 200},
+           {strokeStyle: "#FF0000", min: 200, max: 250},
+           {% if device.starlink_status %}
+                {% if device.starlink_status_dict.dishGetStatus.popPingLatencyMs > 250 %}
+                      {strokeStyle: "#FF0000", min: 250, max: maxVal }
+                {% endif %}
+           {% endif %}
+        ],
+        limitMax: false,
+        limitMin: false,
+        strokeColor: '#E0E0E0',
+        highDpiSupport: true
+      };
+
+
+      var target = document.getElementById('speed-gauge'); // your canvas element
+      var text = document.getElementById('speed-gauge-text');
+      var speedGauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+      speedGauge.maxValue = maxVal; // set max gauge value
+      speedGauge.setMinValue(0);  // Prefer setter over gauge.minValue = 0
+      speedGauge.animationSpeed = 54; // set animation speed (32 is default value)
+      speedGauge.setTextField(text);
+      speedGauge.set(currVal); // set actual value
+      //speedGauge.set(<span id="opt-currval" class="lit">1500</span>);
+
+    var options = {
+        chart: {
+            height: 250,
+            type: 'area',
+            toolbar: {
+                show: false,
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 3,
+        },
+        series: [{
+            name: 'UL',
+            data: [34, 40, 28, 52, 42, 109, 100]
+        }, {
+            name: 'DL',
+            data: [32, 60, 34, 46, 34, 52, 41]
+        }],
+        colors: ['#556ee6', '#34c38f'],
+        xaxis: {
+            type: 'datetime',
+            categories: ["2018-09-19T00:00:00", "2018-09-19T01:30:00", "2018-09-19T02:30:00", "2018-09-19T03:30:00", "2018-09-19T04:30:00", "2018-09-19T05:30:00", "2018-09-19T06:30:00"],
+        },
+        grid: {
+            borderColor: '#9ca3af20',
+        },
+        tooltip: {
+            x: {
+                format: 'dd/MM/yy HH:mm'
+            },
+        }
+    }
+
+    var chart = new ApexCharts(
+        document.querySelector("#starlink-bandwidth-chart"),
+        options
+    );
+
+    chart.render();
+
+    var obstruction = 0;
+    {% if device.starlink_status_dict %}
+    obstruction = {{ device.starlink_status_dict.dishGetStatus.obstructionStats.fractionObstructed  }} * 100;
+    {% else %}
+    obstruction = 5;
+    {% endif %}
+
+    //obstruction
+    var opts2 = {
+        angle: -0.25,
+        lineWidth: 0.2,
+        pointer: {
+          length: 0.6,
+          strokeWidth: 0.05,
+          color: '#000000'
+        },
+        staticZones: [
+           {strokeStyle: "#00FF00", min: 0, max: 5},
+           {strokeStyle: "#90EE90", min: 6, max: 15},
+           {strokeStyle: "#FFFF00", min: 16, max: 30},
+           {strokeStyle: "#FFA500", min: 31, max: 50},
+           {strokeStyle: "#FF0000", min: 51, max: 100}
+        ],
+        limitMax: false,
+        limitMin: false,
+        strokeColor: '#E0E0E0',
+        highDpiSupport: true
+      };
+
+      var target2 = document.getElementById('obstruction-gauge'); // your canvas element
+      var text2 = document.getElementById('obstruction-gauge-text');
+      var obstructionGauge = new Gauge(target2).setOptions(opts2); // create sexy gauge!
+      obstructionGauge.maxValue = 100;
+      obstructionGauge.setMinValue(0);
+      obstructionGauge.animationSpeed = 54;
+      obstructionGauge.setTextField(text2);
+      obstructionGauge.set(obstruction);
+    </script>
 {% endblock extra_js %}
 
