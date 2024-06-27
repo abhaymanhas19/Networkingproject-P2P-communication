@@ -34,7 +34,7 @@ from dashboard.models import (
 
 _logger = logging.getLogger(__name__)
 
-def get_customer_devices(customer_id):
+def get_customer_routers(customer_id):
 
     combined_devices = []
     try:
@@ -381,12 +381,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         customer_id = int(current_customer.get("id", 0))
         # get customer's devices:
-        devices = get_customer_devices(customer_id)
+        all_routers = get_customer_routers(customer_id)
         # print(f"devices for customer { current_customer['id']}: {devices}")
         # print("==================>")
         # print(devices)
         # print("==================<")
-        context["customer_devices"] = devices
+        context["customer_routers"] = all_routers
         context["customer_data"] = customers
         context["user_info"] = user
         context["wan_summary"] = get_wan_summary(customer_id)

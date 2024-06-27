@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.db import connection
 from django.http import JsonResponse
 from django.views import View
+from django.views.generic import TemplateView
+
 from django.utils import timezone
 
 from .models import (
@@ -19,8 +21,10 @@ from .models import (
     GroupDevice,
     PeplinkGroup,
     DeviceStatus,
-    MerakiDevice)
+    MerakiDevice,
+    UnifiDevice)
 
+from .utils import get_customer_routers
 
 _logger = logging.getLogger(__name__)
 
@@ -209,3 +213,27 @@ class DeviceLocationHistoryView(LoginRequiredMixin, View):
             result["message"] = f"ERROR: {e}"
             return JsonResponse(result, status=400)
 
+
+
+class DeviceDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "router_details.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        request  = self.request
+        current_customer = request.session['current_customer']
+        internal_class = kwargs.get('internal_class')
+        device_serial = kwargs.get('serial')
+
+        device = None
+        if internal_class == 'meraki':
+            device = MerakiDevice.objects.filter(serial=device_serial).first()
+        elif internal_class == 'unifi':
+            device = UnifiDevice.objects.filter(serial=device_serial).first()
+        elif internal_class == 'peplink':
+            device = GroupDevice.objects.filter(sn=device_serial).first()
+        customer_id = current_customer.get('id')
+        all_routers = get_customer_routers(customer_id)
+        context['device'] = device
+        return context

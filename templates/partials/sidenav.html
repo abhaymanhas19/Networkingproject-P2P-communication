@@ -36,8 +36,6 @@
 
             <li class="menu-title">Details</li>
 
-
-
             <li class="menu-item">
                 <a href="{% url 'tickets' %}" class="menu-link">
                     <span class="menu-icon"><i class="mgc_coupon_line"></i></span>
@@ -54,26 +52,16 @@
                 </a>
 
                 <ul class="sub-menu hidden">
+
+                    {% for router in customer_routers %}
                     <li class="menu-item">
-                        <a href="{% url 'list' %}" class="menu-link">
-                            <span class="menu-text">Peplink Device 1</span>
+                        <a href="{% url 'router_details' internal_class=router.internal_class serial=router.serial %}" class="menu-link">
+                            <span class="menu-text">{% firstof router.device_name router.name %} ({{ router.serial }})</span>
                         </a>
                     </li>
-                    <li class="menu-item">
-                        <a href="{% url 'detail' %}" class="menu-link">
-                            <span class="menu-text">Meraki Device 1</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{% url 'create' %}" class="menu-link">
-                            <span class="menu-text">Meraki Device 2</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="{% url 'create' %}" class="menu-link">
-                            <span class="menu-text">Meraki Device 3</span>
-                        </a>
-                    </li>
+                    {% endfor %}
+
+
                 </ul>
             </li>
 

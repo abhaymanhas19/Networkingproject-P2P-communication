@@ -191,226 +191,188 @@ class PeplinkGroup(models.Model):
         return self.name
 
 
-
 class GroupDevice(models.Model):
-    device_id = models.IntegerField("Device ID",
-            help_text="unique identifier of the device",
-            unique=True)
-    group_id = models.IntegerField(
-            "Group ID",
-            help_text="unique identifier of the group,",
-            default=0)
-    group_name = models.CharField(
-            _("Group Name"),
-            help_text="Name of the group",
-            max_length=150, null=True, blank=True)
-    sn = models.CharField(
-            _("S/N"),
-            help_text="Device S/N",
-            max_length=150, null=True, blank=True)
-    name = models.CharField(
-            _("Device name"),
-            help_text="Device name",
-            max_length=150,
-            null=True, blank=True)
-    status = models.CharField(
-            _("Status"),
-            help_text="Status",
-            max_length=150,
-            null=True, blank=True)
-    product_id = models.IntegerField(
-            _("Product ID"),
-            default=0,
-            help_text="Product ID")
-    client_count = models.IntegerField(
-            _("Client Count"),
-            help_text="Current client count",
-            default=0)
-    fw_ver = models.CharField(
-            _("Firmware"),
-            help_text="Firmware version using",
-            max_length=150,
-            null=True, blank=True)
-    last_online = models.CharField(
-            _("Last Online"),
-            help_text="Last online date and time",
-            max_length=150,
-            null=True, blank=True)
-    offline_at = models.CharField(
-            _("Last Offline"),
-            help_text="Last offline date and time",
-            max_length=150,
-            null=True, blank=True)
-    first_appear = models.CharField(
-            _("First Appeared"),
-            help_text="First appeared date and time",
-            max_length=150,
-            null=True, blank=True)
-    lan_mac = models.CharField(
-            _("LAN MAC"),
-            help_text="LAN MAC address",
-            max_length=150,
-            null=True, blank=True)
-    sp_default = models.BooleanField(
-            _("SP Default"),
-            help_text="SP Default",
-            default=False)
-    interfaces = ArrayField(
-            models.CharField(
-                max_length=10000,
-                blank=True,
-                null=True),
-            blank=True,
-            null=True,
-            verbose_name="Device interfaces",
-            help_text="Device interfaces")
-    starlink_status = ArrayField(
-            models.CharField(
-                max_length=10000,
-                blank=True,
-                null=True),
-            blank=True,
-            null=True,
-            verbose_name="Starlink Status",
-            help_text="Starlink Status")
-    product_name = models.CharField(
-            _("Product Name"),
-            help_text="Product name",
-            max_length=150,
-            null=True, blank=True)
-    address = models.CharField(
-            _("Address"),
-            help_text="Address",
-            max_length=150,
-            null=True, blank=True)
-    expiry_date = models.CharField(
-            _("Expiry Date"),
-            help_text="Warranty expiry date",
-            max_length=150,
-            null=True, blank=True)
-    gps_support = models.BooleanField(
-            _("GPS Support"),
-            help_text="GPS Support",
-            default=False)
-    gps_exist = models.BooleanField(
-            _("GPS Support"),
-            help_text="GPS Support",
-            default=False)
-    expired = models.BooleanField(
-            _("Expired"),
-            help_text="Is Expired",
-            default=False)
-    hw_expired = models.BooleanField(
-            _("HW Expired"),
-            help_text="HW Expired",
-            default=False)
-    support_ssid_count = models.IntegerField(
-            _("Supported SSID Count"),
-            help_text="Supported number of SSIDs",
-            default=1)
-    extap_proxy_supported = models.BooleanField(
-            _("extap_proxy_supported"),
-            help_text="extap_proxy_supported",
-            default=False)
-    extap_proxy_enabled = models.BooleanField(
-            _("extap_proxy_enabled"),
-            help_text="extap_proxy_enabled",
-            default=False)
-    wlan_probe_supported = models.BooleanField(
-            _("wlan_probe_supported"),
-            help_text="wlan_probe_supported",
-            default=False)
-    wlan_probe_enabled = models.BooleanField(
-            _("wlan_probe_enabled"),
-            help_text="wlan_probe_enabled",
-            default=False)
-    low_data_usage_mode = models.BooleanField(
-            _("low_data_usage_mode"),
-            help_text="low_data_usage_mode",
-            default=False)
-    group_type = models.CharField(_("Group type"), max_length=50, null=True, blank=True)
+    address = models.CharField(_("Address"), max_length=150, null=True, blank=True)
+    agps_enabled = models.BooleanField(null=True, blank=True, default=False)
+    agps_support = models.BooleanField(null=True, blank=True, default=False)
+    client_count = models.IntegerField(_("Client Count"), default=0)
+    ddns_available = models.BooleanField(null=True, default=False)
+    ddns_enabled = models.BooleanField(_("DDNS Enabled"), default=False)
+    ddns_letsencrypt_apply_date = models.DateTimeField(null=True, blank=True)
+    ddns_letsencrypt_cert_expiry_date = models.DateTimeField(null=True, blank=True)
+    ddns_letsencrypt_enabled = models.BooleanField(null=True, default=False)
+    ddns_name = models.CharField(max_length=255, null=True, blank=True)
+    ddns_resolve_private_ip = models.BooleanField(null=True, default=False)
+    device_id = models.IntegerField("Device ID", unique=True)
+    device_name = models.CharField(_("Device name"), max_length=150, null=True, blank=True)
     device_type = models.CharField(_("Device type"), max_length=50, null=True, blank=True)
+    dns_resolver_owner = models.IntegerField(null=True, blank=True)
+    dr_support = models.BooleanField(null=True, default=False)
+    endpoint_support = models.BooleanField(null=True, default=False)
+    expired = models.BooleanField(_("Expired"), default=False)
+    expiry_date = models.CharField(_("Expiry Date"), help_text="Warranty expiry date", max_length=150, null=True, blank=True)
+    extap_proxy_enabled = models.BooleanField(_("extap_proxy_enabled"), default=False)
+    extap_proxy_supported = models.BooleanField(_("extap_proxy_supported"), default=False)
+    firewall_rules_managed = models.BooleanField(null=True, default=False)
+    first_appear = models.CharField(_("First Appeared"), max_length=150, null=True, blank=True)
+    fw_pending_group_time = models.DateTimeField(null=True, blank=True)
+    fw_pending_schedule_time = models.DateTimeField(null=True, blank=True)
+    fw_pending_status = models.IntegerField(null=True, blank=True)
+    fw_pending_status_label = models.CharField(max_length=255, null=True, blank=True)
+    fw_pending_trial_round = models.IntegerField(null=True, blank=True)
+    fw_pending_upgrade_time = models.DateTimeField(null=True, blank=True)
+    fw_pending_ver = models.CharField(max_length=255, null=True, blank=True)
+    fw_ver = models.CharField(_("Firmware"), max_length=150, null=True, blank=True)
+    gobi_sim_lock_supported = models.BooleanField(_("GOBI SIM lock Support"), default=False)
+    gps_exist = models.BooleanField(_("GPS Support"), default=False)
+    gps_support = models.BooleanField(_("GPS Support"), default=False)
+    group_id = models.IntegerField("Group ID", default=0)
+    group_name = models.CharField(_("Group Name"), max_length=150, null=True, blank=True)
+    group_timezone = models.IntegerField(null=True, blank=True)
+    group_timezone_label = models.CharField(max_length=255, null=True, blank=True)
+    group_type = models.CharField(_("Group type"), max_length=50, null=True, blank=True)
+    hardware_version = models.CharField(_("Hardware version"), max_length=150, default='')
+    hd_version = models.CharField(_("Hardware version"), max_length=150, default='')
+    hub_support = models.BooleanField(null=True, default=False)
+    ic2_managed = models.BooleanField(null=True, default=False)
+    ic_conn_test_enabled = models.BooleanField(null=True, default=False)
+    ic_conn_test_supported = models.BooleanField(null=True, default=False)
+    icmg_admin = models.BooleanField(null=True, default=False)
+    icmg_bgp = models.BooleanField(null=True, default=False)
+    icmg_bonjour_forward = models.BooleanField(null=True, default=False)
+    icmg_dns_proxy = models.BooleanField(null=True, default=False)
+    icmg_firewall = models.BooleanField(null=True, default=False)
+    icmg_gre = models.BooleanField(null=True, default=False)
+    icmg_inbound_access = models.BooleanField(null=True, default=False)
+    icmg_kvm = models.BooleanField(null=True, default=False)
+    icmg_lan = models.BooleanField(null=True, default=False)
+    icmg_lorawan = models.BooleanField(null=True, default=False)
+    icmg_mvpn = models.BooleanField(null=True, default=False)
+    icmg_named_network = models.BooleanField(null=True, default=False)
+    icmg_netflow = models.BooleanField(null=True, default=False)
+    icmg_ospf = models.BooleanField(null=True, default=False)
+    icmg_oobm = models.BooleanField(null=True, default=False)
+    icmg_outbound = models.BooleanField(null=True, default=False)
+    icmg_portal = models.BooleanField(null=True, default=False)
+    icmg_remote_logging = models.BooleanField(null=True, default=False)
+    icmg_schedule = models.BooleanField(null=True, default=False)
+    icmg_schedule_reboot = models.BooleanField(null=True, default=False)
+    icmg_snmp = models.BooleanField(null=True, default=False)
+    icmg_static_route = models.BooleanField(null=True, default=False)
+    icmg_virtual_network = models.BooleanField(null=True, default=False)
+    icmg_wan = models.BooleanField(null=True, default=False)
+    icmg_wlan = models.BooleanField(null=True, default=False)
+    interfaces = ArrayField(models.CharField(max_length=10000, blank=True, null=True), blank=True, null=True, verbose_name="Device interfaces", help_text="Device interfaces")
+    is_ap_schedule_enabled = models.BooleanField(_("AP Schedule Enabled"), default=False)
+    is_apply_bulk_config = models.BooleanField(null=True, default=False)
+    is_apply_cellular_module_update = models.BooleanField(null=True, default=False)
+    is_apply_csv_override = models.BooleanField(null=True, default=False)
+    is_apply_import_lan = models.BooleanField(null=True, default=False)
+    is_wlan_ap_suspended = models.BooleanField(null=True, blank=True)
+    last_online = models.CharField(_("Last Online"), max_length=150, null=True, blank=True)
     last_sync_date = models.CharField(_("last_sync_date"), max_length=50, null=True, blank=True)
+    low_data_usage_mode = models.BooleanField(null=True, default=False)
+    mvpn_license = models.IntegerField(null=True, blank=True)
+    mvpn_version = models.CharField(_("MVPN version"), max_length=1000, default='')
+    name = models.CharField(_("Device name"), max_length=150, null=True, blank=True)
+    offline_at = models.CharField(_("Last Offline"), max_length=150, null=True, blank=True)
+    onlineStatus = models.CharField(_("Online Status"), max_length=50, default='offline')
+    outbound_policy_managed = models.BooleanField(null=True, default=False)
+    pepvpn_peers = models.IntegerField(_("PEP VPN Peers Count"), default=0)
+    pepvpn_trial_level = models.CharField(max_length=255, null=True, blank=True)
+    peplink_app_access_allowed = models.BooleanField(default=False)
+    prime_expiry_date = models.DateTimeField(null=True, blank=True)
+    prime_expired = models.BooleanField(null=True, blank=True)
+    prime_type = models.IntegerField(null=True, blank=True)
+    product_alias = models.CharField(max_length=255, null=True, blank=True)
+    product_code = models.CharField(max_length=255, null=True, blank=True)
+    product_id = models.IntegerField(_("Product ID"), default=0)
+    product_name = models.CharField(_("Product Name"), max_length=150, null=True, blank=True)
+    product_type = models.CharField(max_length=255, null=True, blank=True)
+    ra_supported = models.BooleanField(null=True, default=False)
+    sf_cloud_license_local = models.TextField(null=True, blank=True, help_text="Dict value")
+    sf_cloud_peer_limit = models.IntegerField(null=True, blank=True)
+    sf_cloud_supported = models.BooleanField(null=True, default=False)
+    site_id = models.CharField(_("Site ID"), max_length=250, default='')
+    sn = models.CharField(_("S/N"), max_length=150, null=True, blank=True)
+    source = models.CharField(max_length=255, null=True, blank=True)
+    sp_default = models.BooleanField(_("SP Default"), default=False)
+    starlink_status = ArrayField(models.CharField(max_length=10000, blank=True, null=True), blank=True, null=True, verbose_name="Starlink Status", help_text="Starlink Status")
+    status = models.CharField(_("Status"), max_length=150, null=True, blank=True)
+    sub_expiry_date = models.DateTimeField(null=True, blank=True)
+    sub_expired = models.BooleanField(null=True, default=False)
+    support_ssid_count = models.IntegerField(_("Supported SSID Count"), default=1)
+    tags = models.TextField(max_length=5000, null=True, blank=True, help_text='List value')
     uptime = models.IntegerField("Device up time", default=0)
-    uptime_appear = models.CharField(
-            _("Uptime Appear"),
-            help_text="Retrieval time of the device up time",
-            max_length=150,
-            null=True,
-            blank=True)
-    pepvpn_peers = models.IntegerField(
-            _("PEP VPN Peers Count"),
-            help_text="PEP VPN Peers Count",
-            default=0)
-    wifi_cfg = models.CharField(
-            _("WiFi Config"),
-            help_text="WiFi Configuration",
-            max_length=150,
-            null=True,
-            blank=True)
-    ddns_enabled = models.BooleanField(
-            _("DDNS Enabled"),
-            help_text="Is DDNS Enabled",
-            default=False)
-    onlineStatus = models.CharField(
-            _("Online Status"),
-            max_length=50,
-            default='offline',
-            help_text="Current online status")
-    wtp_ip = models.CharField(
-            _("WTP IP"),
-            max_length=50,
-            default='',
-            help_text="WTP IP")
-    hd_version = models.CharField(
-            _("Hardware version"),
-            default='',
-            max_length=150,
-            help_text="Hardware version")
-    hardware_version = models.CharField(
-            _("Hardware version"),
-            default='',
-            max_length=150,
-            help_text="Hardware version")
-    mvpn_version = models.CharField(
-            _("MVPN version"),
-            default='',
-            max_length=1000,
-            help_text="MVPN version")
-    site_id = models.CharField(
-            _("Site ID"),
-            default='',
-            max_length=250,
-            help_text="Site ID")
-    is_ap_schedule_enabled = models.BooleanField(
-            _("AP Schedule Enabled"),
-            help_text="Is DDNS Enabled",
-            default=False)
-    gobi_sim_lock_supported = models.BooleanField(
-            _("GOBI SIM lock Support"),
-            help_text="Is GOBI SIM lock Supported",
-            default=False)
+    uptime_appear = models.CharField(_("Uptime Appear"), max_length=150, null=True, blank=True)
+    usage = models.FloatField(null=True, blank=True)
+    vlan_interfaces = models.TextField(max_length=5000, null=True, blank=True, help_text='Dict value')
+    vlan_managed = models.BooleanField(null=True, default=False)
+    wtp_ip = models.CharField(_("WTP IP"), max_length=50, default='')
+    wifi_cfg = models.CharField(_("WiFi Config"), max_length=150, null=True, blank=True)
+    wifi_monitor_enabled = models.BooleanField(null=True, blank=True)
+    wifi_monitor_supported = models.BooleanField(null=True, blank=True)
+    wlan_probe_enabled = models.BooleanField(null=True, default=False)
+    wlan_probe_supported = models.BooleanField(null=True, default=False)
 
-    # location attributes, updated separately
-    # though the device location endpoint
-    location_timestamp = models.DateTimeField(
-            _("Location Timestamp"),
-            help_text="Last known location timestamp",
-            null=True, blank=True)
+    fw_ver = models.CharField(_("Firmware"), max_length=150, null=True, blank=True)
+    hw_expired = models.BooleanField(_("HW Expired"), default=False)
+    is_esim_supported = models.BooleanField(null=True, default=False)
+    lan_mac = models.CharField(_("LAN MAC"), max_length=150, null=True, blank=True)
+    max_esim_support = models.IntegerField(null=True, blank=True)
+    max_wifi_mesh_support = models.IntegerField(null=True, blank=True)
+    model = models.CharField(max_length=255, null=True, blank=True)
+    mv = models.CharField(max_length=255, null=True, blank=True)
+    offline_at = models.CharField(_("Last Offline"), max_length=150, null=True, blank=True)
+    peplink_app_access_allowed = models.BooleanField(default=False)
+    prime_expiry_date = models.DateTimeField(null=True, blank=True)
+    prime_expired = models.BooleanField(null=True, blank=True)
+    prime_type = models.IntegerField(null=True, blank=True)
+    sf_cloud_license_local = models.TextField(null=True, blank=True, help_text="Dict value")
+    sf_cloud_peer_limit = models.IntegerField(null=True, blank=True)
+    sf_cloud_supported = models.BooleanField(null=True, default=False)
+    source = models.CharField(max_length=255, null=True, blank=True)
+    sub_expired = models.BooleanField(null=True, default=False)
+    support_ssid_count = models.IntegerField(_("Supported SSID Count"), default=1)
+    tags = models.TextField(max_length=5000, null=True, blank=True, help_text='List value')
+    uptime = models.IntegerField("Device up time", default=0)
+    uptime_appear = models.CharField(_("Uptime Appear"), max_length=150, null=True, blank=True)
+    usage = models.FloatField(null=True, blank=True)
+    vlan_interfaces = models.TextField(max_length=5000, null=True, blank=True, help_text='Dict value')
+    vlan_managed = models.BooleanField(null=True, default=False)
+    wtp_ip = models.CharField(_("WTP IP"), max_length=50, default='')
+    wifi_cfg = models.CharField(_("WiFi Config"), max_length=150, null=True, blank=True)
+    wifi_monitor_enabled = models.BooleanField(null=True, blank=True)
+    wifi_monitor_supported = models.BooleanField(null=True, blank=True)
+    wlan_probe_enabled = models.BooleanField(null=True, default=False)
+    wlan_probe_supported = models.BooleanField(null=True, default=False)
 
-    latitude = models.FloatField(
-            _("Latitude"),
-            default=0.0,
-            help_text="Last known location (Latitude)")
+    tx = models.FloatField(null=True, blank=True, help_text="Transmission value")
+    rx = models.FloatField(null=True, blank=True, help_text="Reception value")
+    radio_bands = models.TextField(null=True, blank=True, help_text="List of radio bands")
+    dpi_supported = models.BooleanField(null=True, blank=True, help_text="DPI supported")
+    dpi_enabled = models.BooleanField(null=True, blank=True, help_text="DPI enabled")
+    watchdog_enabled = models.BooleanField(null=True, blank=True, help_text="Watchdog enabled")
+    watchdog_supported = models.BooleanField(null=True, blank=True, help_text="Watchdog supported")
+    ssid_mac_list = models.TextField(null=True, blank=True, help_text="List of SSID MACs")
+    v6_license = models.CharField(max_length=50, null=True, blank=True, help_text="IPv6 license status")
+    fw_pending_max_no_of_trial = models.IntegerField(null=True, blank=True, help_text="Max number of trial for pending firmware")
+    fw_managed = models.CharField(max_length=50, null=True, blank=True, help_text="Firmware management type")
+    mac_info = models.TextField(null=True, blank=True, help_text="List of MAC information")
+    slot_module_list = models.TextField(null=True, blank=True, help_text="List of slot modules")
+    route_info = models.TextField(null=True, blank=True, help_text="Route information")
+    ssid_profiles_applied = models.TextField(null=True, blank=True, help_text="SSID profiles applied")
 
-    longitude = models.FloatField(
-            _("Longitude"),
-            default=0.0,
-            help_text="Last known location (Longitude)")
+    timezone = models.IntegerField(null=True, blank=True, default=None)
+    timezone_label = models.CharField(max_length=50, null=True, blank=True, help_text="Timezone Label")
+
+    location_timestamp = models.DateTimeField( _("Location Timestamp"), help_text="Last known location timestamp", null=True, blank=True)
+    latitude = models.FloatField(_("Latitude"), default=0.0, help_text="Last known location (Latitude)")
+    longitude = models.FloatField(_("Longitude"), default=0.0, help_text="Last known location (Longitude)")
 
     last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
     created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
-    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
+    internal_class = models.CharField("Internal Class", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
 
     class Meta:
         verbose_name = "Peplink Group Device"
@@ -448,6 +410,8 @@ class GroupDevice(models.Model):
 
     @property
     def status_list(self):
+        # TODO: remove this method
+        # warnings.warn("status_list is deprecated. Use device_gen_info instead.", DeprecationWarning)
         return {"model": self.product_name,
                 "status": self.status,
                 "status_text": self.status,
@@ -696,8 +660,12 @@ class UnifiDevice(models.Model):
     def longitude(self):
         return None
 
+
     @property
     def status_list(self):
+        # add deprecation message
+        # TODO: remove this method
+        # warnings.warn("status_list is deprecated. Use device_gen_info instead.", DeprecationWarning)
         return {"model": self.model,
                 "status": self.status,
                 "status_text": self.status,
@@ -784,6 +752,9 @@ class DeviceStatus(models.Model):
         A property function that returns a dictionary containing various status-related attributes.
         NOTE: this is just for compatibility with some existing template code
         """
+        # TODO: remove this method
+        # warnings.warn("status_list is deprecated. Use device_gen_info instead.", DeprecationWarning)
+
         return {"model": self.model,
                 "status": self.status,
                 "status_text": self.status,

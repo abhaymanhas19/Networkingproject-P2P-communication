@@ -34,7 +34,8 @@ urlpatterns = [
     path("", view=index_view, name="index"),
 
     path("api/current_customer", SetCurrentCustomerView.as_view(), name="current_customer"),
-    path("api/d/", include("dashboard.urls")),
+    path("dashboard/", include("dashboard.urls")),
+    path("devices/", include("dashboard.urls")),
     # All Auth
     path("accounts/", include("allauth.urls")),
     #path("accounts/profile/", TemplateView.as_view(template_name="profile.html")),
