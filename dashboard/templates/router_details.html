@@ -24,6 +24,8 @@
             <h3 class="text-lg font-bold text-gray-800 dark:text-white">
                 {%firstof  device.name device.device_name %}
             </h3>
+            <h5> serial: {{ device.serial }}</h5>
+            <p> firmware: {% firstof device.fw_ver device.firmware %}</p>
 
         </div>
         <div class="overflow-x-auto">
@@ -34,24 +36,20 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             <tr></tr>
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">IP Address:</td>
-                                {% if device.starlink_interface %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Model:</td>
+
                                     <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
-                                        {{ device.starlink_interface.ip }}
+                                        {{ device.model }}
                                     </td>
-                                {% else %}
-                                <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
-                                {% endif %}
+
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
                             </tr>
 
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Alerts</td>
-                                {% if device.starlink_status_dict %}
-                                    <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{device.starlink_status_dict.dishGetStatus.alerts}}</td>
-                                {% else %}
-                                <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
-                                {% endif %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">MAC:</td>
+
+                                <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof device.mac device.lan_mac %}</td>
+
 
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
                             </tr>
@@ -77,7 +75,50 @@
         </div>
         <div class="p-6">
             <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-hidden transition-[height] duration-300">
+
                 {% if device.starlink_status %}
+                <div class="col-span-2">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style="margin-bottom:20px">
+
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr></tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">IP Address:</td>
+                                {% if device.starlink_interface %}
+                                    <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                        {{ device.starlink_interface.ip }}
+                                    </td>
+                                {% else %}
+                                    <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
+                                {% endif %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Gateway</td>
+                                {% if device.starlink_interface %}
+                                    <td id="starlink-gateway" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                    {{ device.starlink_interface.gateway }}
+                                    </td>
+                                {% else %}
+                                    <td id="starlink-gateway" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
+                                {% endif %}
+
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                            </tr>
+
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Alerts</td>
+                                {% if device.starlink_status_dict %}
+                                    <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{device.starlink_status_dict.dishGetStatus.alerts}}</td>
+                                {% else %}
+                                <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">None</td>
+                                {% endif %}
+
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                            </tr>
+                            <tr></tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
                 <div class="card flex justify-between items-center"  style="width:250px">
                     <div class="canvas-container">
                         <h2>Latency</h2>
