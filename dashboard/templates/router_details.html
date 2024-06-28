@@ -163,20 +163,24 @@
 
     <div class="card">
         <div class="card-header flex justify-between items-center">
-            <p class="text-sm text-gray-500 dark:text-gray-500">
-                LTE DetailS
-            </p>
+            <div class="icon-text-container">
+                <i class="msr">sim_card</i><span>LTE STATUS</span>
+            </div>
             <button data-fc-type="collapse" data-fc-target="collapseLTEDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
                 Collapse <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
             </button>
         </div>
         <div class="p-6">
             <h3 class="text-lg font-bold text-gray-800 dark:text-white">
-                Card title
+                {% if device.cellular_interfaces %}
+                    Found {{ device.cellular_interfaces|length }} cellular interface(s)
+                {% else %}
+                    No Cellular Interface
+                {% endif %}
             </h3>
             <div id="collapseLTEDetails" class="hidden w-full overflow-hidden transition-[height] duration-300">
                 <p class="pt-5 text-gray-800 dark:text-gray-200">
-                    Tailwind CSS offers a seamless way to build modern websites without having to leave your HTML. The framework functions by scanning all of your HTML files, JavaScript components, and templates for class names, automatically generating corresponding styles, and writing them to a static CSS file. This approach is fast, flexible, and reliable, requiring zero runtime. Whether you need to create form layouts, tables, or modal dialogs, Tailwind CSS provides everything necessary to design beautiful, responsive web applications. Additionally, the framework includes checkout forms, shopping carts, and product views, making it the ideal choice for developing your next e-commerce front-end.
+
                 </p>
             </div>
 

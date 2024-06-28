@@ -434,6 +434,12 @@ class GroupDevice(models.Model):
         return tmp
 
     @property
+    def cellular_interfaces(self):
+        # get all celluar interafaces
+        # based on the interface type gobi
+        return [i for i in self.interfaces_list if i.get("type") == "gobi"]
+
+    @property
     def starlink_interface(self):
         """returns the interface that is connected via Starlink"""
         starlink = {}
