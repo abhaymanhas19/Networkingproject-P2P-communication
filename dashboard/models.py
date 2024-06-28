@@ -460,8 +460,9 @@ class GroupDevice(models.Model):
     def starlink_throughput(self):
         if self.starlink_status_dict:
             throughput = {"uplink":"", "downlink":""}
-            ul = self.starlink_status_dict['dishGetStatus']['uplinkThroughputBps']
-            dl = self.starlink_status_dict['dishGetStatus']['downlinkThroughputBps']
+            import pdb; pd
+            ul = self.starlink_status_dict['dishGetStatus'].get('uplinkThroughputBps', 0.0)
+            dl = self.starlink_status_dict['dishGetStatus'].get('downlinkThroughputBps', 0.0)
 
             # round ul to 2 decimals
             ul = round(ul, 2)
