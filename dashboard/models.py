@@ -1015,3 +1015,78 @@ class DeviceStatus(models.Model):
         }
 
         return json.dumps(chart_data)
+
+class StarlinkInfoHistory(models.Model):
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", max_length=255, default="")
+    interface_id = models.IntegerField(null=True, blank=True, default=0, help_text="index in the interfaces list")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)
+    dish_status_json = models.JSONField(null=True, blank=True)
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Starlink Info History"
+        verbose_name_plural = "Starlink Info Histories"
+        unique_together = ('internal_class', 'interface_id', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+
+    @property
+    def dish_status(self):
+        return json.loads(self.dish_status_json)
+
+    @property
+    def interface(self):
+        return json.loads(self.interface_json)
+    @classmethod
+    def get_starlink_chart_data(cls, internal_class, device_serial, data_type, start_date=None, end_date=None):
+        # time range is 24 hours by default
+        if not start_date:
+            start_date = datetime.now() - timedelta(hours=24)
+        if not end_date:
+            end_date = datetime.now()
+
+        data_types_series = {
+            "bandwidth": ["downlinkThroughputBps", "uplinkThroughputBps"],
+            "latency": ["popPingLatencyMs"]
+        }
+
+        fields = data_types_series.get(data_type, [])
+        # get data based on time range
+        data = cls.objects.filter(internal_class=internal_class,
+                           device_serial=device_serial,
+                           as_of_time__gte=start_date,
+                           as_of_time__lte=end_date).order_by('-as_of_time')
+
+        # import pdb;pdb.set_trace()
+        labels = []
+        data_series = { f:[] for f in fields }
+        for d in data:
+            labels.append(d.as_of_time.strftime("%Y-%m-%d %H:%M:%S"))
+
+            for f in fields:
+                data_series[f].append(d.dish_status.get('dishGetStatus', {}).get(f, 0.0))
+
+
+        return {
+            "labels": labels,
+            "data_series": data_series
+        }
+
+
+
+class CellularInfoHistory(models.Model):
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", max_length=255, default="")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Cellular Info History"
+        verbose_name_plural = "Cellular Info Histories"
+        unique_together = ('internal_class', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+

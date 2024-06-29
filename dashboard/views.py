@@ -22,7 +22,8 @@ from .models import (
     PeplinkGroup,
     DeviceStatus,
     MerakiDevice,
-    UnifiDevice)
+    UnifiDevice,
+    StarlinkInfoHistory)
 
 from .utils import get_customer_routers
 
@@ -237,3 +238,20 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
         all_routers = get_customer_routers(customer_id)
         context['device'] = device
         return context
+
+
+class StarlinkDataView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        internal_class = kwargs.get('internal_class')
+        device_serial = kwargs.get('serial')
+        data_type = kwargs.get('data_type')
+
+        try:
+            chart_data_json = StarlinkInfoHistory.get_starlink_chart_data(internal_class, device_serial, data_type)
+            chart_data = json.dumps(chart_data_json)
+            print(f"\n\n======================  {chart_data} \n\n")
+            return JsonResponse(chart_data, safe=False)
+        except ValueError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+

@@ -179,7 +179,9 @@ SEMANTIC_APP_LIST = [
                    {"object_name": "UnifiSite"},
                    {"object_name": "UnifiDevice"},
                    {"object_name": "DataSyncLog"},
-                   {"object_name": "DeviceStatus"}
+                   {"object_name": "DeviceStatus"},
+                   {"object_name": "StarlinkInfoHistory"},
+                   {"object_name": "CellularInfoHistory"}
                    ],
     },
     {

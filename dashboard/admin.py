@@ -173,3 +173,16 @@ class DeviceStatusAdmin(SemanticModelAdmin):
     list_filter = ('status', 'customer', 'device_type', 'product_type', 'network_id', 'product_type')
     search_fields = ('serial', 'product_type', 'network_id', 'product_type','device_name')
 
+
+@admin.register(dashboard_models.CellularInfoHistory)
+class CellularInfoHistoryAdmin(SemanticModelAdmin):
+    list_display = ('internal_class', 'device_serial', 'as_of_time')
+    list_filter = ('device_serial', 'internal_class')
+    search_fields = ('device_serial',)
+
+
+@admin.register(dashboard_models.StarlinkInfoHistory)
+class CellularInfoHistoryAdmin(SemanticModelAdmin):
+    list_display = ('internal_class', 'device_serial', 'as_of_time')
+    list_filter = ('device_serial', 'internal_class')
+    search_fields = ['device_serial']

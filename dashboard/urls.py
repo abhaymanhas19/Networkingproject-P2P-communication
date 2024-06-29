@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     DeviceStatusChartView,
     DeviceLocationHistoryView,
-    DeviceDetailView
+    DeviceDetailView,
+    StarlinkDataView
     )
 
 
@@ -12,4 +13,5 @@ urlpatterns = [
     path('device-location-history/', DeviceLocationHistoryView.as_view(), name='device_location_history'),
     path('router-details/', DeviceDetailView.as_view(), name='router_details'),
     path('router-details/<str:internal_class>/<str:serial>/', DeviceDetailView.as_view(), name='router_details'),
+    path('router-details/<str:internal_class>/<str:serial>/<str:data_type>', StarlinkDataView.as_view(), name='starlink_chart_data'),
 ]

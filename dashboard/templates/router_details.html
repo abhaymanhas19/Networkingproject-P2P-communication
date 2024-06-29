@@ -74,7 +74,7 @@
             </button>
         </div>
         <div class="p-6">
-            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-hidden transition-[height] duration-300">
+            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-hidden transition-[height] duration-300 flex">
 
                 {% if device.starlink_status %}
                 <div class="col-span-2">
@@ -117,13 +117,15 @@
 
                         </tbody>
                     </table>
-                </div>
+                </div> <!--table end -->
 
-                <div class="card flex justify-between items-center"  style="width:250px">
+                <div class="card flex justify-between items-center"  style="width:300px; box-shadow:none;">
                     <div class="canvas-container">
                         <h2>Latency</h2>
                         <canvas id="speed-gauge" width="250px" height="250px"></canvas>
-                        <div id="speed-gauge-text"></div><span id="speed-gauge-uom">ms</span>
+                        <div class="gauge-text-container">
+                            <div id="speed-gauge-text" class="gauge-text"></div><span id="speed-gauge-uom" class="uom">ms</span>
+                        </div>
                     </div>
                     <div id="bandwidth-container" style="margin-left: 20px">
                         <div id="bandwidth-dl-container"><h3>Bandwidth(DL)</h3><p><h1 class="bandwidth-value">{{ device.starlink_throughput.downlink }}</h1></p></div>
@@ -134,15 +136,17 @@
 
                 <div class="card" style="margin-left:10px; border-width: 1px;boder-color:white;">
                     <div class="">
-                        <div id="starlink-bandwidth-chart"></div>
+                        <canvas id="starlink-bandwidth-chart"  width="250px" height="150px"></canvas>
                     </div>
                 </div>
 
-                <div class="card flex justify-between items-center"  style="width:250px; margin-top:20px;">
+                <div class="card flex justify-between items-center"  style="width:250px; margin-top:20px; box-shadow:none;">
                     <div class="canvas-container">
                         <h2>Obstruction</h2>
                         <canvas id="obstruction-gauge" width="250px" height="250px"></canvas>
-                        <div id="obstruction-gauge-text"></div><span id="obstruction-gauge-uom">%</span>
+                        <div class="gauge-text-container">
+                            <div id="obstruction-gauge-text" class="gauge-text"></div><span id="obstruction-gauge-uom" class="uom">%</span>
+                        </div>
                     </div>
                     <div id="uptime-container" style="margin-left: 20px">
                         <div id="starlink-uptime-chart"></div>
@@ -164,7 +168,7 @@
     <div class="card">
         <div class="card-header flex justify-between items-center">
             <div class="icon-text-container">
-                <i class="msr">sim_card</i><span>LTE STATUS</span>
+                <i class="msr">sim_card</i><span>LTE STATUSES</span>
             </div>
             <button data-fc-type="collapse" data-fc-target="collapseLTEDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
                 Collapse <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
@@ -218,36 +222,36 @@
     .canvas-container h2{
         text-align: center;
     }
-    #speed-gauge-text,
-    #obstruction-gauge-text {
-        position: absolute;
-        bottom: 10px; /* Adjust this value as needed */
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-        font-size: 1.5rem;
-        background-color: transparent;
-        padding: 5px; /* Optional: Adds some padding around the text */
-    }
 
-    #speed-gauge-uom,
-    #obstruction-gauge-uom{
+    .gauge-text-container {
+        display: flex;
+        align-items:center;
         position: absolute;
-        bottom: 0px; /* Adjust this value as needed */
+        bottom: 10px;
         left: 50%;
         transform: translateX(-50%);
         text-align: center;
         font-size: 1rem;
         background-color: transparent;
-        padding: 5px; /* Optional: Adds some padding around the text */
+        padding: 5px;
     }
+    .guage-text-container span.uom{
+        margin-left: 20px !important;
+    }
+    .gauge-text {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
 </style>
 {% endblock content %}
 
 {% block extra_js %}
 <script src="{% static '/js/gauge.min.js'%}"></script>
-<script src="{% static '/libs/apexcharts/apexcharts.min.js' %}"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
 <script>
     var maxVal = 250;
     var latency = 0;
@@ -262,13 +266,14 @@
     {% if device.starlink_status_dict.dishGetStatus.popPingLatencyMs > 250 %}
          maxVal = {{ device.starlink_status_dict.dishGetStatus.popPingLatencyMs }};
     {% endif %}
+
     var opts = {
         angle: -0.25,
         lineWidth: 0.2,
         pointer: {
           length: 0.6,
           strokeWidth: 0.05,
-          color: '#000000'
+          color: "#8e9193" /*'#000000'*/
         },
         staticZones: [
            {strokeStyle: "#00FF00", min: 0, max: 50},
@@ -299,57 +304,19 @@
       speedGauge.set(currVal); // set actual value
       //speedGauge.set(<span id="opt-currval" class="lit">1500</span>);
 
-    var options = {
-        chart: {
-            height: 250,
-            type: 'area',
-            toolbar: {
-                show: false,
-            }
-        },
-        dataLabels: {
-            enabled: false
-        },
-        stroke: {
-            curve: 'smooth',
-            width: 3,
-        },
-        series: [{
-            name: 'UL',
-            data: [34, 40, 28, 52, 42, 109, 100]
-        }, {
-            name: 'DL',
-            data: [32, 60, 34, 46, 34, 52, 41]
-        }],
-        colors: ['#556ee6', '#34c38f'],
-        xaxis: {
-            type: 'datetime',
-            categories: ["2018-09-19T00:00:00", "2018-09-19T01:30:00", "2018-09-19T02:30:00", "2018-09-19T03:30:00", "2018-09-19T04:30:00", "2018-09-19T05:30:00", "2018-09-19T06:30:00"],
-        },
-        grid: {
-            borderColor: '#9ca3af20',
-        },
-        tooltip: {
-            x: {
-                format: 'dd/MM/yy HH:mm'
-            },
-        }
-    }
+    //  function renderBandwidthChart(data){
 
-    var chart = new ApexCharts(
-        document.querySelector("#starlink-bandwidth-chart"),
-        options
-    );
+   // } //end function
 
-    chart.render();
+
 
     var obstruction = 0;
     {% if device.starlink_status_dict %}
-    obstruction = {{ device.starlink_status_dict.dishGetStatus.obstructionStats.fractionObstructed  }} * 100;
+    obstruction = parseFloat({{ device.starlink_status_dict.dishGetStatus.obstructionStats.fractionObstructed  }} * 100.00);
     {% else %}
-    obstruction = 5;
+    obstruction = parseFloat(0.0);
     {% endif %}
-
+    obstruction = parseFloat(obstruction.toFixed(3));
     //obstruction
     var opts2 = {
         angle: -0.25,
@@ -357,15 +324,16 @@
         pointer: {
           length: 0.6,
           strokeWidth: 0.05,
-          color: '#000000'
+          color: "#8e9193"/*"#7885a9"*/
         },
         staticZones: [
-           {strokeStyle: "#00FF00", min: 0, max: 5},
+           {strokeStyle: "#00FF00", min: 0.0, max: 5},
            {strokeStyle: "#90EE90", min: 6, max: 15},
            {strokeStyle: "#FFFF00", min: 16, max: 30},
            {strokeStyle: "#FFA500", min: 31, max: 50},
            {strokeStyle: "#FF0000", min: 51, max: 100}
         ],
+
         limitMax: false,
         limitMin: false,
         strokeColor: '#E0E0E0',
@@ -380,6 +348,100 @@
       obstructionGauge.animationSpeed = 54;
       obstructionGauge.setTextField(text2);
       obstructionGauge.set(obstruction);
+      text2.innerHTML = obstruction.toFixed(3);
+
+
+      function convertBpsToMbps(bps) {
+        return bps / 1_000_000;
+      }
+
+      function  renderBandwidthChart(data){
+        console.log("should render here");
+        data = JSON.parse(data)
+        const downlinkThroughputMbps = data.data_series.downlinkThroughputBps.map(convertBpsToMbps);
+        const uplinkThroughputMbps = data.data_series.uplinkThroughputBps.map(convertBpsToMbps);
+
+        const ctx = document.getElementById('starlink-bandwidth-chart').getContext('2d');
+        console.log(ctx);
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels.reverse(), // Reverse the labels to maintain chronological order
+                datasets: [
+                    {
+                        label: 'Download',
+                        data: downlinkThroughputMbps.reverse(), // Reverse the data series to match the labels
+                        fill: true,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Upload',
+                        data: uplinkThroughputMbps.reverse(), // Reverse the data series to match the labels
+                        fill: true,
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: '24 hours Bandwidth (DL/UL)'
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'hour',
+                            tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
+                            displayFormats: {
+                                hour: 'H a'
+                            }
+                        },
+                        title: {
+                            display: false,
+                            text: 'Timestamp'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Mbps'
+                        }
+                    }
+                }
+            }
+        });
+      }
+
+      $(document).ready(function() {
+        $.ajax({
+            url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='bandwidth' %}",
+            type: "GET",
+            data: {
+            },
+            beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+            },
+            success: function(data) {
+                renderBandwidthChart(data)
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", status, error);
+            }
+        });
+
+
+      });
     </script>
 {% endblock extra_js %}
 

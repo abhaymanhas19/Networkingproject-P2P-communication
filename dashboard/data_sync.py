@@ -208,7 +208,7 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
         organization_id = api._org_id
 
     group_devices = api.get_group_devices(organization_id=organization_id, group_id=group_id)
-
+    fetch_time = datetime.now(tz=pytz.utc)
     for devices in group_devices:
         if devices is None:
             continue
@@ -235,9 +235,30 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
                     device["location_timestamp"] = parser.parse(device_loc.get("location_timestamp")+"+00:00")
             if gd:
                 gd.update(**device)
+                gd = gd.first()
             else:
-                dashboard_models.GroupDevice.objects.create(**device)
+                gd = dashboard_models.GroupDevice.objects.create(**device)
 
+            # add starlink history
+            if gd.starlink_interface:
+                starlink_history, created  = dashboard_models.StarlinkInfoHistory.objects.get_or_create(
+                    internal_class='peplink',
+                    interface_id=gd.starlink_interface.get('id', None),
+                    device_serial=gd.serial,
+                    as_of_time=fetch_time
+                )
+                starlink_history.dish_status_json=json.dumps(gd.starlink_status_dict)
+                starlink_history.interface_json=json.dumps(gd.starlink_interface)
+                starlink_history.save()
+
+            if gd.cellular_interfaces:
+                cellular_history, created  = dashboard_models.CellularInfoHistory.objects.get_or_create(
+                    internal_class='peplink',
+                    device_serial=gd.serial,
+                    as_of_time=fetch_time
+                )
+                cellular_history.interface_json=json.dumps(gd.cellular_interfaces)
+                cellular_history.save()
 
 
 def sync_meraki_devices():
