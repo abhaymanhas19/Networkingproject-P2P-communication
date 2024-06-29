@@ -70,7 +70,7 @@
                 <i class="msr">satellite_alt</i><span>STARLINK STATUS</span>
             </div>
             <button data-fc-type="collapse" data-fc-target="collapseStarlinkDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
-                Collapse <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+                View <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
             </button>
         </div>
         <div class="p-6">
@@ -145,12 +145,19 @@
                         <h2>Obstruction</h2>
                         <canvas id="obstruction-gauge" width="250px" height="250px"></canvas>
                         <div class="gauge-text-container">
-                            <div id="obstruction-gauge-text" class="gauge-text"></div><span id="obstruction-gauge-uom" class="uom">%</span>
+                            <div id="obstruction-gauge-text" class="gauge-text " data-fc-type="tooltip" data-fc-placement="top" data-fc-target="#obstuction-gauge-tooltip"></div><span id="obstruction-gauge-uom" class="uom">%</span>
+                            <div id="obstuction-gauge-tooltip" class="bg-primary hidden px-2 py-1 rounded transition-all text-white opacity-0 z-50" role="tooltip">
+                                <span id="obstruction-actual-value">0.006</span>
+                                <div data-fc-arrow class="bg-primary w-2.5 h-2.5 rotate-45 -z-10 rounded-[1px]"></div>
+                            </div>
                         </div>
                     </div>
-                    <div id="uptime-container" style="margin-left: 20px">
+                    <div id="uptime-container" style="margin-left: 20px; width:200px">
+                        <h3>Coming Soon: Starlink Uptime Chart</h3>
                         <div id="starlink-uptime-chart"></div>
                     </div>
+
+
                 </div>
                 {% else %}
                 <pre>
@@ -171,7 +178,7 @@
                 <i class="msr">sim_card</i><span>LTE STATUSES</span>
             </div>
             <button data-fc-type="collapse" data-fc-target="collapseLTEDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
-                Collapse <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+                View <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
             </button>
         </div>
         <div class="p-6">
@@ -182,10 +189,15 @@
                     No Cellular Interface
                 {% endif %}
             </h3>
-            <div id="collapseLTEDetails" class="hidden w-full overflow-hidden transition-[height] duration-300">
-                <p class="pt-5 text-gray-800 dark:text-gray-200">
+            <div id="collapseLTEDetails" class="w-full overflow-hidden transition-[height] duration-300">
+                <h3>Coming Soon: Cellular Interface Metrics</h3>
+                {% if device.cellular_interfaces %}
+                    {% for interface in device.cellular_interfaces %}
 
-                </p>
+                        <div> {{ interface }} </div>
+                        <br/>
+                    {% endfor %}
+                {% endif %}
             </div>
 
         </div>
@@ -342,13 +354,14 @@
 
       var target2 = document.getElementById('obstruction-gauge'); // your canvas element
       var text2 = document.getElementById('obstruction-gauge-text');
+      var actualValue = document.getElementById('obstruction-actual-value');
       var obstructionGauge = new Gauge(target2).setOptions(opts2); // create sexy gauge!
       obstructionGauge.maxValue = 100;
       obstructionGauge.setMinValue(0);
       obstructionGauge.animationSpeed = 54;
       obstructionGauge.setTextField(text2);
       obstructionGauge.set(obstruction);
-      text2.innerHTML = obstruction.toFixed(3);
+      actualValue.innerHTML = obstruction.toFixed(3) + "%";
 
 
       function convertBpsToMbps(bps) {
