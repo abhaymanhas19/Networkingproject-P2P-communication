@@ -742,6 +742,50 @@ def sync_unifi_device_statuses():
 
             # unifi_device.site = site
 
+
+def sync_router_gps():
+    """Syncs router GPS locations with dashboard devices
+    TO Be used for a more accurate location tracking of devices
+    at close intervals
+    """
+    api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
+
+    if not api:
+        _logger.warn("Skipping InControl Devices syncing due to previous ERROR.")
+        return
+    # if not organization_id:
+    organization_id = api._org_id
+
+    groups = dashboard_models.PeplinkGroup.objects.all()
+
+    for group in groups:
+
+        # we'll just use the GroupDevice records from our database to mimimize the API calls
+        # group_devices = api.get_group_devices(organization_id=organization_id, group_id=group.group_id)
+        group_devices = dashboard_models.GroupDevice.objects.filter(group_id=group.group_id)
+        fetch_time = datetime.now(tz=pytz.utc)
+        for device in group_devices:
+            device_loc = api.get_device_location(organization_id, device.group_id, device.device_id)
+            lat = None
+            lng = None
+            ts = None
+            if device_loc:
+                lat = device_loc.get("latitude", None)
+                lng = device_loc.get("longitude", None)
+
+                if device_loc.get("location_timestamp", None):
+                    ts = parser.parse(device_loc.get("location_timestamp")+"+00:00")
+
+                hist, created = dashboard_models.RouterGPSHistory.objects.get_or_create(
+                                                            internal_class=device.internal_class,
+                                                            device_serial=device.sn,
+                                                            as_of_time=ts
+                                                        )
+                hist.latitude = lat
+                hist.longitude = lng
+                hist.save()
+
+
 def sync_all_data():
 
     sync_peplink_organizations()
@@ -754,4 +798,7 @@ def sync_all_data():
 
     sync_unifi_sites()
     sync_unifi_devices()
+
+
+
 

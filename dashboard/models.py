@@ -464,24 +464,26 @@ class GroupDevice(models.Model):
 
     @property
     def starlink_throughput(self):
+        # TODO: modify so that it can handle multiple starlink info
         if self.starlink_status_dict:
             throughput = {"uplink":"", "downlink":""}
             ul = self.starlink_status_dict['dishGetStatus'].get('uplinkThroughputBps', 0.0)
             dl = self.starlink_status_dict['dishGetStatus'].get('downlinkThroughputBps', 0.0)
 
             # round ul to 2 decimals
-            ul = round(ul, 2)
-            dl = round(dl, 2)
+            ul = round(ul, 2) / 1000000.0
+            dl = round(dl, 2) / 1000000.0
 
-            ul_str = f"{ul} Bps"
-            dl_str = f"{dl} Bps"
-            if ul >= 1000000:
-                ul = ul / 1000000
-                ul_str = f"{ul} Mbps"
+            ul_str = f"{ul} Mps"
+            dl_str = f"{dl} Mps"
 
-            if dl >= 1000000:
-                dl = dl / 1000000
-                dl_str = f"{dl} Mbps"
+            # if ul >= 1000000:
+            #     ul = ul / 1000000
+            #     ul_str = f"{ul} Mbps"
+
+            # if dl >= 1000000:
+            #     dl = dl / 1000000
+            #     dl_str = f"{dl} Mbps"
 
 
             throughput['uplink'] = ul_str
@@ -1090,3 +1092,19 @@ class CellularInfoHistory(models.Model):
     def __str__(self):
         return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
 
+
+class RouterGPSHistory(models.Model):
+    """ for a more granular GPS location info """
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", max_length=255, default="")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Router GPS History"
+        verbose_name_plural = "Router GPS Histories"
+        unique_together = ('internal_class', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"

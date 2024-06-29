@@ -176,7 +176,7 @@ class API(object):
         self._org_id = data[0].get("id")
         return None
 
-    def get_organizations(self):
+    def get_organizations(self, params=None):
         """
         A function to get the organizations.
 
@@ -253,7 +253,7 @@ class API(object):
         res = self._get_data(endpoint_url, params=query_params)
         return [] if res is None else res
 
-    def get_devices(self, organization_id=None):
+    def get_devices(self, organization_id=None, **kwargs):
         """
         A function to get the devices based on the organization ID.
 
@@ -273,7 +273,7 @@ class API(object):
         }
         endpoint_url = "{base_url}/{organization_id}/d"
         endpoint_url = endpoint_url.format(**path_vars)
-        res = self._get_data(endpoint_url)
+        res = self._get_data(endpoint_url, params=kwargs)
         return [] if res is None else res
 
     def get_groups(self, organization_id=None):
