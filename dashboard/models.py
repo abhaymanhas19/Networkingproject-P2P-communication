@@ -429,68 +429,76 @@ class GroupDevice(models.Model):
                 try:
                     tmp.append(literal_eval(interface))
                 except Exception:
-                    _logger.warn("Could not convert interface data to Python data type. {}".format(interface))
+                    _logger.warn("interfaces_list: Could not convert interface data to Python data type. {}".format(interface))
                     pass
         return tmp
 
     @property
     def cellular_interfaces(self):
-        # get all celluar interafaces
+        # get all celluar interfaces
         # based on the interface type gobi
-        return [i for i in self.interfaces_list if i.get("type") == "gobi"]
+        return [i for i in self.interfaces_list if i.get("type", "").lower() == "gobi"]
+
 
     @property
-    def starlink_interface(self):
-        """returns the interface that is connected via Starlink"""
-        starlink = {}
+    def internet_interfaces(self):
+        """returns the list of internet interfaces that are not starlink nor cellular/lte"""
+        interfaces = []
         for interface in self.interfaces_list:
-            if "starlink" in interface["status"].lower():
-                starlink = interface
-                break
-        return starlink
+            if (interface.get("type", "").lower() == "ethernet"
+                and ("starlink" not in interface.get("status","").lower())):
+                interfaces.append(interface)
+        return interfaces
 
     @property
-    def starlink_status_dict(self):
+    def starlink_interfaces(self):
+        """returns the interface that is connected via Starlink"""
+        starlinks = []
+        for interface in self.interfaces_list:
+            if "starlink" in interface.get("status", "").lower():
+                starlinks.append(interface)
+        return starlinks
+
+    # TODO: allow multiple starlinks in one devices
+    @property
+    def starlink_status_dicts(self):
         from ast import literal_eval
-        tmp = {}
+        tmp = []
         if self.starlink_status:
-            status = self.starlink_status[0]
-            try:
-                tmp = literal_eval(status)
-            except Exception:
-                _logger.warn("Could not convert interface data to Python data type. {}".format(status))
+            for status in self.starlink_status:
+                try:
+                    tmp.append(literal_eval(status))
+                except Exception:
+                    _logger.warn("starlink_status_dicts: Could not convert interface data to Python data type. {}".format(status))
                 pass
         return tmp
 
     @property
-    def starlink_throughput(self):
+    def starlink_throughputs(self):
+        """returns a list of starlink trhoughputs"""
         # TODO: modify so that it can handle multiple starlink info
-        if self.starlink_status_dict:
-            throughput = {"uplink":"", "downlink":""}
-            ul = self.starlink_status_dict['dishGetStatus'].get('uplinkThroughputBps', 0.0)
-            dl = self.starlink_status_dict['dishGetStatus'].get('downlinkThroughputBps', 0.0)
+        throughputs = []
+        if self.starlink_status_dicts:
+            for status_dict in self.starlink_status_dicts:
+                throughput = {"uplink":"", "downlink":""}
 
-            # round ul to 2 decimals
-            ul = round(ul, 2) / 1000000.0
-            dl = round(dl, 2) / 1000000.0
+                ul = status_dict['dishGetStatus'].get('uplinkThroughputBps', 0.0)
+                dl = status_dict['dishGetStatus'].get('downlinkThroughputBps', 0.0)
 
-            ul_str = f"{ul} Mps"
-            dl_str = f"{dl} Mps"
+                # round ul to 2 decimals
+                ul = round(ul, 2) / 1000000.0
+                dl = round(dl, 2) / 1000000.0
+                # round ul and dl to 4 decimal places
+                ul = round(ul, 4)
+                dl = round(dl, 4)
 
-            # if ul >= 1000000:
-            #     ul = ul / 1000000
-            #     ul_str = f"{ul} Mbps"
+                ul_str = f"{ul} Mbps"
+                dl_str = f"{dl} Mbps"
 
-            # if dl >= 1000000:
-            #     dl = dl / 1000000
-            #     dl_str = f"{dl} Mbps"
-
-
-            throughput['uplink'] = ul_str
-            throughput['downlink'] = dl_str
-
-            return throughput
-        return {}
+                throughput['uplink'] = ul_str
+                throughput['downlink'] = dl_str
+                throughputs.append(throughput)
+        return throughputs
 
     @property
     def incontrol_group(self):
@@ -1019,11 +1027,13 @@ class DeviceStatus(models.Model):
         return json.dumps(chart_data)
 
 class StarlinkInfoHistory(models.Model):
-    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", max_length=255, default="")
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process",
+                                       max_length=255, default="")
+    #maybe we don't need this id anymore because one record here could contain multiple interfaces
     interface_id = models.IntegerField(null=True, blank=True, default=0, help_text="index in the interfaces list")
     device_serial = models.CharField(max_length=255, null=True, blank=True)
-    interface_json = models.JSONField(null=True, blank=True)
-    dish_status_json = models.JSONField(null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)  # This could contain multiple interfaces
+    dish_status_json = models.JSONField(null=True, blank=True) # this could contain multiple dish statuses
     as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
 
     class Meta:
@@ -1041,8 +1051,9 @@ class StarlinkInfoHistory(models.Model):
     @property
     def interface(self):
         return json.loads(self.interface_json)
+
     @classmethod
-    def get_starlink_chart_data(cls, internal_class, device_serial, data_type, start_date=None, end_date=None):
+    def get_starlink_chart_data(cls, internal_class, device_serial, data_type, interface_index=0, start_date=None, end_date=None):
         # time range is 24 hours by default
         if not start_date:
             start_date = datetime.now() - timedelta(hours=24)
@@ -1056,19 +1067,26 @@ class StarlinkInfoHistory(models.Model):
 
         fields = data_types_series.get(data_type, [])
         # get data based on time range
-        data = cls.objects.filter(internal_class=internal_class,
+        starlink_info_hist = cls.objects.filter(internal_class=internal_class,
                            device_serial=device_serial,
                            as_of_time__gte=start_date,
                            as_of_time__lte=end_date).order_by('-as_of_time')
 
-        # import pdb;pdb.set_trace()
         labels = []
         data_series = { f:[] for f in fields }
-        for d in data:
-            labels.append(d.as_of_time.strftime("%Y-%m-%d %H:%M:%S"))
+
+        for info in starlink_info_hist:
+            labels.append(info.as_of_time.strftime("%Y-%m-%d %H:%M:%S"))
 
             for f in fields:
-                data_series[f].append(d.dish_status.get('dishGetStatus', {}).get(f, 0.0))
+                field_value = 0.0
+                try:
+                    dish_status = info.dish_status[interface_index]
+                    field_value = dish_status.get('dishGetStatus', {}).get(f, 0.0)
+                except:
+                    pass
+                    _logger.error(f"get_starlink_chart_data: could not get value for field {f}", exc_info=True)
+                data_series[f].append(field_value)
 
 
         return {

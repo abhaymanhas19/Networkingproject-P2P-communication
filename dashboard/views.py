@@ -245,11 +245,10 @@ class StarlinkDataView(LoginRequiredMixin, View):
         internal_class = kwargs.get('internal_class')
         device_serial = kwargs.get('serial')
         data_type = kwargs.get('data_type')
-
+        interface_index = request.GET.get('interface_index')
         try:
-            chart_data_json = StarlinkInfoHistory.get_starlink_chart_data(internal_class, device_serial, data_type)
+            chart_data_json = StarlinkInfoHistory.get_starlink_chart_data(internal_class, device_serial, data_type, interface_index=interface_index)
             chart_data = json.dumps(chart_data_json)
-            print(f"\n\n======================  {chart_data} \n\n")
             return JsonResponse(chart_data, safe=False)
         except ValueError as e:
             return JsonResponse({'error': str(e)}, status=400)

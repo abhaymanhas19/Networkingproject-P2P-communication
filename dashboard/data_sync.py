@@ -73,10 +73,6 @@ def sync_peplink_networks():
                     organization=dashboard_models.Organization.objects.get(org_id=org['id'])
                 )
 
-                # print(network)
-                # for k, v in network.items():
-                #       print(f" {k}: {v}")
-
                 dashboard_network.network_url = org['url']
                 dashboard_network.timezone = group['timezone']
                 dashboard_network.notes = group.get('notes','')
@@ -101,7 +97,6 @@ def sync_peplink_networks():
                 dashboard_network.contenthub_threshold = group['contenthub_threshold']
                 dashboard_network.wan_disconnected_notify_time = group['wan_disconnected_notify_time']
                 dashboard_network.is_low_data_usage_mode = group['is_low_data_usage_mode']
-
                 dashboard_network.save()
 
 
@@ -240,15 +235,15 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
                 gd = dashboard_models.GroupDevice.objects.create(**device)
 
             # add starlink history
-            if gd.starlink_interface:
+            if gd.starlink_interfaces:
                 starlink_history, created  = dashboard_models.StarlinkInfoHistory.objects.get_or_create(
                     internal_class='peplink',
-                    interface_id=gd.starlink_interface.get('id', None),
+                    interface_id=0,  # gd.starlink_interface.get('id', None),
                     device_serial=gd.serial,
                     as_of_time=fetch_time
                 )
-                starlink_history.dish_status_json=json.dumps(gd.starlink_status_dict)
-                starlink_history.interface_json=json.dumps(gd.starlink_interface)
+                starlink_history.dish_status_json=json.dumps(gd.starlink_status_dicts)
+                starlink_history.interface_json=json.dumps(gd.starlink_interfaces)
                 starlink_history.save()
 
             if gd.cellular_interfaces:
