@@ -1064,7 +1064,10 @@ class StarlinkInfoHistory(models.Model):
             "bandwidth": ["downlinkThroughputBps", "uplinkThroughputBps"],
             "latency": ["popPingLatencyMs"]
         }
-
+        try:
+            interface_index = int(interface_index)
+        except ValueError:
+            interface_index = 0
         fields = data_types_series.get(data_type, [])
         # get data based on time range
         starlink_info_hist = cls.objects.filter(internal_class=internal_class,
@@ -1081,7 +1084,11 @@ class StarlinkInfoHistory(models.Model):
             for f in fields:
                 field_value = 0.0
                 try:
-                    dish_status = info.dish_status[interface_index]
+                    if type(info.dish_status) is list:
+                        dish_status = info.dish_status[interface_index]
+                    elif type(info.dish_status) is dict:
+                        dish_status = info.dish_status
+
                     field_value = dish_status.get('dishGetStatus', {}).get(f, 0.0)
                 except:
                     pass

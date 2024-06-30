@@ -408,3 +408,24 @@ class API(object):
             devices.append(self._get_data(g_endpoint_url))
 
         return [] if devices is None else devices
+
+    def get_bandwidth_per_device(self, organization_id=None):
+        """
+        A function to get the bandwidth usage per device based on the organization ID.
+
+        Args:
+            organization_id: The ID of the organization. Defaults to None.
+
+        Returns:
+            A list of bandwidth usage per device or an empty list if no bandwidth usage is found.
+        """
+        if not organization_id:
+            organization_id = self._org_id
+
+        path_vars = {
+            "base_url": _BASE_URL,
+            "organization_id": organization_id
+        }
+        endpoint_url = "{base_url}/{organization_id}/bandwidth_per_device"
+        res = self._get_data(endpoint_url.format(**path_vars))
+        return [] if res is None else res
