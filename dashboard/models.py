@@ -488,9 +488,9 @@ class GroupDevice(models.Model):
                 # round ul to 2 decimals
                 ul = round(ul, 2) / 1000000.0
                 dl = round(dl, 2) / 1000000.0
-                # round ul and dl to 4 decimal places
-                ul = round(ul, 4)
-                dl = round(dl, 4)
+                # round ul and dl to 2 decimal places
+                ul = round(ul, 2)
+                dl = round(dl, 2)
 
                 ul_str = f"{ul} Mbps"
                 dl_str = f"{dl} Mbps"
