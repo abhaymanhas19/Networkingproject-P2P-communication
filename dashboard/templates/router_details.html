@@ -7,6 +7,8 @@
 
 {% block extra_css %}
 
+<link rel="stylesheet" href="{% static 'css/router_details.css' %}">
+
 {% endblock extra_css %}
 
 {% block pagetitle %}
@@ -134,8 +136,12 @@
 
                         </div>
 
-                        <div class="card" style="margin-left:10px; border-width: 1px;boder-color:white;">
+                        <div class="card" style="margin-left:10px; border-width: 1px;boder-color:white;" onclick="">
                             <div class="">
+                                <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}" 
+                                        class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white"
+                                        data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
+            
                                 <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}"  width="250px" height="150px"></canvas>
                             </div>
                         </div>
@@ -206,146 +212,36 @@
 
 </div>
 
-<style>
-    .icon-text-container {
-        display: flex;
-        align-items: center;
-    }
-    .icon-text-container span {
-        margin-left: 10px; /* Adjust the value to set the desired space */
-    }
-    .bandwidth-container-dl,
-    .bandwidth-container-ul{
-        width: 160px;
-    }
 
-    .bandwidth-container h3{
-        font-size: 12px;
-    }
 
-    .bandwidth-container h1.bandwidth-value{
-        font-size: 18px;
-    }
-
-    .canvas-container {
-        position: relative;
-        width: 100%;
-        height: 100%;
-    }
-    .canvas-container h2{
-        text-align: center;
-    }
-
-    .gauge-text-container {
-        display: flex;
-        align-items:center;
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-        font-size: 1rem;
-        background-color: transparent;
-        padding: 5px;
-    }
-    .guage-text-container span.uom{
-        margin-left: 20px !important;
-    }
-    .gauge-text {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-
-</style>
 {% endblock content %}
 
 {% block extra_js %}
 <script src="{% static '/js/gauge.min.js'%}"></script>
+   
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js 4.4.0 -->
+    {% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script> {% endcomment %}
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <!-- hammer.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+
+    <!-- chartjs-plugin-zoom compatible with Chart.js 4.x -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.0"></script>
+
+    <script src="{% static '/js/router_details.js'%}"></script>
 <script>
 
 
-
-
-
-
-
-
       $(document).ready(function() {
-        function convertBpsToMbps(bps) {
-            return bps / 1_000_000;
-          }
-
-          function  renderBandwidthChart(data, ctx){
-            console.log("should render here");
-            data = JSON.parse(data)
-            const downlinkThroughputMbps = data.data_series.downlinkThroughputBps.map(convertBpsToMbps);
-            const uplinkThroughputMbps = data.data_series.uplinkThroughputBps.map(convertBpsToMbps);
-            const myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels.reverse(), // Reverse the labels to maintain chronological order
-                    datasets: [
-                        {
-                            label: 'Download',
-                            data: downlinkThroughputMbps.reverse(), // Reverse the data series to match the labels
-                            fill: true,
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Upload',
-                            data: uplinkThroughputMbps.reverse(), // Reverse the data series to match the labels
-                            fill: true,
-                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                            borderColor: 'rgba(153, 102, 255, 1)',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: '24 hours Bandwidth (DL/UL)'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'hour',
-                                tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
-                                displayFormats: {
-                                    hour: 'H a'
-                                }
-                            },
-                            title: {
-                                display: false,
-                                text: 'Timestamp'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Mbps'
-                            }
-                        }
-                    }
-                }
-            });
-          }
-
+     
 
         {% for starlink_interface in device.starlink_interfaces %}
+            $(".starlink-bandwidth-chart-reset-zoom").click(function(e){
+                window["starlinkBandwidthChart{{ forloop.counter0 }}"].resetZoom();    
+            });
 
             {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
                 var maxVal{{ forloop.counter0 }} = 250;
@@ -393,9 +289,6 @@
 
             {% endwith %}  {# with starlink_status #}
 
-
-
-
             var target{{ forloop.counter0 }} = document.getElementById('speed-gauge-{{ forloop.counter0 }}');
             var text{{ forloop.counter0 }} = document.getElementById('speed-gauge-text-{{ forloop.counter0 }}');
             var speedGauge{{ forloop.counter0 }} = new Gauge(target{{ forloop.counter0 }}).setOptions(opts{{ forloop.counter0 }});
@@ -441,8 +334,6 @@
             obstructionGauge{{ forloop.counter0 }}.set(obstruction{{ forloop.counter0 }});
             actualValue{{ forloop.counter0 }}.innerHTML = obstruction{{ forloop.counter0 }}.toFixed(3) + "%";
 
-
-
             $.ajax({
                 url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='bandwidth' %}",
                 type: "GET",
@@ -454,7 +345,8 @@
                 },
                 success: function(data) {
                     const ctx = document.getElementById('starlink-bandwidth-chart-{{ forloop.counter0 }}').getContext('2d');
-                    renderBandwidthChart(data, ctx);
+                    var chartName='starlinkBandwidthChart{{ forloop.counter0 }}';
+                    renderBandwidthChart(data, ctx, chartName);
                 },
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", status, error);

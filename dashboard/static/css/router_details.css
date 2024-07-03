@@ -1,0 +1,48 @@
+.icon-text-container {
+    display: flex;
+    align-items: center;
+}
+.icon-text-container span {
+    margin-left: 10px; /* Adjust the value to set the desired space */
+}
+.bandwidth-container-dl,
+.bandwidth-container-ul{
+    width: 160px;
+}
+
+.bandwidth-container h3{
+    font-size: 12px;
+}
+
+.bandwidth-container h1.bandwidth-value{
+    font-size: 18px;
+}
+
+.canvas-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+.canvas-container h2{
+    text-align: center;
+}
+
+.gauge-text-container {
+    display: flex;
+    align-items:center;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 1rem;
+    background-color: transparent;
+    padding: 5px;
+}
+.guage-text-container span.uom{
+    margin-left: 20px !important;
+}
+.gauge-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
