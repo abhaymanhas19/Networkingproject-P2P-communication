@@ -242,8 +242,11 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
                     device_serial=gd.serial,
                     as_of_time=fetch_time
                 )
-                starlink_history.dish_status_json=json.dumps(gd.starlink_status_dicts)
-                starlink_history.interface_json=json.dumps(gd.starlink_interfaces)
+                # starlink_history.dish_status_json=json.dumps(gd.starlink_status_dicts)
+                # starlink_history.interface_json=json.dumps(gd.starlink_interfaces)
+
+                starlink_history.dish_status_json=gd.starlink_status_dicts
+                starlink_history.interface_json=gd.starlink_interfaces
                 starlink_history.save()
 
             if gd.cellular_interfaces:
@@ -252,7 +255,7 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
                     device_serial=gd.serial,
                     as_of_time=fetch_time
                 )
-                cellular_history.interface_json=json.dumps(gd.cellular_interfaces)
+                cellular_history.interface_json=gd.cellular_interfaces
                 cellular_history.save()
 
 
