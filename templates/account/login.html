@@ -21,7 +21,7 @@
         <div class="h-screen w-screen flex justify-center items-center">
 
             <div class="2xl:w-1/4 lg:w-1/3 md:w-1/2 w-full">
-                <div class="card overflow-hidden sm:rounded-md rounded-none">
+                <div class="card overflow-hidden sm:rounded-md rounded-none" style="background-color:transparent; border:solid 1px ">
                     <div class="p-6">
                         <a href="{% url 'index' %}" class="block mb-8">
                             <img class="h-15 block dark:hidden" src="{% static 'images/logo-grey-with-text.png' %}" alt="">
@@ -101,6 +101,15 @@
                 </div>
             </div>
         </div>
+        <style>
+            .form-input {
+                background-color: rgba(75, 85, 99,0.35);
+                color: white;
+            }
+            .fieldWrapper label {
+                color: rgba(91, 106, 128, 1.0);
+            }
+        </style>
         {% endblock content %}
     </div>
 </body>
