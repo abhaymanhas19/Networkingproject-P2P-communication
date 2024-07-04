@@ -62,3 +62,131 @@
     font-size: 1.5rem;
     font-weight: bold;
 }
+
+
+
+/* LTE */
+
+.signal-bar-container {
+    position: relative; 
+    /*width: fit-content; /* Allow metrics div to adjust to content size */
+    margin: 0 auto; /* Center metrics div horizontally */
+    border: solid 1px lightgrey;
+    width: 250px;
+    border-radius: 50%;
+    height: 250px;
+
+  
+  }
+
+.inactive-simslot-signal-bar,
+.active-simslot-signal-bar{
+    width: 140px;
+    height: 100px;
+    position: relative;
+    left: 10%;
+    top: 5%;
+
+}
+
+.sim-slot-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.signal-bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.top-text,
+.left-text,
+.right-text,
+.bottom-text {
+    margin: 5px;
+    font-size: smaller;
+}
+
+.top-text {
+    order: -1; /* Move it above the canvas */
+}
+
+.right-text {
+    position: absolute;
+    top: 50%;
+    left: 80%;
+    transform: translate(-50%, -50%);
+    margin-left: 10px;
+    font-size: x-small;
+    width: 80px;
+}
+
+.left-text {
+    position: absolute;
+    top: 50%;
+    left: 20%;
+    transform: translate(-50%, -50%);
+    margin-left: 10px;
+    font-size: x-small;
+    width: 60px;
+}
+
+.bottom-text {
+    margin-top: 10px; /* Add space above the canvas */
+}
+
+.signal-bar-container h2{
+    font-size:large;
+    text-align: center;
+}
+
+
+#collapseLTEDetails {
+    display: flex;
+    flex-direction: column; /* Default to single column */
+}
+
+.all-sim-info-container {
+    display: flex;
+    flex-direction: column; /* Default to column */
+}
+
+.sim-slot-container {
+    margin-bottom: 1rem; /* Add some margin for spacing */
+}
+
+@media (min-width: 1356px) {
+    #collapseLTEDetails {
+        flex-direction: row; /* Switch to two columns on larger screens */
+        flex-wrap: wrap;
+    }
+
+    #collapseLTEDetails .card {
+        width: calc(50% - 1rem); /* Adjust card width to fit two columns */
+        margin: 0.5rem; /* Add some margin for spacing */
+    }
+
+    .all-sim-info-container {
+        flex-direction: row; /* Switch to row on larger screens */
+    }
+
+    .sim-slot-container {
+        width: calc(50% - 1rem); /* Adjust SIM slot width to fit two columns */
+        margin: 0.5rem; /* Add some margin for spacing */
+    }
+}
+
+@media (min-width: 768px) {
+    
+    .all-sim-info-container {
+        flex-direction: row; /* Switch to row on larger screens */
+    }
+
+    .sim-slot-container {
+        width: calc(50% - 1rem); /* Adjust SIM slot width to fit two columns */
+        margin: 0.5rem; /* Add some margin for spacing */
+    }
+}

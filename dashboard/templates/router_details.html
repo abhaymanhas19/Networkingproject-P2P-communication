@@ -215,18 +215,69 @@
                     No Cellular Interface
                 {% endif %}
             </h3>
-            <div id="collapseLTEDetails" class="w-full overflow-hidden transition-[height] duration-300">
-                <h3>Coming Soon: Cellular Interface Metrics</h3>
+            <div id="collapseLTEDetails" class="w-full overflow-auto transition-[height] duration-300 flex">
                 {% if device.cellular_interfaces %}
                     {% for interface in device.cellular_interfaces %}
-                        <div> {{ interface }} </div>
+                        {% with forloop.counter0 as interface_idx %}
+                        <div class="card" id="mycard-{{ interface.id }}">
+                            <div>
+                                <div>
+                                    Status: {{ interface.status }}
+                                </div>
+                                {% if interface.sims %}
+                                    {% with interface.sims.0 as first_sim %}
+                                        <div>
+                                            SIM: {% if first_sim.simCardDetected or interface.sims.1.simCardDetected %} SIM Card Detected {% else %} None {% endif %}
+                                        </div>
+                                    {% endwith %}
+                                {% else %}
+                                    <div>
+                                        SIM: None
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    WAN: {{ interface.name }}
+                                </div>
+                                <div>
+                                    IP Address: {% firstof interface.ip  'None' %}
+                                </div>
+                                <div>
+                                    IMEI: {{ interface.imei }}
+                                </div>
+                                
+                                <div class="all-sim-info-container">
+                                    {% for simslot in interface.sims %}
+                                        <div class="sim-slot-container">
+                                            <h3>SIM Slot {{ simslot.id }}</h3>
+                                            {% if simslot.active %}
+                                              
+                                                <div class="signal-bar-container"> 
+                                                    <div class="left-text">{{ interface.gobi_data_tech }}<br/>{{ interface.carrier_name }}</div>
+                                                        <canvas id="active-simslot-signal-bar-{{ interface_idx }}-{{ simslot.id }}" class="active-simslot-signal-bar" data-signal-bar="{{ interface.signal_bar }}" data-bar-color="green"></canvas>
+                                                    <div class="right-text"> {{ interface.gobi_band_class_name }}</div>
+                                                    <div class="bottom-text"><br> <h2>RSRP</h2><h2>{{  interface.cellular_signals.rsrp }}dBm</h2></div>
+                                                </div>
+                                            {% else %}
+                                         
+                                                <div class="signal-bar-container"> 
+                                                    <div class="left-text">{{ interface.gobi_data_tech }}<br/>{{ interface.carrier_name }}</div>
+                                                        <canvas id="inactive-simslot-signal-bar-{{ interface_idx }}-{{ simslot.id }}" class="inactive-simslot-signal-bar" data-signal-bar="5" data-bar-color="lightgrey"></canvas>
+                                                    <div class="right-text"> {{ interface.gobi_band_class_name }}</div>
+                                                    <div class="bottom-text"><br> <h2>RSRP</h2><h2>{{  interface.cellular_signals.rsrp }}dBm</h2></div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
                         <br/>
+                    {% endwith %}
                     {% endfor %}
                 {% endif %}
             </div>
-
         </div>
-    </div>
+    </div>barColor
 
 </div>
 
@@ -240,7 +291,7 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js 4.4.0 -->
-    {% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script> {% endcomment %}
+    {% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0barColor"></script> {% endcomment %}
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
 
     <!-- hammer.js -->
@@ -392,6 +443,23 @@
                 }
             });
         {% endfor %}
+
+        //draw the signalbars
+        $(".active-simslot-signal-bar").each(function() {
+            var signalBar = $(this).data("signal-bar");
+            console.log("here is the detected signal bar");
+            console.log(signalBar);
+            var barColor = $(this).data("bar-color")
+            drawSignalBars($(this).attr("id"), signalBar, 5, barColor);
+        });
+
+        $(".inactive-simslot-signal-bar").each(function() {
+            var signalBar = $(this).data("signal-bar");
+            console.log("here is the detected signal bar");
+            console.log(signalBar);
+            var barColor = 'lightgrey'
+            drawSignalBars($(this).attr("id"), signalBar, 5, barColor);
+        });
 
 
       });

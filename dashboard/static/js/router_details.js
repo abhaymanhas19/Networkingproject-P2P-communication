@@ -198,7 +198,7 @@ function  renderUptimeChart(data, ctx, chartName){
  * @param {integer} numBars the number of bars to draw
  * @param {integer} maxBars the maximum number of bars
  */
-function drawSignalBars(canvasId, numBars, maxBars) {
+function drawSignalBars(canvasId, numBars, maxBars, barColor='green') {
     maxBars = maxBars + 1;
     var canvas = document.getElementById(canvasId);
     var ctx = canvas.getContext("2d");
@@ -224,7 +224,7 @@ function drawSignalBars(canvasId, numBars, maxBars) {
       var barHeight = maxHeight * (i * (i + 1)) / 2; // Calculate height based on loop counter
   
       ctx.rect(x, y - barHeight, barWidth, barHeight);
-      ctx.fillStyle = "green"; // Set fill style for solid color
+      ctx.fillStyle = barColor; // Set fill style for solid color
       ctx.fill();
     }
   }
