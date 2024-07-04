@@ -16,7 +16,7 @@ function convertBpsToMbps(bps) {
   }
 
 
-  /**
+/**
  * Renders a line chart displaying bandwidth data.
  *
  * @param {string} data - The bandwidth data in JSON format.
@@ -106,6 +106,93 @@ function  renderBandwidthChart(data, ctx, chartName){
 
 
 /**
+ * Renders a line chart displaying Uptime data.
+ *
+ * @param {string} data - The average uptime data in JSON format.
+ * @param {CanvasRenderingContext2D} ctx - The rendering context for the chart.
+ * @return {Chart} The rendered line chart.
+ */
+function  renderUptimeChart(data, ctx, chartName){
+
+    data = JSON.parse(data)
+    console.log("converting data to float");
+    console.log(data);
+    const numericData = data.series.map(parseFloat);
+   
+    const myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels.reverse(), // Reverse the labels to maintain chronological order
+            datasets: [
+                {
+                    label: 'Average Uptime',
+                    data: numericData.reverse(), // Reverse the data series to match the labels
+                    fill: true,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    tension: 0.4
+                },
+               
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Average Uptime (last 24 hours)'
+                },
+                zoom: {
+                    zoom: {
+                        wheel: {
+                            enabled: false,
+                        },
+                        drag: {
+                            enabled: false
+                        },
+                        mode: 'xy',
+                    },
+                    pan: {
+                        enabled: false,
+                        mode: 'y',
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'hour',
+                        tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
+                        displayFormats: {
+                            hour: 'H a'
+                        }
+                    },
+                    title: {
+                        display: false,
+                        text: 'Timestamp'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Uptime %'
+                    },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    }); //end create chart
+    window[chartName] = myChart;
+  }
+
+
+
+/**
  * Draws Signal Bars in the given canvas element.
  * @param {string} canvasId the target canvas element
  * @param {integer} numBars the number of bars to draw
@@ -141,3 +228,6 @@ function drawSignalBars(canvasId, numBars, maxBars) {
       ctx.fill();
     }
   }
+
+
+  

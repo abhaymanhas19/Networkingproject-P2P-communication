@@ -12,8 +12,10 @@ from django.db.models import Count, Avg
 from django.db.models.functions import TruncHour
 
 
+
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
+from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -1046,11 +1048,83 @@ class StarlinkInfoHistory(models.Model):
 
     @property
     def dish_status(self):
-        return json.loads(self.dish_status_json)
+        # return json.loads(self.dish_status_json)
+        return self.dish_status_json
 
     @property
     def interface(self):
-        return json.loads(self.interface_json)
+        # return json.loads(self.interface_json)
+        return self.interface_json
+
+
+    @classmethod
+    def get_starlink_uptime_chart_data(cls, internal_class, device_serial, starlink_index=0, start_date=None, end_date=None):
+        if not start_date:
+            start_date = datetime.now() - timedelta(hours=1000)
+        if not end_date:
+            end_date = datetime.now()
+
+        try:
+            starlink_index = int(starlink_index)
+        except ValueError:
+            starlink_index = 0
+
+        params = {
+            "internal_class": internal_class,
+            "device_serial": device_serial,
+            "starlink_index": starlink_index
+        }
+
+        data_sql = """
+            WITH filtered_data AS (
+                SELECT device_serial,
+                    CASE
+                        WHEN jsonb_typeof(dish_status_json) = 'array' THEN
+                            COALESCE((dish_status_json->%(starlink_index)s->'dishGetStatus'->'deviceState'->>'uptimeS')::int, 0)
+                        ELSE
+                            COALESCE((dish_status_json->'dishGetStatus'->'deviceState'->>'uptimeS')::int, 0)
+                    END AS uptime_s,
+                    as_of_time
+                FROM dashboard_starlinkinfohistory
+                WHERE as_of_time >= NOW() - INTERVAL '24 hours'
+                      AND device_serial = %(device_serial)s
+                      AND internal_class = %(internal_class)s
+            ),
+            interval_data AS (
+                SELECT device_serial,
+                    date_trunc('hour', as_of_time) AS hour,
+                    uptime_s,
+                    CASE
+                        WHEN uptime_s >= 180 THEN 100 
+                        ELSE (uptime_s / 180.0) * 100
+                    END AS uptime_percentage
+                FROM filtered_data
+            )
+            SELECT
+                row_number() OVER () AS id,
+                device_serial,
+                hour,
+                AVG(uptime_percentage) AS avg_uptime_percentage
+            FROM interval_data
+            GROUP BY device_serial, hour
+            ORDER BY device_serial, hour
+        """
+        # import pdb
+        starlink_info_hist = cls.objects.raw(data_sql, params=params)
+        labels = []
+        series_data =[]
+     
+        for info in starlink_info_hist:
+            labels.append(info.hour.strftime("%Y-%m-%d %H:%M:%S"))
+            #serialized_uptime = json.dumps({'value': str(info.avg_uptime_percentage)}, cls=DjangoJSONEncoder)
+            series_data.append(str(info.avg_uptime_percentage))
+            
+        chart_data={    
+            "labels": labels,
+            "series": series_data
+        }
+        return chart_data
+
 
     @classmethod
     def get_starlink_chart_data(cls, internal_class, device_serial, data_type, interface_index=0, start_date=None, end_date=None):
@@ -1076,7 +1150,7 @@ class StarlinkInfoHistory(models.Model):
                            as_of_time__lte=end_date).order_by('-as_of_time')
 
         labels = []
-        data_series = { f:[] for f in fields }
+        series_data = { f:[] for f in fields }
 
         for info in starlink_info_hist:
             labels.append(info.as_of_time.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1091,14 +1165,15 @@ class StarlinkInfoHistory(models.Model):
 
                     field_value = dish_status.get('dishGetStatus', {}).get(f, 0.0)
                 except:
+                    print("====================================== ERROR GETTING BANDWIDTH DATA")
                     pass
                     _logger.error(f"get_starlink_chart_data: could not get value for field {f}", exc_info=True)
-                data_series[f].append(field_value)
+                series_data[f].append(field_value)
 
 
         return {
             "labels": labels,
-            "data_series": data_series
+            "data_series": series_data
         }
 
 

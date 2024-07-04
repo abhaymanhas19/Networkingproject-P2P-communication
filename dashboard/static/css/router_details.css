@@ -5,6 +5,12 @@
 .icon-text-container span {
     margin-left: 10px; /* Adjust the value to set the desired space */
 }
+
+.bandwidth-container {
+    padding-top: 60px;
+    padding-left: 25px;
+}
+
 .bandwidth-container-dl,
 .bandwidth-container-ul{
     width: 160px;
@@ -27,12 +33,22 @@
     text-align: center;
 }
 
+
+.gauge-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+}
+.gauge-container h2{
+    text-align: center;
+}
+
 .gauge-text-container {
     display: flex;
     align-items:center;
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
+    position: relative;
+    bottom: 60px;
+    left: 90%;
     transform: translateX(-50%);
     text-align: center;
     font-size: 1rem;

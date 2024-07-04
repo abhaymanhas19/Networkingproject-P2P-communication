@@ -17,7 +17,7 @@
 
 {% block content %}
 <div class="flex flex-col gap-6">
-    <div class="card">
+    <div class="card"> <!-- info card -->
         <div class="card-header">
             <div class="icon-text-container">
                 <i class="msr">info</i><span>GENERAL INFORMATION</span>
@@ -62,11 +62,24 @@
                 </div>
             </div>
         </div>
+    </div> <!-- end info card -->
 
 
+    <div class="card"> <!-- info card -->
+        <div class="card-header">
+            <div class="icon-text-container">
+                <i class="msr">network_check</i><span>INTERNET STATUS</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle">
+
+            </div>
+        </div>
+    </div> <!-- end info card -->
 
 
-    </div>
     <div class="card">
         <div class="card-header flex justify-between items-center">
             <div class="icon-text-container">
@@ -77,7 +90,7 @@
             </button>
         </div>
         <div class="p-6">
-            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-hidden transition-[height] duration-300 flex">
+            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-auto transition-[height] duration-300 flex">
 
                 {% if device.starlink_status %}
                 <!--STARLINK STATUS START -->
@@ -118,36 +131,39 @@
                             </table>
                         </div> <!--table end -->
 
-                        <div class="card flex justify-between items-center"  style="width:300px; box-shadow:none;">
-                            <div class="canvas-container">
-                                <h2>Latency</h2>
-                                <canvas id="speed-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
-                                <div class="gauge-text-container">
-                                    <div id="speed-gauge-text-{{ forloop.counter0 }}" class="gauge-text"></div><span id="speed-gauge-uom-{{ forloop.counter0 }}" class="uom">ms</span>
+                        <div class="card flex justify-between items-center col-span-2"  style="box-shadow:none;">
+                            <div class="flex">
+                                <div class="canvas-container">
+                                    <h2>Latency</h2>
+                                    <canvas id="speed-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
+                                    <div class="gauge-text-container">
+                                        <div id="speed-gauge-text-{{ forloop.counter0 }}" class="gauge-text"></div><span id="speed-gauge-uom-{{ forloop.counter0 }}" class="uom">ms</span>
+                                    </div>
                                 </div>
+                                {% with starlink_bandwidth=device.starlink_throughputs|get_item_at_index:forloop.counter0 %}
+                                <div class="bandwidth-container" style="margin-left: 20px">
+                                    <div id="bandwidth-dl-container{{ forloop.counter0 }}" class="bandwidth-container-dl"><h3>Bandwidth(DL)</h3><p><h1 class="bandwidth-value">{{ starlink_bandwidth.downlink }}</h1></p></div>
+                                    <br/>
+                                    <div id="bandwidth-ul-container{{ forloop.counter0 }}" class="bandwidth-container-ul"><h3>Bandwidth(UL)</h3><p><h1 class="bandwidth-value">{{ starlink_bandwidth.uplink }}</h1></p></div>
+                                </div>
+                                {% endwith %}
                             </div>
-                            {% with starlink_bandwidth=device.starlink_throughputs|get_item_at_index:forloop.counter0 %}
-                            <div class="bandwidth-container" style="margin-left: 20px">
-                                <div id="bandwidth-dl-container{{ forloop.counter0 }}" class="bandwidth-container-dl"><h3>Bandwidth(DL)</h3><p><h1 class="bandwidth-value">{{ starlink_bandwidth.downlink }}</h1></p></div>
-                                <br/>
-                                <div id="bandwidth-ul-container{{ forloop.counter0 }}" class="bandwidth-container-ul"><h3>Bandwidth(UL)</h3><p><h1 class="bandwidth-value">{{ starlink_bandwidth.uplink }}</h1></p></div>
-                            </div>
-                            {% endwith %}
 
+                            <div class="card col-span-2" style="margin-left:10px; border-width: 1px;boder-color:white;">
+                                {% comment %} <div class=""> {% endcomment %}
+                                    <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}"
+                                            class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white"
+                                            data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
+
+                                    <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}"  width="550px" height="250px"></canvas>
+                                {% comment %} </div> {% endcomment %}
+                            </div>
                         </div>
 
-                        <div class="card" style="margin-left:10px; border-width: 1px;boder-color:white;" onclick="">
-                            <div class="">
-                                <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}" 
-                                        class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white"
-                                        data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
-            
-                                <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}"  width="250px" height="150px"></canvas>
-                            </div>
-                        </div>
 
-                        <div class="card flex justify-between items-center"  style="width:250px; margin-top:20px; box-shadow:none;">
-                            <div class="canvas-container">
+
+                        <div class="card flex justify-between items-center col-span-2"  style="margin-top:20px; box-shadow:none; width:100%;">
+                            <div class="gauge-container">
                                 <h2>Obstruction</h2>
                                 <canvas id="obstruction-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
                                 <div class="gauge-text-container">
@@ -158,11 +174,13 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="uptime-container-{{ forloop.counter0 }}" style="margin-left: 20px; width:200px">
-                                <h3>Coming Soon: Starlink Uptime Chart</h3>
-                                <div id="starlink-uptime-chart-{{ forloop.counter0 }}"></div>
-                                <div>{{ device.starlink_status_dict.dishGetStatus.deviceState }}</div>
+                            <div class="card col-span-2" style="margin-left:10px; border-width: 1px;boder-color:white; ">
+
+                                    <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}"  width="550px" height="250px"></canvas>
+
                             </div>
+
+
                         </div>
                     {% endfor %}
                 <!-- STARLINK INFO END -->
@@ -218,7 +236,7 @@
 
 {% block extra_js %}
 <script src="{% static '/js/gauge.min.js'%}"></script>
-   
+
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js 4.4.0 -->
@@ -236,11 +254,10 @@
 
 
       $(document).ready(function() {
-     
 
         {% for starlink_interface in device.starlink_interfaces %}
             $(".starlink-bandwidth-chart-reset-zoom").click(function(e){
-                window["starlinkBandwidthChart{{ forloop.counter0 }}"].resetZoom();    
+                window["starlinkBandwidthChart{{ forloop.counter0 }}"].resetZoom();
             });
 
             {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
@@ -298,8 +315,6 @@
             speedGauge{{ forloop.counter0 }}.setTextField(text{{ forloop.counter0 }});
             speedGauge{{ forloop.counter0 }}.set(currVal{{ forloop.counter0 }});
 
-
-
             //obstruction
             var obstructionOpts{{ forloop.counter0 }} = {
                 angle: -0.25,
@@ -334,6 +349,7 @@
             obstructionGauge{{ forloop.counter0 }}.set(obstruction{{ forloop.counter0 }});
             actualValue{{ forloop.counter0 }}.innerHTML = obstruction{{ forloop.counter0 }}.toFixed(3) + "%";
 
+            // get bandwidth data and plot in the chart
             $.ajax({
                 url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='bandwidth' %}",
                 type: "GET",
@@ -347,6 +363,29 @@
                     const ctx = document.getElementById('starlink-bandwidth-chart-{{ forloop.counter0 }}').getContext('2d');
                     var chartName='starlinkBandwidthChart{{ forloop.counter0 }}';
                     renderBandwidthChart(data, ctx, chartName);
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+
+            // get the uptime data and show it in the chart
+            $.ajax({
+                url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='uptime' %}",
+                type: "GET",
+                data: {
+                    interface_index: {{ forloop.counter0 }}
+                },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                },
+                success: function(data) {
+                    console.log(data);
+
+                    const ctx = document.getElementById('starlink-uptime-chart-{{ forloop.counter0 }}').getContext('2d');
+                    var chartName='starlinkUptimeChart{{ forloop.counter0 }}';
+                    renderUptimeChart(data, ctx, chartName);
+
                 },
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", status, error);

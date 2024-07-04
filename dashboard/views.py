@@ -247,10 +247,30 @@ class StarlinkDataView(LoginRequiredMixin, View):
         data_type = kwargs.get('data_type')
         interface_index = request.GET.get('interface_index')
         try:
-            chart_data_json = StarlinkInfoHistory.get_starlink_chart_data(internal_class, device_serial, data_type, interface_index=interface_index)
-            chart_data = json.dumps(chart_data_json)
-            return JsonResponse(chart_data, safe=False)
-        except ValueError as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            interface_index = int(interface_index)
+        except ValueError:
+            interface_index = 0
+
+        if data_type == 'bandwidth':
+            try:
+                chart_data_json = StarlinkInfoHistory.get_starlink_chart_data(internal_class, device_serial, data_type, interface_index=interface_index)
+                chart_data = json.dumps(chart_data_json)
+                return JsonResponse(chart_data, safe=False)
+            except ValueError as e:
+                return JsonResponse({'error': str(e)}, status=400)
+
+        elif data_type == 'uptime':
+            try:
+                chart_data_json = StarlinkInfoHistory.get_starlink_uptime_chart_data(internal_class, device_serial, starlink_index=interface_index)
+                chart_data = json.dumps(chart_data_json)
+                return JsonResponse(chart_data, safe=False)
+            except ValueError as e:
+                return JsonResponse({'error': str(e)}, status=400)
+        else:
+            # unknown request
+            return JsonResponse({'error': 'Invalid data_type'}, status=400)
+
+
+
 
 
