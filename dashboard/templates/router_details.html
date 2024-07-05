@@ -74,6 +74,13 @@
 
         <div class="overflow-x-auto">
             <div class="min-w-full inline-block align-middle">
+                {% if device.internal_class == 'peplink' %}
+                    <pre> {{ device.internet_interfaces|pretty_print }}</pre>
+                {% elif device.internal_class == 'meraki' %}
+                <pre> {{ device.status_list|pretty_print }}</pre>
+                {% else %}
+                    <h2>Not supported </h2>
+                {% endif %}
 
             </div>
         </div>
@@ -244,22 +251,22 @@
                                 <div>
                                     IMEI: {{ interface.imei }}
                                 </div>
-                                
+
                                 <div class="all-sim-info-container">
                                     {% for simslot in interface.sims %}
                                         <div class="sim-slot-container">
                                             <h3>SIM Slot {{ simslot.id }}</h3>
                                             {% if simslot.active %}
-                                              
-                                                <div class="signal-bar-container"> 
+
+                                                <div class="signal-bar-container">
                                                     <div class="left-text">{{ interface.gobi_data_tech }}<br/>{{ interface.carrier_name }}</div>
                                                         <canvas id="active-simslot-signal-bar-{{ interface_idx }}-{{ simslot.id }}" class="active-simslot-signal-bar" data-signal-bar="{{ interface.signal_bar }}" data-bar-color="green"></canvas>
                                                     <div class="right-text"> {{ interface.gobi_band_class_name }}</div>
                                                     <div class="bottom-text"><br> <h2>RSRP</h2><h2>{{  interface.cellular_signals.rsrp }}dBm</h2></div>
                                                 </div>
                                             {% else %}
-                                         
-                                                <div class="signal-bar-container"> 
+
+                                                <div class="signal-bar-container">
                                                     <div class="left-text">{{ interface.gobi_data_tech }}<br/>{{ interface.carrier_name }}</div>
                                                         <canvas id="inactive-simslot-signal-bar-{{ interface_idx }}-{{ simslot.id }}" class="inactive-simslot-signal-bar" data-signal-bar="5" data-bar-color="lightgrey"></canvas>
                                                     <div class="right-text"> {{ interface.gobi_band_class_name }}</div>

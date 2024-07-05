@@ -1,3 +1,4 @@
+import json
 from django import template
 
 register = template.Library()
@@ -8,3 +9,14 @@ def get_item_at_index(list, index):
         return list[index]
     except IndexError:
         return None
+
+
+@register.filter
+def pretty_print(value):
+    try:
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, indent=3, sort_keys=True)
+        else:
+            return value
+    except (ValueError, TypeError):
+        return value
