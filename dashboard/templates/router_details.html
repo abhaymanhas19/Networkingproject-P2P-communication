@@ -75,9 +75,9 @@
         <div class="overflow-x-auto">
             <div class="min-w-full inline-block align-middle">
                 {% if device.internal_class == 'peplink' %}
-                    <pre> {{ device.internet_interfaces|pretty_print }}</pre>
+                    <pre style="font-size:smaller; padding:20px;"> {{ device.internet_interfaces|pretty_print }}</pre>
                 {% elif device.internal_class == 'meraki' %}
-                <pre> {{ device.status_list|pretty_print }}</pre>
+                    <pre style="font-size:smaller; padding:20px;"> {{ device.status_list|pretty_print }}</pre>
                 {% else %}
                     <h2>Not supported </h2>
                 {% endif %}
@@ -193,9 +193,9 @@
                 <!-- STARLINK INFO END -->
 
                 {% else %}
-                <pre>
-                   No Starlink Status
-                </pre>
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                        No Starlink Status
+                </h3>
                 {% endif %}
 
 
