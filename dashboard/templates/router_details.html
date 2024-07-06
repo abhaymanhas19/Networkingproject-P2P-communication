@@ -25,64 +25,127 @@
         </div>
         <div class="p-6">
             <h3 class="text-lg font-bold text-gray-800 dark:text-white">
-                {%firstof  device.name device.device_name %}
+                {% firstof  device.name device.device_name %}
             </h3>
             <h5> serial: {{ device.serial }}</h5>
             <p> firmware: {% firstof device.fw_ver device.firmware %}</p>
-
+            <p> device id: {% firstof device.device_id device.id %}</p>
         </div>
         <div class="overflow-x-auto">
             <div class="min-w-full inline-block align-middle">
                 <div class="overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             <tr></tr>
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Model:</td>
-
-                                    <td id="starlink-ipaddress" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                <td class="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Model:</td>
+                                    <td id="starlink-ipaddress" class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
                                         {{ device.model }}
                                     </td>
-
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
                             </tr>
-
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">MAC:</td>
-
-                                <td id="starlink-alerts" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof device.mac device.lan_mac %}</td>
-
-
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">MAC:</td>
+                                <td id="starlink-alerts" class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof device.mac device.lan_mac %}</td>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
                             </tr>
-
                         </tbody>
                     </table>
                 </div>
+                <div style="padding:20px">
+                    <a href="#" data-fc-type="collapse" type="button" class="flex items-center text-primary">
+                        <span class="fc-collapse-open:hidden">Show</span>
+                        <span class="fc-collapse-open:block hidden">Hide</span>&nbsp;Raw Data
+                        <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+                    </a>
+                    <div class="hidden w-full overflow-hidden transition-[height] duration-300">
+                        <p class="pt-5 text-gray-800 dark:text-gray-200">
+                            <pre style="font-size:smaller; padding:20px;">
+                                {% if device.internal_class == 'peplink' %}
+# API Endpoint '/rest/o/{organization_id}/d'
+# parameters: Wan=0, has_status=True
+# device_id={{ device.device_id }}
+                                {% endif %}
+{{ device_raw_data|pretty_print }}
+# get device bandwidth
+{{ bw_data|pretty_print }}
+                            </pre>
+                        </p>
+                    </div>
+                </div>
             </div>
+
         </div>
+
+
     </div> <!-- end info card -->
 
 
     <div class="card"> <!-- info card -->
-        <div class="card-header">
+        <div class="card-header flex justify-between items-center">
             <div class="icon-text-container">
                 <i class="msr">network_check</i><span>INTERNET STATUS</span>
             </div>
+            <button data-fc-type="collapse" data-fc-target="collapseInternetStatus" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
+                <span class="fc-collapse-open:hidden">View</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+            </button>
         </div>
 
-        <div class="overflow-x-auto">
-            <div class="min-w-full inline-block align-middle">
-                {% if device.internal_class == 'peplink' %}
-                    <pre style="font-size:smaller; padding:20px;"> {{ device.internet_interfaces|pretty_print }}</pre>
-                {% elif device.internal_class == 'meraki' %}
-                    <pre style="font-size:smaller; padding:20px;"> {{ device.status_list|pretty_print }}</pre>
+        <div class="p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                {% if inet_interfaces %}
+                    Found {{ inet_interfaces|length }} interface(s)
                 {% else %}
-                    <h2>Not supported </h2>
+                    No Internet Interface
                 {% endif %}
+            </h3>
+            <div id="collapseInternetStatus" class="w-full overflow-auto transition-[height] duration-300 flex">
+                <div class="all-interface-container" style="width:100%">
+                    {% for interface in inet_interfaces %}
+                    <div class="interface-container">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Name</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ interface.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Status</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"> {{ interface.status }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">IP</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"> {% firstof interface.ipAddress interface.ip interface.publicIp %}</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Gateway</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"> {% firstof interface.gateway interface.wan1Gateway interface.wan2Gateway %}</td>
 
+                                </tr>
+                                <tr></tr>
+                            </tbody>
+                        </table>
+
+                    </div> <!--interface container -->
+                    <div class="card w-full" >
+                        some chart here
+                    </div>
+                    <hr>
+                    {% endfor %}
+                </div>
+            </div> <!--collapseInternetStatus-->
+            <br>
+            <a href="#" data-fc-type="collapse" type="button" class="flex items-center text-primary">
+                <span class="fc-collapse-open:hidden">Show</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>&nbsp;Raw Data
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+            </a>
+            <div class="hidden w-full overflow-hidden transition-[height] duration-300">
+                <p class="pt-5 text-gray-800 dark:text-gray-200">
+                    <pre style="font-size:smaller; padding:20px;"> {{ inet_interfaces|pretty_print }}</pre>
+                </p>
             </div>
+
         </div>
     </div> <!-- end info card -->
 
@@ -93,7 +156,9 @@
                 <i class="msr">satellite_alt</i><span>STARLINK STATUS</span>
             </div>
             <button data-fc-type="collapse" data-fc-target="collapseStarlinkDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
-                View <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+                <span class="fc-collapse-open:hidden">View</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
             </button>
         </div>
         <div class="p-6">
@@ -211,7 +276,9 @@
                 <i class="msr">sim_card</i><span>LTE STATUSES</span>
             </div>
             <button data-fc-type="collapse" data-fc-target="collapseLTEDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
-                View <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+                <span class="fc-collapse-open:hidden">View</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
             </button>
         </div>
         <div class="p-6">

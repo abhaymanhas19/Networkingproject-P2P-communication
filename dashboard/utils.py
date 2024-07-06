@@ -1,7 +1,12 @@
-from itertools import chain
 import logging
 
+from itertools import chain
+from django.conf import settings
+
+from incontrol.client import API as PeplinkAPI
+
 from .models import Customer, MerakiDevice, GroupDevice, UnifiDevice
+
 
 _logger = logging.getLogger(__name__)
 
@@ -130,3 +135,24 @@ def get_wan_summary(customer_id):
         _logger.error(msg, exc_info=True)
 
     return summary
+
+
+def get_peplink_device_data(device_id):
+    try:
+        api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
+        result = api.get_devices(has_status=True, device_ids=[device_id])
+        return result
+    except:
+        _logger.error("ERROR getting peplink device data", exc_info=True)
+        return []
+
+
+def get_peplink_device_bandwidth(device_id):
+    try:
+        api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
+        result = api.get_bandwidth_per_device(device_ids=[device_id])
+        print("\n\n================================================ get_peplink_device_bandwidth\n\n")
+        return result
+    except:
+        _logger.error("ERROR getting peplink device bandwidth", exc_info=True)
+        return []

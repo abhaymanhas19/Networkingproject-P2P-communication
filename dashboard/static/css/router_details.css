@@ -68,7 +68,7 @@
 /* LTE */
 
 .signal-bar-container {
-    position: relative; 
+    position: relative;
     /*width: fit-content; /* Allow metrics div to adjust to content size */
     margin: 0 auto; /* Center metrics div horizontally */
     border: solid 1px lightgrey;
@@ -76,7 +76,7 @@
     border-radius: 50%;
     height: 250px;
 
-  
+
   }
 
 .inactive-simslot-signal-bar,
@@ -154,6 +154,7 @@
     flex-direction: column; /* Default to column */
 }
 
+.interface-container,
 .sim-slot-container {
     margin-bottom: 1rem; /* Add some margin for spacing */
 }
@@ -168,23 +169,24 @@
         width: calc(50% - 1rem); /* Adjust card width to fit two columns */
         margin: 0.5rem; /* Add some margin for spacing */
     }
-
+    .all-interface-container,
     .all-sim-info-container {
         flex-direction: row; /* Switch to row on larger screens */
     }
 
-    .sim-slot-container {
+    .sim-slot-container,
+    .interface-container {
         width: calc(50% - 1rem); /* Adjust SIM slot width to fit two columns */
         margin: 0.5rem; /* Add some margin for spacing */
     }
 }
 
 @media (min-width: 768px) {
-    
+    .all-interface-container,
     .all-sim-info-container {
         flex-direction: row; /* Switch to row on larger screens */
     }
-
+    .interface-container,
     .sim-slot-container {
         width: calc(50% - 1rem); /* Adjust SIM slot width to fit two columns */
         margin: 0.5rem; /* Add some margin for spacing */

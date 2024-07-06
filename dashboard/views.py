@@ -25,7 +25,10 @@ from .models import (
     UnifiDevice,
     StarlinkInfoHistory)
 
-from .utils import get_customer_routers
+from .utils import (
+    get_customer_routers,
+    get_peplink_device_data,
+    get_peplink_device_bandwidth)
 
 _logger = logging.getLogger(__name__)
 
@@ -228,15 +231,29 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
         device_serial = kwargs.get('serial')
 
         device = None
+        device_raw_data = []
+        inet_interfaces = []
         if internal_class == 'meraki':
             device = MerakiDevice.objects.filter(serial=device_serial).first()
+            inet_interfaces = device.status_list
         elif internal_class == 'unifi':
             device = UnifiDevice.objects.filter(serial=device_serial).first()
+            #inet_interfaces = device.status_list
         elif internal_class == 'peplink':
             device = GroupDevice.objects.filter(sn=device_serial).first()
+            inet_interfaces = device.internet_interfaces
+            try:
+                device_raw_data = get_peplink_device_data(device.device_id)
+            except:
+                pass
+
         customer_id = current_customer.get('id')
         all_routers = get_customer_routers(customer_id)
+
         context['device'] = device
+        context['inet_interfaces'] = inet_interfaces
+        context['device_raw_data']  = device_raw_data
+        context['bw_data'] = get_peplink_device_bandwidth(device.device_id)
         return context
 
 

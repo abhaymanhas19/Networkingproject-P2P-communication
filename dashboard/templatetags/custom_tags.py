@@ -20,3 +20,8 @@ def pretty_print(value):
             return value
     except (ValueError, TypeError):
         return value
+
+
+@register.simple_tag
+def assign(value, var_name):
+    return value

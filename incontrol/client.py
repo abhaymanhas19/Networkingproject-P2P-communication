@@ -138,8 +138,10 @@ class API(object):
                 status_code = getattr(response, 'status_code', None)
                 resp_json = {}
                 if status_code == 200:
+                    #print(f"Successfully fetched data from {endpoint_url}: {response.json()}")
                     resp_json = response.json()
                 if status_code == 401:
+                   # print(f"Invalid credentials")
                     msg = f'Unauthorized Refresh. using params {params}. Endpoint URL: {endpoint_url}'
                     raise Exception(msg)
                 if status_code == 200 and resp_json.get("resp_code") == 'SUCCESS':
@@ -409,7 +411,7 @@ class API(object):
 
         return [] if devices is None else devices
 
-    def get_bandwidth_per_device(self, organization_id=None):
+    def get_bandwidth_per_device(self, organization_id=None, **kwargs):
         """
         A function to get the bandwidth usage per device based on the organization ID.
 
@@ -427,5 +429,6 @@ class API(object):
             "organization_id": organization_id
         }
         endpoint_url = "{base_url}/{organization_id}/bandwidth_per_device"
-        res = self._get_data(endpoint_url.format(**path_vars))
+        endpoint_url = endpoint_url.format(**path_vars)
+        res = self._get_data(endpoint_url, params=kwargs)
         return [] if res is None else res
