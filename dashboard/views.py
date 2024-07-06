@@ -233,6 +233,7 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
         device = None
         device_raw_data = []
         inet_interfaces = []
+        bw_data =[]
         if internal_class == 'meraki':
             device = MerakiDevice.objects.filter(serial=device_serial).first()
             inet_interfaces = device.status_list
@@ -242,6 +243,7 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
         elif internal_class == 'peplink':
             device = GroupDevice.objects.filter(sn=device_serial).first()
             inet_interfaces = device.internet_interfaces
+            bw_data = get_peplink_device_bandwidth(device.device_id)
             try:
                 device_raw_data = get_peplink_device_data(device.device_id)
             except:
@@ -253,7 +255,7 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
         context['device'] = device
         context['inet_interfaces'] = inet_interfaces
         context['device_raw_data']  = device_raw_data
-        context['bw_data'] = get_peplink_device_bandwidth(device.device_id)
+        context['bw_data'] = bw_data
         return context
 
 
