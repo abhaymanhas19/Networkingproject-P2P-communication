@@ -7,6 +7,7 @@ from dashboard import models as dm
 
 _logger =  logging.getLogger(__name__)
 
+# TODO: add command to sync the device location at closer intervals
 
 class Command(BaseCommand):
     help = 'Syncs all Device Statuses. This should be called every 5 minutes via cron or scheduler'

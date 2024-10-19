@@ -845,23 +845,94 @@ class DeviceStatus(models.Model):
         super(DeviceStatus, self).save(*args, **kwargs)
 
     @classmethod
-    def get_wan_history_json(cls, customer_id, period='hour', start_date=None, end_date=None):
+    def get_wan_uptime_chart_data(cls, internal_class, device_serial, period='hour'):
 
-        if not end_date:
-            # default to current time
-            end_date = datetime.now(tz=pytz.utc)
-        if not start_date:
-            # default to 1 month ago
-            start_date = end_date - timedelta(days=30)
 
-        #ensure end_date does not exceed current time
-        if end_date > datetime.now(tz=pytz.utc):
-            end_date = datetime.now(tz=pytz.utc)
+        query_params = []
+        select_query = """
+            with cte_last48hours as (
+                SELECT
+                    device_type,
+                    serial,
+                    as_of_time,
+                    CASE WHEN status = 'online' THEN
+                        100
+                    ELSE
+                        0
+                    END AS status
+                FROM dashboard_devicestatus
+                    WHERE as_of_time >= NOW() - INTERVAL '48 hours'
+                    AND serial = %(serial)s 
+                    ORDER BY as_of_time
+                )
+                ,interval_data AS (
+                    SELECT 
+                        device_type,
+                        serial AS device_serial,
+                        date_trunc(%(period)s, as_of_time) AS hour,
+                        AVG(status) AS uptime
+                    FROM cte_last48hours	
+                    GROUP BY 1, 2, 3
+                )
+                SELECT * FROM interval_data 
+            """
+        query_params = {
+            'serial': device_serial,
+            'period': period
+        }
 
-        # ensure end_date is not before start_date
-        if end_date < start_date:
-            end_date = start_date
+        result = []
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute(select_query, params=query_params)
+                result = cursor.fetchall()
+            except Exception as e:
+                _logger.warn("error fetching uptime percentage: {}".format(e))
+                raise e
 
+        for row in result:
+            #labels.append(row[0])  # Adjust format as needed
+            date_string = row[0]
+            if time_group in ('1w', '1mo'):
+                date_object = datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
+                # Format datetime object into desired string
+                formatted_date = date_object.strftime("%d-%b-%y").upper()
+                if time_group == '1mo':
+                    iso_year, iso_week_num, _ = date_object.isocalendar()
+                    formatted_date = formatted_date + f" (W{iso_week_num})"
+                labels.append(formatted_date)
+            else:
+                labels.append(row[0])
+
+
+        chart_data = {
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Online',
+                    'data': online_counts,
+                    'backgroundColor': 'rgba(28, 180, 84, 0.8)',
+                    'borderColor': 'rgba(75, 192, 192, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Offline',
+                    'data': offline_counts,
+                    'backgroundColor': 'rgba(180, 0, 0, 0.8)',
+                    'borderColor': 'rgba(255, 99, 132, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Alerting',
+                    'data': alerting_counts,
+                    'backgroundColor': 'rgba(255, 166, 0, 0.8)',
+                    'borderColor': 'rgba(255, 206, 86, 1)',
+                    'borderWidth': 1
+                }
+            ]
+        }
+
+        return json.dumps(chart_data)
 
     @classmethod
     def get_median_device_status(cls, customer_id, time_group='1h', calculation_method='median'):
@@ -1208,3 +1279,40 @@ class RouterGPSHistory(models.Model):
 
     def __str__(self):
         return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+
+
+class WANInfoHistory(models.Model):
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process",
+                                       max_length=255, default="")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)  # This could contain multiple interfaces
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "WAN Info History"
+        verbose_name_plural = "WAN Info Histories"
+        unique_together = ('internal_class', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+    
+    @classmethod
+    def get_wan_chart_data(cls, internal_class, device_serial, data_type, interface_index=0, start_date=None, end_date=None):
+        # time range is 24 hours by default
+        if not start_date:
+            start_date = datetime.now() - timedelta(hours=24)
+        if not end_date:
+            end_date = datetime.now()
+
+        
+        try:
+            interface_index = int(interface_index)
+        except ValueError:
+            interface_index = 0
+        fields = data_types_series.get(data_type, [])
+        # get data based on time range
+        wan_info_hist = cls.objects.filter(internal_class=internal_class,
+                           device_serial=device_serial,
+                           as_of_time__gte=start_date,
+                           as_of_time__lte=end_date).order_by('-as_of_time')
+

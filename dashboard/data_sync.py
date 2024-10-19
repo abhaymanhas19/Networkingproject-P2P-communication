@@ -258,6 +258,14 @@ def sync_peplink_group_devices(organization_id=None, group_id=None):
                 cellular_history.interface_json=gd.cellular_interfaces
                 cellular_history.save()
 
+            if gd.internet_interfaces:
+                wan_history, created  = dashboard_models.WANInfoHistory.objects.get_or_create(
+                    internal_class='peplink',
+                    device_serial=gd.serial,
+                    as_of_time=fetch_time
+                )
+                wan_history.interface_json=gd.internet_interfaces
+                wan_history.save()
 
 def sync_meraki_devices():
     """syncs meraki networks with dashboard Networks"""
@@ -278,6 +286,7 @@ def sync_meraki_devices():
     # print("=====================================================")
     # print("===================== merkaki devices ===============")
     # print("=====================================================")
+    fetch_time = datetime.now(tz=pytz.utc)
     for org in organizations:
         # skip API-disabled organizations
 
@@ -316,6 +325,7 @@ def sync_meraki_devices():
                     )
                 except:
                     dashboard_device = dashboard_models.MerakiDevice()
+
                 status = [s for s in device_statuses if s['serial'] == device['serial']]
                 status_text = ""
                 productType = ""
@@ -371,6 +381,20 @@ def sync_meraki_devices():
                     network=django_network,
                     device=dashboard_device
                 )
+                interface_status = status
+                if type(status) is dict:
+                    interface_status = [status]
+    
+                wan_history, created  = dashboard_models.WANInfoHistory.objects.get_or_create(
+                    internal_class='meraki',
+                    device_serial=device['serial'],
+                    as_of_time=fetch_time
+                )
+                wan_history.interface_json=interface_status
+                wan_history.save()
+
+
+
     # print("\n\nRun Summary:")
     # print(run_summary)
 
@@ -379,7 +403,6 @@ def sync_meraki_devices():
 # TODO: websocket endpoints to provide:
 #       1) WAN status
 #       2) Device status
-
 
 def sync_unifi_sites():
     controller = UnifiCtrl(endpoint=settings.UNIFI_ENDPOINT_URL,
@@ -561,10 +584,6 @@ def sync_meraki_device_statuses():
                 except Exception as e:
                      _logger.warn(f"Device Status Not Created: {e}", exc_info=True)
         print(f"\n\n =====\nskipped networks: {skipped_networks}\n\n")
-    try:
-        dashboard_models.DeviceStatus.objects.filter(as_of_time__lt=datetime.now(tz=pytz.utc) - timedelta(days=settings.DATA_RETENTION_DAYS)).delete()
-    except Exception as e:
-        _logger.warn(f"Device Status Not Deleted: {e}")
 
 
 
@@ -796,7 +815,3 @@ def sync_all_data():
 
     sync_unifi_sites()
     sync_unifi_devices()
-
-
-
-

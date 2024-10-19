@@ -27,10 +27,12 @@ from .models import (
 
 from .utils import (
     get_customer_routers,
-    get_peplink_device_data,
+    get_peplink_device_data, 
     get_peplink_device_bandwidth)
 
+
 _logger = logging.getLogger(__name__)
+
 
 class OrganizationListView(LoginRequiredMixin, View):
     def get(self, request):
@@ -233,7 +235,8 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
         device = None
         device_raw_data = []
         inet_interfaces = []
-        bw_data =[]
+        bw_data = []
+
         if internal_class == 'meraki':
             device = MerakiDevice.objects.filter(serial=device_serial).first()
             inet_interfaces = device.status_list
@@ -241,6 +244,7 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
             device = UnifiDevice.objects.filter(serial=device_serial).first()
             #inet_interfaces = device.status_list
         elif internal_class == 'peplink':
+            
             device = GroupDevice.objects.filter(sn=device_serial).first()
             inet_interfaces = device.internet_interfaces
             bw_data = get_peplink_device_bandwidth(device.device_id)

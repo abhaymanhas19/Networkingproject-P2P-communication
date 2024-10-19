@@ -150,10 +150,9 @@ def get_peplink_device_data(device_id):
 def get_peplink_device_bandwidth(device_id):
     try:
         api = PeplinkAPI(settings.PEPLINK_CLIENT_ID, settings.PEPLINK_CLIENT_SECRET)
-        result = api.get_bandwidth_per_device(device_ids=[device_id], type='monthly', report_date='2024-07')
+        result = api.get_bandwidth_per_device(device_ids=[device_id])
         print("\n\n================================================ get_peplink_device_bandwidth\n\n")
         return result
     except:
-        print("\n\n========== E R R O R ======================================= get_peplink_device_bandwidth\n\n")
         _logger.error("ERROR getting peplink device bandwidth", exc_info=True)
         return []

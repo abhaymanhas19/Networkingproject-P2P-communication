@@ -136,16 +136,20 @@ class API(object):
                 params['access_token'] = tokens.access_token
                 response = requests.get(endpoint_url, params=params, timeout=120)
                 status_code = getattr(response, 'status_code', None)
+
                 resp_json = {}
                 if status_code == 200:
-                    #print(f"Successfully fetched data from {endpoint_url}: {response.json()}")
+                    print(f"Successfully fetched data from {endpoint_url}: {response.json()}")
                     resp_json = response.json()
+                
                 if status_code == 401:
                    # print(f"Invalid credentials")
                     msg = f'Unauthorized Refresh. using params {params}. Endpoint URL: {endpoint_url}'
                     raise Exception(msg)
+
                 if status_code == 200 and resp_json.get("resp_code") == 'SUCCESS':
                     return response.json().get("data", None)
+
             except Exception as e:
                 _logger.error('Could not get refresh token. %s', e, exc_info=True)
         return None
