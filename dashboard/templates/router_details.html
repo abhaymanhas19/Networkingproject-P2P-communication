@@ -1,0 +1,544 @@
+
+{% extends "partials/base.html" %}
+{% load custom_tags %}
+{% load static %}
+
+{% block title %}Device Details{% endblock title %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'css/router_details.css' %}">
+
+{% endblock extra_css %}
+
+{% block pagetitle %}
+{% include "partials/page-title.html" with pagetitle="Devices" title="Router Details" %}
+{% endblock pagetitle %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="card"> <!-- info card -->
+        <div class="card-header">
+            <div class="icon-text-container">
+                <i class="msr">info</i><span>GENERAL INFORMATION</span>
+            </div>
+        </div>
+        <div class="p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                {% firstof  device.name device.device_name %}
+            </h3>
+            <h5> serial: {{ device.serial }}</h5>
+            <p> firmware: {% firstof device.fw_ver device.firmware %}</p>
+            <p> device id: {% firstof device.device_id device.id %}</p>
+        </div>
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle">
+                <div class="overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr></tr>
+                            <tr>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Model:</td>
+                                    <td id="starlink-ipaddress" class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                        {{ device.model }}
+                                    </td>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">MAC:</td>
+                                <td id="starlink-alerts" class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof device.mac device.lan_mac %}</td>
+                                <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding:20px">
+                    <a href="#" data-fc-type="collapse" type="button" class="flex items-center text-primary">
+                        <span class="fc-collapse-open:hidden">Show</span>
+                        <span class="fc-collapse-open:block hidden">Hide</span>&nbsp;Raw Data
+                        <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+                    </a>
+                    <div class="hidden w-full overflow-hidden transition-[height] duration-300">
+                        <p class="pt-5 text-gray-800 dark:text-gray-200">
+                            <pre style="font-size:smaller; padding:20px;">
+                                {% if device.internal_class == 'peplink' %}
+# API Endpoint '/rest/o/{organization_id}/d'
+# parameters: Wan=0, has_status=True
+# device_id={{ device.device_id }}
+                                {% endif %}
+{{ device_raw_data|pretty_print }}
+# get device bandwidth
+{{ bw_data|pretty_print }}
+                            </pre>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+    </div> <!-- end info card -->
+
+
+    <div class="card"> <!-- info card -->
+        <div class="card-header flex justify-between items-center">
+            <div class="icon-text-container">
+                <i class="msr">network_check</i><span>INTERNET STATUS</span>
+            </div>
+            <button data-fc-type="collapse" data-fc-target="collapseInternetStatus" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
+                <span class="fc-collapse-open:hidden">View</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                {% if inet_interfaces %}
+                    Found {{ inet_interfaces|length }} interface(s)
+                {% else %}
+                    No Internet Interface
+                {% endif %}
+            </h3>
+            <div id="collapseInternetStatus" class="w-full overflow-auto transition-[height] duration-300 flex">
+                <div class="all-interface-container" style="width:100%">
+                    {% for interface in inet_interfaces %}
+                    <div class="interface-container">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Name</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ interface.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Status</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"> {{ interface.status }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">IP</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"> {% firstof interface.ipAddress interface.ip interface.publicIp %}</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Gateway</td>
+                                    <td class="px-6 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"> {% firstof interface.gateway interface.wan1Gateway interface.wan2Gateway %}</td>
+
+                                </tr>
+                                <tr></tr>
+                            </tbody>
+                        </table>
+
+                    </div> <!--interface container -->
+                    <div class="card w-full" >
+                        <div class="chart-container" style="width: 100%; height: 250px; min-height:250px; border: solid 1px red;">
+                            testing
+                        </div>
+                    </div>
+                    <hr>
+                    {% endfor %}
+                </div>
+            </div> <!--collapseInternetStatus-->
+            <br>
+            <a href="#" data-fc-type="collapse" type="button" class="flex items-center text-primary">
+                <span class="fc-collapse-open:hidden">Show</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>&nbsp;Raw Data
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+            </a>
+            <div class="hidden w-full overflow-hidden transition-[height] duration-300">
+                <p class="pt-5 text-gray-800 dark:text-gray-200">
+                    <pre style="font-size:smaller; padding:20px;"> {{ inet_interfaces|pretty_print }}</pre>
+                </p>
+            </div>
+
+        </div>
+    </div> <!-- end info card -->
+
+
+    <div class="card">
+        <div class="card-header flex justify-between items-center">
+            <div class="icon-text-container">
+                <i class="msr">satellite_alt</i><span>STARLINK STATUS</span>
+            </div>
+            <button data-fc-type="collapse" data-fc-target="collapseStarlinkDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
+                <span class="fc-collapse-open:hidden">View</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-auto transition-[height] duration-300 flex">
+
+                {% if device.starlink_status %}
+                <!--STARLINK STATUS START -->
+                {% comment %} loop over starlink interfaces {% endcomment %}
+                    {% for starlink_interface in device.starlink_interfaces %}
+                        <div class="col-span-2">
+
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style="margin-bottom:20px">
+
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Name:</td>
+                                        <td id="starlink-ipaddress-{{ forloop.counter0 }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                                {{ starlink_interface.name }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">IP Address:</td>
+                                        <td id="starlink-ipaddress-{{ forloop.counter0 }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                                {{ starlink_interface.ip }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">Gateway</td>
+                                            <td id="starlink-gateway-{{ forloop.counter0 }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                            {{ starlink_interface.gateway }}
+                                            </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                                    </tr>
+                                    {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Alerts</td>
+                                        <td id="starlink-alerts-{{ forloop.counter0 }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{starlink_status.dishGetStatus.alerts}}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
+                                    </tr>
+                                    {% endwith %}
+                                    <tr></tr>
+
+                                </tbody>
+                            </table>
+                        </div> <!--table end -->
+
+                        <div class="card flex justify-between items-center col-span-2"  style="box-shadow:none;">
+                            <div class="flex">
+                                <div class="canvas-container">
+                                    <h2>Latency</h2>
+                                    <canvas id="speed-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
+                                    <div class="gauge-text-container">
+                                        <div id="speed-gauge-text-{{ forloop.counter0 }}" class="gauge-text"></div><span id="speed-gauge-uom-{{ forloop.counter0 }}" class="uom">ms</span>
+                                    </div>
+                                </div>
+                                {% with starlink_bandwidth=device.starlink_throughputs|get_item_at_index:forloop.counter0 %}
+                                <div class="bandwidth-container" style="margin-left: 20px">
+                                    <div id="bandwidth-dl-container{{ forloop.counter0 }}" class="bandwidth-container-dl"><h3>Bandwidth(DL)</h3><p><h1 class="bandwidth-value">{{ starlink_bandwidth.downlink }}</h1></p></div>
+                                    <br/>
+                                    <div id="bandwidth-ul-container{{ forloop.counter0 }}" class="bandwidth-container-ul"><h3>Bandwidth(UL)</h3><p><h1 class="bandwidth-value">{{ starlink_bandwidth.uplink }}</h1></p></div>
+                                </div>
+                                {% endwith %}
+                            </div> 
+
+                            <div class="card w-full" style="margin-left:10px; border-width: 1px;boder-color:white;">
+                                <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}"
+                                            class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white"
+                                            data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
+
+                                <div class="chart-container" style="height: 250px; min-height:250px; border: solid 1px red;">
+                                    
+                                    <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}"></canvas>
+                                </div>
+                            </div>
+                            
+                        </div>
+
+
+
+                        <div class="card flex justify-between items-center col-span-2"  style="margin-top:20px; box-shadow:none; width:100%;">
+                            <div class="gauge-container">
+                                <h2>Obstruction</h2>
+                                <canvas id="obstruction-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
+                                <div class="gauge-text-container">
+                                    <div id="obstruction-gauge-text-{{ forloop.counter0 }}" class="gauge-text " data-fc-type="tooltip" data-fc-placement="top" data-fc-target="#obstuction-gauge-tooltip-{{ forloop.counter0 }}"></div><span id="obstruction-gauge-uom" class="uom">%</span>
+                                    <div id="obstuction-gauge-tooltip-{{ forloop.counter0 }}" class="bg-primary hidden px-2 py-1 rounded transition-all text-white opacity-0 z-50" role="tooltip">
+                                        <span id="obstruction-actual-value-{{ forloop.counter0 }}">0.006</span>
+                                        <div data-fc-arrow class="bg-primary w-2.5 h-2.5 rotate-45 -z-10 rounded-[1px]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card col-span-2" style="margin-left:10px; border-width: 1px;boder-color:white; ">
+
+                                    <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}"  width="550px" height="250px"></canvas>
+                            </div>
+
+
+                        </div>
+                    {% endfor %}
+                <!-- STARLINK INFO END -->
+
+                {% else %}
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                        No Starlink Status
+                </h3>
+                {% endif %}
+
+
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header flex justify-between items-center">
+            <div class="icon-text-container">
+                <i class="msr">sim_card</i><span>LTE STATUSES</span>
+            </div>
+            <button data-fc-type="collapse" data-fc-target="collapseLTEDetails" type="button" class="btn btn-sm border-primary text-primary hover:bg-primary hover:text-white">
+                <span class="fc-collapse-open:hidden">View</span>
+                <span class="fc-collapse-open:block hidden">Hide</span>
+                <i class="mgc_down_line fc-collapse-open:rotate-180 ms-2 transition-all text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                {% if device.cellular_interfaces %}
+                    Found {{ device.cellular_interfaces|length }} cellular interface(s)
+                {% else %}
+                    No Cellular Interface
+                {% endif %}
+            </h3>
+            <div id="collapseLTEDetails" class="w-full overflow-auto transition-[height] duration-300 flex">
+                {% if device.cellular_interfaces %}
+                    {% for interface in device.cellular_interfaces %}
+                        {% with forloop.counter0 as interface_idx %}
+                        <div class="card" id="mycard-{{ interface.id }}">
+                            <div>
+                                <div>
+                                    Status: {{ interface.status }}
+                                </div>
+                                {% if interface.sims %}
+                                    {% with interface.sims.0 as first_sim %}
+                                        <div>
+                                            SIM: {% if first_sim.simCardDetected or interface.sims.1.simCardDetected %} SIM Card Detected {% else %} None {% endif %}
+                                        </div>
+                                    {% endwith %}
+                                {% else %}
+                                    <div>
+                                        SIM: None
+                                    </div>
+                                {% endif %}
+                                <div>
+                                    WAN: {{ interface.name }}
+                                </div>
+                                <div>
+                                    IP Address: {% firstof interface.ip  'None' %}
+                                </div>
+                                <div>
+                                    IMEI: {{ interface.imei }}
+                                </div>
+
+                                <div class="all-sim-info-container">
+                                    {% for simslot in interface.sims %}
+                                        <div class="sim-slot-container">
+                                            <h3>SIM Slot {{ simslot.id }}</h3>
+                                            {% if simslot.active %}
+
+                                                <div class="signal-bar-container">
+                                                    <div class="left-text">{{ interface.gobi_data_tech }}<br/>{{ interface.carrier_name }}</div>
+                                                        <canvas id="active-simslot-signal-bar-{{ interface_idx }}-{{ simslot.id }}" class="active-simslot-signal-bar" data-signal-bar="{{ interface.signal_bar }}" data-bar-color="green"></canvas>
+                                                    <div class="right-text"> {{ interface.gobi_band_class_name }}</div>
+                                                    <div class="bottom-text"><br> <h2>RSRP</h2><h2>{{  interface.cellular_signals.rsrp }}dBm</h2></div>
+                                                </div>
+                                            {% else %}
+
+                                                <div class="signal-bar-container">
+                                                    <div class="left-text">{{ interface.gobi_data_tech }}<br/>{{ interface.carrier_name }}</div>
+                                                        <canvas id="inactive-simslot-signal-bar-{{ interface_idx }}-{{ simslot.id }}" class="inactive-simslot-signal-bar" data-signal-bar="5" data-bar-color="lightgrey"></canvas>
+                                                    <div class="right-text"> {{ interface.gobi_band_class_name }}</div>
+                                                    <div class="bottom-text"><br> <h2>RSRP</h2><h2>{{  interface.cellular_signals.rsrp }}dBm</h2></div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <br/>
+                    {% endwith %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static '/js/gauge.min.js'%}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js 4.4.0 -->
+    {% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0barColor"></script> {% endcomment %}
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+
+    <!-- hammer.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+
+    <!-- chartjs-plugin-zoom compatible with Chart.js 4.x -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.0"></script>
+
+    <script src="{% static '/js/router_details.js'%}"></script>
+<script>
+
+
+      $(document).ready(function() {
+
+        {% for starlink_interface in device.starlink_interfaces %}
+            $(".starlink-bandwidth-chart-reset-zoom").click(function(e){
+                window["starlinkBandwidthChart{{ forloop.counter0 }}"].resetZoom();
+            });
+
+            {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
+                var maxVal{{ forloop.counter0 }} = 250;
+                var latency{{ forloop.counter0 }} = {{ starlink_status.dishGetStatus.popPingLatencyMs }};
+                var currVal{{ forloop.counter0 }} = {{ starlink_status.dishGetStatus.popPingLatencyMs }};
+
+                {% if starlink_status.dishGetStatus.popPingLatencyMs > 250 %}
+                    maxVal{{ forloop.counter0 }} = {{ starlink_status.dishGetStatus.popPingLatencyMs }};
+                {% endif %}
+
+                {% if starlink_status.dishGetStatus.popPingLatencyMs > 250 %}
+                    maxVal{{ forloop.counter0 }} = {{ starlink_status.dishGetStatus.popPingLatencyMs }};
+                {% endif %}
+
+                var opts{{ forloop.counter0 }} = {
+                    angle: -0.25,
+                    lineWidth: 0.2,
+                    pointer: {
+                    length: 0.6,
+                    strokeWidth: 0.05,
+                    color: "#8e9193" /*'#000000'*/
+                    },
+                    staticZones: [
+                    {strokeStyle: "#00FF00", min: 0, max: 50},
+                    {strokeStyle: "#99FF33", min: 50, max: 100},
+                    {strokeStyle: "#FFFF00", min: 100, max: 150},
+                    {strokeStyle: "#FFA500", min: 150, max: 200},
+                    {strokeStyle: "#FF0000", min: 200, max: 250},
+
+                    {% if starlink_status.dishGetStatus.popPingLatencyMs > 250 %}
+                        {strokeStyle: "#FF0000", min: 250, max: maxVal{{ forloop.counter0 }} }
+                    {% endif %}
+
+                    ],
+                    limitMax: false,
+                    limitMin: false,
+                    strokeColor: '#E0E0E0',
+                    highDpiSupport: true
+                };
+
+                <!-- obstruction -->
+                var obstruction{{ forloop.counter0 }} = 0;
+                obstruction{{ forloop.counter0 }} = parseFloat({{ starlink_status.dishGetStatus.obstructionStats.fractionObstructed  }} * 100.00);
+                obstruction{{ forloop.counter0 }} = parseFloat(obstruction{{ forloop.counter0 }}.toFixed(3));
+
+            {% endwith %}  {# with starlink_status #}
+
+            var target{{ forloop.counter0 }} = document.getElementById('speed-gauge-{{ forloop.counter0 }}');
+            var text{{ forloop.counter0 }} = document.getElementById('speed-gauge-text-{{ forloop.counter0 }}');
+            var speedGauge{{ forloop.counter0 }} = new Gauge(target{{ forloop.counter0 }}).setOptions(opts{{ forloop.counter0 }});
+            speedGauge{{ forloop.counter0 }}.maxValue = maxVal{{ forloop.counter0 }};
+            speedGauge{{ forloop.counter0 }}.setMinValue(0);
+            speedGauge{{ forloop.counter0 }}.animationSpeed = 54;
+            speedGauge{{ forloop.counter0 }}.setTextField(text{{ forloop.counter0 }});
+            speedGauge{{ forloop.counter0 }}.set(currVal{{ forloop.counter0 }});
+
+            //obstruction
+            var obstructionOpts{{ forloop.counter0 }} = {
+                angle: -0.25,
+                lineWidth: 0.2,
+                pointer: {
+                length: 0.6,
+                strokeWidth: 0.05,
+                color: "#8e9193"/*"#7885a9"*/
+                },
+                staticZones: [
+                {strokeStyle: "#00FF00", min: 0.0, max: 5},
+                {strokeStyle: "#90EE90", min: 6, max: 15},
+                {strokeStyle: "#FFFF00", min: 16, max: 30},
+                {strokeStyle: "#FFA500", min: 31, max: 50},
+                {strokeStyle: "#FF0000", min: 51, max: 100}
+                ],
+
+                limitMax: false,
+                limitMin: false,
+                strokeColor: '#E0E0E0',
+                highDpiSupport: true
+            };
+
+            var obsGauge{{ forloop.counter0 }} = document.getElementById('obstruction-gauge-{{ forloop.counter0 }}');
+            var obsText{{ forloop.counter0 }} = document.getElementById('obstruction-gauge-text-{{ forloop.counter0 }}');
+            var actualValue{{ forloop.counter0 }} = document.getElementById('obstruction-actual-value-{{ forloop.counter0 }}');
+            var obstructionGauge{{ forloop.counter0 }} = new Gauge(obsGauge{{ forloop.counter0 }}).setOptions(obstructionOpts{{ forloop.counter0 }});
+            obstructionGauge{{ forloop.counter0 }}.maxValue = 100;
+            obstructionGauge{{ forloop.counter0 }}.setMinValue(0);
+            obstructionGauge{{ forloop.counter0 }}.animationSpeed = 54;
+            obstructionGauge{{ forloop.counter0 }}.setTextField(obsText{{ forloop.counter0 }});
+            obstructionGauge{{ forloop.counter0 }}.set(obstruction{{ forloop.counter0 }});
+            actualValue{{ forloop.counter0 }}.innerHTML = obstruction{{ forloop.counter0 }}.toFixed(3) + "%";
+
+            // get bandwidth data and plot in the chart
+            $.ajax({
+                url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='bandwidth' %}",
+                type: "GET",
+                data: {
+                    interface_index: {{ forloop.counter0 }}
+                },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                },
+                success: function(data) {
+                    const ctx = document.getElementById('starlink-bandwidth-chart-{{ forloop.counter0 }}').getContext('2d');
+                    var chartName='starlinkBandwidthChart{{ forloop.counter0 }}';
+                    renderBandwidthChart(data, ctx, chartName);
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+
+            // get the uptime data and show it in the chart
+            $.ajax({
+                url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='uptime' %}",
+                type: "GET",
+                data: {
+                    interface_index: {{ forloop.counter0 }}
+                },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                },
+                success: function(data) {
+                    console.log(data);
+
+                    const ctx = document.getElementById('starlink-uptime-chart-{{ forloop.counter0 }}').getContext('2d');
+                    var chartName='starlinkUptimeChart{{ forloop.counter0 }}';
+                    renderUptimeChart(data, ctx, chartName);
+
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+        {% endfor %}
+
+        //draw the signalbars
+        $(".active-simslot-signal-bar").each(function() {
+            var signalBar = $(this).data("signal-bar");
+            console.log("here is the detected signal bar");
+            console.log(signalBar);
+            var barColor = $(this).data("bar-color")
+            drawSignalBars($(this).attr("id"), signalBar, 5, barColor);
+        });
+
+        $(".inactive-simslot-signal-bar").each(function() {
+            var signalBar = $(this).data("signal-bar");
+            console.log("here is the detected signal bar");
+            console.log(signalBar);
+            var barColor = 'lightgrey'
+            drawSignalBars($(this).attr("id"), signalBar, 5, barColor);
+        });
+
+
+      });
+    </script>
+{% endblock extra_js %}

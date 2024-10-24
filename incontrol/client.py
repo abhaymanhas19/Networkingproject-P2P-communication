@@ -121,6 +121,7 @@ class API(object):
         status_code = getattr(response, 'status_code', None)
         if (status_code == 200
                 and response.json().get("resp_code") in ('SUCCESS', 'PENDING')):
+            _logger.info(f"Successfully fetched data from {endpoint_url}: {response.json()}")
             return response.json().get("data", None)
         elif status_code in (401, 403):
             # retry using new token
@@ -135,14 +136,20 @@ class API(object):
                 params['access_token'] = tokens.access_token
                 response = requests.get(endpoint_url, params=params, timeout=120)
                 status_code = getattr(response, 'status_code', None)
+
                 resp_json = {}
                 if status_code == 200:
+                    print(f"Successfully fetched data from {endpoint_url}: {response.json()}")
                     resp_json = response.json()
+                
                 if status_code == 401:
+                   # print(f"Invalid credentials")
                     msg = f'Unauthorized Refresh. using params {params}. Endpoint URL: {endpoint_url}'
                     raise Exception(msg)
+
                 if status_code == 200 and resp_json.get("resp_code") == 'SUCCESS':
                     return response.json().get("data", None)
+
             except Exception as e:
                 _logger.error('Could not get refresh token. %s', e, exc_info=True)
         return None
@@ -175,7 +182,7 @@ class API(object):
         self._org_id = data[0].get("id")
         return None
 
-    def get_organizations(self):
+    def get_organizations(self, params=None):
         """
         A function to get the organizations.
 
@@ -252,7 +259,7 @@ class API(object):
         res = self._get_data(endpoint_url, params=query_params)
         return [] if res is None else res
 
-    def get_devices(self, organization_id=None):
+    def get_devices(self, organization_id=None, **kwargs):
         """
         A function to get the devices based on the organization ID.
 
@@ -272,7 +279,7 @@ class API(object):
         }
         endpoint_url = "{base_url}/{organization_id}/d"
         endpoint_url = endpoint_url.format(**path_vars)
-        res = self._get_data(endpoint_url)
+        res = self._get_data(endpoint_url, params=kwargs)
         return [] if res is None else res
 
     def get_groups(self, organization_id=None):
@@ -407,3 +414,25 @@ class API(object):
             devices.append(self._get_data(g_endpoint_url))
 
         return [] if devices is None else devices
+
+    def get_bandwidth_per_device(self, organization_id=None, **kwargs):
+        """
+        A function to get the bandwidth usage per device based on the organization ID.
+
+        Args:
+            organization_id: The ID of the organization. Defaults to None.
+
+        Returns:
+            A list of bandwidth usage per device or an empty list if no bandwidth usage is found.
+        """
+        if not organization_id:
+            organization_id = self._org_id
+
+        path_vars = {
+            "base_url": _BASE_URL,
+            "organization_id": organization_id
+        }
+        endpoint_url = "{base_url}/{organization_id}/bandwidth_per_device"
+        endpoint_url = endpoint_url.format(**path_vars)
+        res = self._get_data(endpoint_url, params=kwargs)
+        return [] if res is None else res

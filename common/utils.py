@@ -2,12 +2,52 @@
 import decimal
 import datetime
 import logging
+import math
 import re
 
 from functools import wraps
 
 
 _logger = logging.getLogger(__name__)
+
+
+def calculate_device_status(offline_devices, alerting_devices, online_devices, dormant_devices):
+    total_routers = offline_devices + alerting_devices + online_devices
+
+    # Handle case with no routers
+    if total_routers == 0:
+        return ("None", "#808080")  # Gray
+    if alerting_devices == 0 and offline_devices == 0  and online_devices == 0 and dormant_devices == total_routers:
+        return ("Critical", "#FF0000")  # Red
+    if alerting_devices == 0 and offline_devices == 0 and total_routers == online_devices:
+        return ("Good", "#228B22")
+    # Calculate percentages (safe to divide now since total_routers > 0)
+    # Include dormant in offline
+    offline_percent = ((offline_devices) / total_routers) * 100
+    alerting_percent = (alerting_devices / total_routers) * 100
+    online_percent = (online_devices / total_routers) * 100
+
+    # Check for critical scenarios (all or most offline/dormant)
+    if offline_percent == 100 or offline_percent > 50:
+        return ("Critical", "#FF0000")  # Red
+
+    # Determine if 'few' applies to offline and alerting
+    few_offline = offline_percent <= 30
+    few_alerting = alerting_percent <= 30
+
+    # Categorize based on percentages (matching the new table)
+    if online_percent == 100:
+        return ("Good", "#228B22")  # Green
+    elif online_percent > 50:
+        if few_offline:
+            return ("Good", "#228B22")  # Green
+        else:
+            return ("Fair", "#FFD700")  # Yellow
+    else:
+        if few_offline and few_alerting:
+            return ("Fair", "#FFD700")  # Yellow
+        else:
+            return ("Poor", "#FFA500")  # Orange
 
 
 def to_float(n):
@@ -90,3 +130,42 @@ def camel_to_snake(text):
   # - Followed by a lowercase letter: (?=[a-z])
 
   return re.sub(r'(?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z])', r'_\g', text).lower()
+
+
+def calculate_heading(start_lat, start_lng, end_lat, end_lng):
+    """
+    Calculate the heading from start coordinates (start_lat, start_lng)
+    to end coordinates (end_lat, end_lng).
+
+    Parameters:
+    - start_lat: Latitude of the start point in decimal degrees
+    - start_lng: Longitude of the start point in decimal degrees
+    - end_lat: Latitude of the end point in decimal degrees
+    - end_lng: Longitude of the end point in decimal degrees
+
+    Returns:
+    - heading: Heading in degrees from the start point to the end point
+    """
+    # Convert decimal degrees to radians
+    start_lat = math.radians(start_lat)
+    start_lng = math.radians(start_lng)
+    end_lat = math.radians(end_lat)
+    end_lng = math.radians(end_lng)
+
+    # Calculate the difference in longitude
+    d_lng = end_lng - start_lng
+
+    # Calculate the components of the formula
+    x = math.sin(d_lng) * math.cos(end_lat)
+    y = math.cos(start_lat) * math.sin(end_lat) - math.sin(start_lat) * math.cos(end_lat) * math.cos(d_lng)
+
+    # Calculate the initial heading
+    initial_heading = math.atan2(x, y)
+
+    # Convert the heading from radians to degrees
+    initial_heading = math.degrees(initial_heading)
+
+    # Normalize the heading to 0-360 degrees
+    heading = (initial_heading + 360) % 360
+
+    return heading

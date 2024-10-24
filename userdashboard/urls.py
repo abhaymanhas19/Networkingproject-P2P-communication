@@ -22,7 +22,8 @@ from django.urls import path, include
 
 from django.conf.urls.static import static
 
-from userdashboard.view import index_view, logout_view
+from userdashboard.view import index_view, logout_view, SetCurrentCustomerView
+# from dashboard.urls import
 
 
 urlpatterns = [
@@ -32,6 +33,9 @@ urlpatterns = [
 
     path("", view=index_view, name="index"),
 
+    path("api/current_customer", SetCurrentCustomerView.as_view(), name="current_customer"),
+    path("dashboard/", include("dashboard.urls")),
+    path("devices/", include("dashboard.urls")),
     # All Auth
     path("accounts/", include("allauth.urls")),
     #path("accounts/profile/", TemplateView.as_view(template_name="profile.html")),
@@ -56,3 +60,10 @@ urlpatterns = [
 
 
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+
+
+admin.site.site_header = "P2P NETWORKS ADMIN"
+admin.site.site_title = "P2P NETWORKS ADMIN"
+admin.site.index_title = "P2P NETWORKS ADMIN"

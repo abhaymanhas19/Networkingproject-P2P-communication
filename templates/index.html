@@ -6,834 +6,734 @@
 
 {% block extra_css %}
 {% include "partials/head-css.html" %}
+
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<!-- Add Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<!-- Add MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+
 {% endblock extra_css %}
 
 {% block pagetitle %}
-    {% include "partials/page-title.html" with pagetitle="Menu" title="Dashboard" %}
+{% with h_title=current_customer.name|default:" - " %}
+    {% comment %} {% include "partials/page-title.html" with pagetitle="Menu" title="Dashboard for "|add:h_title %} {% endcomment %}
+    {% include "partials/page-title.html" with pagetitle="Menu" title=h_title|add:"" %}
+{% endwith %}
 {% endblock pagetitle %}
 
 {% block content %}
-    <div class="grid 2xl:grid-cols-4 gap-6 mb-6">
-        <div class="lg:col-span-3">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title">Overview</h6>
+<div id="wan-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:65%">
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            WAN Summary
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2" style="display:flex; height:100%"> <!--content-->
+
+        <div class="min-w-full inline-block align-middle flex-container">
+            <div class="table-scrollable-container">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for dev in wan_summary.online_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wan_summary.alerting_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wan_summary.offline_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+                            {% for dev in wan_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+
+
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
-                <div class="p-6">
-                    <div class="grid lg:grid-cols-4 gap-6">
-                        <!-- stat 1 -->
-                        <div class="flex items-center gap-5">
-                            <i data-feather="briefcase" class="h-10 w-10"></i>
-                            <div class="">
-                                <h4 class="text-lg text-gray-700 dark:text-gray-300 font-medium">210</h4>
-                                <span class="text-sm">Data Usage</span>
-                            </div>
-                        </div>
+    </div>
+</div> <!-- offcanvas -->
 
-                        <!-- stat 2 -->
-                        <div class="flex items-center gap-5">
-                            <i data-feather="check-square" class="h-10 w-10"></i>
-                            <div class="">
-                                <h4 class="text-lg text-gray-700 dark:text-gray-300 font-medium">121</h4>
-                                <span class="text-sm">Sites/Networks</span>
-                            </div>
-                        </div>
+<div id="lan-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:65%">
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            LAN Summary
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2" style="display:flex; height:100%"> <!--content-->
 
-                        <!-- stat 3 -->
-                        <div class="flex items-center gap-5">
-                            <i data-feather="users" class="h-10 w-10"></i>
-                            <div class="">
-                                <h4 class="text-lg text-gray-700 dark:text-gray-300 font-medium">12</h4>
-                                <span class="text-sm">Total Devices</span>
-                            </div>
-                        </div>
-                        <!-- stat 3 -->
-                        <div class="flex items-center gap-5">
-                            <i data-feather="clock" class="h-10 w-10"></i>
-                            <div class="">
-                                <h4 class="text-lg text-gray-700 dark:text-gray-300 font-medium">250/200</h4>
-                                <span class="text-sm">DL/UL (Mbps)</span>
-                            </div>
-                        </div>
-                    </div>
+        <div class="min-w-full inline-block align-middle flex-container">
+            <div class="table-scrollable-container">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for dev in lan_summary.online_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in lan_summary.alerting_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in lan_summary.offline_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+                            {% for dev in lan_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+    </div>
+</div> <!-- offcanvas -->
+
+
+<div id="wireless-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:65%">
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            Wireless Summary
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2" style="display:flex; height:100%"> <!--content-->
+
+            <div class="min-w-full inline-block align-middle flex-container">
+                <div class="table-scrollable-container">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial/MAC</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for dev in wireless_summary.online_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wireless_summary.alerting_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wireless_summary.offline_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+                            {% for dev in wireless_summary.dormant_devices %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
+                                </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+    </div> <!--content-->
+</div> <!-- offcanvas -->
+
+<div id="threats-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" >
+    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium">
+            Threats Summary By Network
+        </h3>
+        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
+            <span class="material-symbols-rounded">close</span>
+        </button>
+    </div>
+    <div class="p-2">
+        <div class="overflow-x-auto">
+            <div class="min-w-full inline-block align-middle flex-container">
+                <div class="table-scrollable-container">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Count</th>
+
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+
+                            {% for ne in threats_summary.data %}
+                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ ne.network_name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ ne.network_name_id }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ ne.total }}</td>
+                                </tr>
+                            {% endfor %}
+
+
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
+    </div>
+</div> <!-- offcanvas -->
+
+<!-- main content -->
+<div class="grid 2xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
         <div class="2xl:col-span-3">
             <div class="grid xl:grid-cols-4 md:grid-cols-2 gap-6 mb-6">
                 <div class="card">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="text-base mb-1 text-gray-600 dark:text-gray-400">Project Dashboard</h4>
-                                <p class="font-normal text-sm text-gray-400 truncate dark:text-gray-500">New Task
-                                    Assign</p>
-                            </div>
-
-                            <div>
-                                <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                        data-fc-placement="left-start" type="button">
-                                    <i class="mgc_more_1_fill text-xl"></i>
-                                </button>
-
-                                <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_add_circle_line"></i> Add
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_edit_line"></i> Edit
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_copy_2_line"></i> Copy
-                                    </a>
-                                    <div class="h-px bg-gray-200 dark:bg-gray-700 my-2 -mx-2"></div>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-danger hover:bg-danger/5"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_delete_line"></i> Delete
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-end">
-                            <div class="flex-grow">
-                                <p class="text-[13px] text-gray-400 dark:text-gray-500 font-semibold"><i
-                                        class="mgc_alarm_2_line"></i> 4 Hrs ago</p>
-                            </div>
-                            <div class="flex">
-                                <a href="javascript:void(0);">
-                                    <img src="{% static 'images/users/avatar-1.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                                <a href="javascript:void(0);" class="-ms-2">
-                                    <img src="{% static 'images/users/avatar-2.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                            </div>
-                        </div>
+                    <div class="card-header flex items-center">
+                        <i class="msr"  style="font-size: 24px;">globe_uk</i>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">WAN STATUS</p>
                     </div>
-                </div>
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if wan_summary.status_summary.0 != 'None' %}
+                            <button class="btn text-white w-full {% if wan_summary.status_summary.0 == 'Good' or wan_summary.status_summary.0 == 'Fair' %}bg-success{% elif wan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wan_summary.status_summary.0 == 'Critical' %}bg-danger{% elif wan_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
+                                {{ wan_summary.status_summary.0 }}
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full" style="background-color:#64748b" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
+                                {{ wan_summary.status_summary.0 }}
+                            </button>
+                        {% endif %}
+                    </div>
+                    {% comment %} <div class="p-2 flex space-x-0  mt-0">
+                        {% for dev in wan_summary.online_devices %}
+                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wan_summary.alerting_devices %}
+                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wan_summary.offline_devices %}
+                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% if wan_summary.status_summary.0 == 'None' %}
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                        {% endif %}
+                    </div> <!-- content--> {% endcomment %}
+
+                </div> <!-- card end -->
+                <div class="card">
+                    <div class="card-header flex items-center">
+                        <i class="msr"  style="font-size: 24px;">lan</i>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">LAN STATUS</p>
+                                  {% comment %} text-base mb-1 text-gray-600 dark:text-gray-400 {% endcomment %}
+                    </div>
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if lan_summary.status_summary.0 != 'None' %}
+                            <button class="btn text-white w-full {% if lan_summary.status_summary.0 == 'Good' or lan_summary.status_summary.0 == 'Fair' %}bg-success{% elif lan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif lan_summary.status_summary.0 == 'Critical' %}bg-danger{% elif lan_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#lan-summary-canvas">
+                                {{ lan_summary.status_summary.0 }}
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full" style="background-color:#64748b">
+                                {{ lan_summary.status_summary.0 }}
+                            </button>
+                        {% endif %}
+                    </div>
+                    {% comment %} <div class="p-2 flex space-x-0  mt-0">
+                        {% for dev in lan_summary.online_devices %}
+                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in lan_summary.alerting_devices %}
+                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in lan_summary.offline_devices %}
+                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% if lan_summary.status_summary.0 == 'None' %}
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                        {% endif %}
+                    </div> <!-- content--> {% endcomment %}
+                </div> <!-- card end -->
+                <div class="card">
+                    <div class="card-header flex items-center">
+                        <i class="msr"  style="font-size: 24px;">wifi</i>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">WIRELESS STATUS</p>
+
+                    </div>
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if wireless_summary.status_summary.0 != 'None' %}
+                            <button class="btn text-white w-full {% if wireless_summary.status_summary.0 == 'Good' or wireless_summary.status_summary.0 == 'Fair' %}bg-success{% elif wireless_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wireless_summary.status_summary.0 == 'Critical' %}bg-danger{% elif wireless_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wireless-summary-canvas">
+                                {{ wireless_summary.status_summary.0 }}
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full" style="background-color:#64748b">
+                                {{ wireless_summary.status_summary.0 }}
+                            </button>
+                        {% endif %}
+                    </div>
+                    {% comment %} <div class="p-2 flex space-x-0  mt-0">
+                        {% for dev in wireless_summary.online_devices %}
+                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wireless_summary.alerting_devices %}
+                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% for dev in wireless_summary.offline_devices %}
+                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
+                        {% endfor %}
+                        {% if wireless_summary.status_summary.0 == 'None' %}
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
+                        {% endif %}
+                    </div> <!-- content--> {% endcomment %}
+                </div> <!-- card end -->
 
                 <div class="card">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="text-base mb-1 text-gray-600 dark:text-gray-400">Admin Template</h4>
-                                <p class="font-normal text-sm text-gray-400 truncate dark:text-gray-500">New Task
-                                    Assign</p>
-                            </div>
-                            <div>
-                                <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                        data-fc-placement="left-start" type="button">
-                                    <i class="mgc_more_1_fill text-xl"></i>
-                                </button>
-
-                                <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_add_circle_line"></i> Add
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_edit_line"></i> Edit
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_copy_2_line"></i> Copy
-                                    </a>
-                                    <div class="h-px bg-gray-200 dark:bg-gray-700 my-2 -mx-2"></div>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-danger hover:bg-danger/5"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_delete_line"></i> Delete
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-end">
-                            <div class="flex-grow">
-                                <p class="text-[13px] text-gray-400 dark:text-gray-500 font-semibold"><i
-                                        class="mgc_alarm_2_line"></i> 3 Hrs ago</p>
-                            </div>
-                            <div class="flex">
-                                <a href="javascript:void(0);">
-                                    <img src="{% static 'images/users/avatar-3.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                                <a href="javascript:void(0);" class="-ms-2">
-                                    <img src="{% static 'images/users/avatar-4.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                            </div>
-                        </div>
+                    <div class="card-header flex items-center">
+                        <i class="msr"  style="font-size: 24px;">privacy_tip</i>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">THREATS</p>
                     </div>
-                </div>
+                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
+                        {% if threats_summary.total > 0 %}
+                            <button class="btn text-white w-full bg-danger" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
+                                {{ threats_summary.total }} found
+                            </button>
+                        {% else %}
+                            <button class="btn text-white w-full bg-success" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
+                                No threats!
+                            </button>
+                        {% endif %}
+                    </div>
 
+                </div> <!-- card end -->
+
+
+
+            </div>
+            <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
                 <div class="card">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="text-base mb-1 text-gray-600 dark:text-gray-400">Client Project</h4>
-                                <p class="font-normal text-sm text-gray-400 truncate dark:text-gray-500">New Task
-                                    Assign</p>
-                            </div>
-                            <div>
-                                <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                        data-fc-placement="left-start" type="button">
-                                    <i class="mgc_more_1_fill text-xl"></i>
-                                </button>
+                    <div class="card-header" style="display:flex;justify-content: space-between;align-items: center;">
+                        <h4 class="card-title">WAN Historical Data</h4>
 
-                                <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_add_circle_line"></i> Add
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_edit_line"></i> Edit
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_copy_2_line"></i> Copy
-                                    </a>
-                                    <div class="h-px bg-gray-200 dark:bg-gray-700 my-2 -mx-2"></div>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-danger hover:bg-danger/5"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_delete_line"></i> Delete
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                        <div style="display:flex">
 
-                        <div class="flex items-end">
-                            <div class="flex-grow">
-                                <p class="text-[13px] text-gray-400 dark:text-gray-500 font-semibold"><i
-                                        class="mgc_alarm_2_line"></i> 5 Hrs ago</p>
+                            <button id="btn-period-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
+                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
+                                    data-period="1h">1 hour<i class="mgc_down_line text-lg"></i></button>
+
+                            <div class="period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
+                                <a id="hist-1-hour" data-period="1h"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 hour</a>
+                                <a id="hist-6-hours" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hours</a>
+                                <a id="hist-24-hour" data-period="24h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">24 hours</a>
+                                <a id="hist-1-week" data-period="1w" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
+                                <a id="hist-1-month" data-period="1mo" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
                             </div>
-                            <div class="flex">
-                                <a href="javascript:void(0);">
-                                    <img src="{% static 'images/users/avatar-5.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                                <a href="javascript:void(0);" class="-ms-2">
-                                    <img src="{% static 'images/users/avatar-6.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                            </div>
+
+                            {% comment %} <button id="btn-method-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
+                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
+                                    data-period="1h">Average<i class="mgc_down_line text-lg"></i></button>
+
+                            <div class="method-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
+                                <a id="method-avg" data-period="1h"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">Average</a>
+                                <a id="method-mdn" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">Median</a>
+                            </div> {% endcomment %}
+
                         </div>
                     </div>
-                </div>
+                    <div class="p-6" style="position: relative; height:45vh; width:75vw">
 
-                <div class="card">
-                    <div class="p-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="text-base mb-1 text-gray-600 dark:text-gray-400">Figma Design</h4>
-                                <p class="font-normal text-sm text-gray-400 truncate dark:text-gray-500">New Task
-                                    Assign</p>
-                            </div>
-                            <div>
-                                <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                        data-fc-placement="left-start" type="button">
-                                    <i class="mgc_more_1_fill text-xl"></i>
-                                </button>
-
-                                <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_add_circle_line"></i> Add
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_edit_line"></i> Edit
-                                    </a>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_copy_2_line"></i> Copy
-                                    </a>
-                                    <div class="h-px bg-gray-200 dark:bg-gray-700 my-2 -mx-2"></div>
-                                    <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-danger hover:bg-danger/5"
-                                       href="javascript:void(0)">
-                                        <i class="mgc_delete_line"></i> Delete
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-end">
-                            <div class="flex-grow">
-                                <p class="text-[13px] text-gray-400 dark:text-gray-500 font-semibold"><i
-                                        class="mgc_alarm_2_line"></i> 1 Day ago</p>
-                            </div>
-                            <div class="flex">
-                                <a href="javascript:void(0);">
-                                    <img src="{% static 'images/users/avatar-7.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                                <a href="javascript:void(0);" class="-ms-2">
-                                    <img src="{% static 'images/users/avatar-8.jpg' %}"
-                                         class="rounded-full h-8 w-8 border-2 border-gray-300 dark:border-gray-700"
-                                         alt="friend">
-                                </a>
-                            </div>
-                        </div>
+                        <canvas id="deviceStatusChart" class="apex-charts" dir="ltr"></canvas>
                     </div>
-                </div>
+                </div><!--end card-->
             </div>
 
-            <div class="grid lg:grid-cols-3 gap-6">
-                <div class="col-span-1">
-                    <div class="card">
-                        <div class="p-6">
-                            <h4 class="card-title">Data Usage</h4>
+            <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Asset Location</h4>
+                        <button id="btn-show-route" class="btn btn-sm bg-primary text-white hidden" data-fc-type="modal" data-fc-target="tracking-map-popup" type="button">Show Route</button>
 
-                            <div id="monthly-target" class="apex-charts my-8" data-colors="#0acf97,#3073F1"></div>
-
-                            <div class="flex justify-center">
-                                <div class="w-1/2 text-center">
-                                    <h5>SIM 1 - AT&T</h5>
-                                    <p class="fw-semibold text-muted">
-                                        <i class="mgc_round_fill text-primary"></i> Projects
-                                    </p>
-                                </div>
-                                <div class="w-1/2 text-center">
-                                    <h5>SIM2 - T-Mobile</h5>
-                                    <p class="fw-semibold text-muted">
-                                        <i class="mgc_round_fill text-success"></i> Projects
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-                </div>
-                <div class="lg:col-span-2">
-                    <div class="card">
-                        <div class="p-6">
-                            <div class="flex justify-between items-center">
-                                <h4 class="card-title">Downloads vs. Uploads</h4>
-                                <div class="flex gap-2">
-                                    <button type="button"
-                                            class="btn btn-sm bg-primary/25 text-primary hover:bg-primary hover:text-white">
-                                        All
-                                    </button>
-                                    <button type="button"
-                                            class="btn btn-sm bg-gray-400/25 text-gray-400 hover:bg-gray-400 hover:text-white">
-                                        6M
-                                    </button>
-                                    <button type="button"
-                                            class="btn btn-sm bg-gray-400/25 text-gray-400 hover:bg-gray-400 hover:text-white">
-                                        1Y
-                                    </button>
-                                </div>
-                            </div>
+                    <div class="p-6">
 
-                            <div dir="ltr" class="mt-2">
-                                <div id="crm-project-statistics" class="apex-charts"
-                                     data-colors="#cbdcfc,#3073F1"></div>
-                            </div>
-                        </div>
+                        <div id="asset-location-map" class="m-10 z-10" ></div>
                     </div>
-                </div>
+                </div><!--end card-->
             </div>
+
+
         </div>
+        {% comment %} div class="2xl:col-span-3"> {% endcomment %}
 
 
     </div> <!-- Grid End -->
 
-    <div class="grid lg:grid-cols-4 md:grid-cols-2 gap-6 mb-6">
-        <div class="col-span-1">
-            <div class="card">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="w-12 h-12 flex justify-center items-center rounded text-primary bg-primary/25">
-                                <i class="mgc_document_2_line text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow">
-                            <h5 class="mb-1">Active Projects</h5>
-                            <p>85</p>
-                        </div>
-                        <div>
-                            <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                    data-fc-placement="left-start" type="button">
-                                <i class="mgc_more_2_fill text-xl"></i>
-                            </button>
 
-                            <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Today
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Yesterday
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Week
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Month
-                                </a>
+        <div id="tracking-map-popup" class="w-full h-full fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden">
+            <div
+                class="fc-modal-open:opacity-100 duration-500 h-screen w-screen opacity-0 ease-out transition-all flex flex-col bg-white p-8 dark:bg-slate-800 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-medium text-gray-800 dark:text-white text-2xl">
+                        GPS Location History
+                    </h3>
+                    <button
+                        id="btn-close-tracking-map-popup"
+                        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 dark:text-gray-200"
+                        data-fc-dismiss type="button">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+                <div class="overflow-y-auto mt-3">
+                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                        <div style="padding-left:30px">
+                            <p id="tracking-device-name-serial" class="text-gray-800 dark:text-gray-200 text-lg">DEVICE NAME (s/n)</p>
+                            <span id="tracking-device-model" class="text-gray-800 dark:text-gray-200 text-sm">Model: </span>
+                            <span id="tracking-device-mac" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">MAC:</span>
+                            <span id="tracking-device-loc" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">loc: (lat,lng)</span>
+                            <span id="tracking-device-heading" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">heading: </span>
+                            <span id="tracking-device-last-reported" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">Location Timestamp: DATE</span>
+                        </div>
+                        <div style="padding-right:40px; z-index:5000">
+                            <button id="btn-track-period" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
+                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
+                                    data-period="360">6 hours<i class="mgc_down_line text-lg"></i></button>
+
+                            <div class="track-period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
+                                <a id="track-30min" data-period="30"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">30 Minutes</a>
+                                <a id="track-6hr" data-period="360" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hour</a>
+                                <a id="track-1w" data-period="10080" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
+                                <a id="track-1mo" data-period="43800" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
                             </div>
+
                         </div>
                     </div>
+                    <div class="p-6">
+                        <div id="gps-history-map" class="m-10" style="height: 35vw;"></div>
+                    </div>
+                </div>
+                <div class="flex justify-end items-center gap-4 mt-auto">
+                    <button
+                        class="btn dark:text-gray-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:dark:bg-slate-700 transition-all"
+                        data-fc-dismiss type="button">Close
+                    </button>
+                    <a class="btn bg-primary text-white"
+                        href="javascript:void(0)">Play</a>
                 </div>
             </div>
         </div>
 
-        <div class="col-span-1">
-            <div class="card">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="w-12 h-12 flex justify-center items-center rounded text-success bg-success/25">
-                                <i class="mgc_group_line text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow">
-                            <h5 class="mb-1">Total Employees</h5>
-                            <p>32</p>
-                        </div>
-                        <div>
-                            <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                    data-fc-placement="left-start" type="button">
-                                <i class="mgc_more_2_fill text-xl"></i>
-                            </button>
 
-                            <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Today
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Yesterday
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Week
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Month
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-span-1">
-            <div class="card">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="w-12 h-12 flex justify-center items-center rounded text-info bg-info/25">
-                                <i class="mgc_star_line text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow">
-                            <h5 class="mb-1">Project Reviews</h5>
-                            <p>40</p>
-                        </div>
-                        <div>
-                            <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                    data-fc-placement="left-start" type="button">
-                                <i class="mgc_more_2_fill text-xl"></i>
-                            </button>
-
-                            <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Today
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Yesterday
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Week
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Month
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-span-1">
-            <div class="card">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 me-3">
-                            <div class="w-12 h-12 flex justify-center items-center rounded text-warning bg-warning/25">
-                                <i class="mgc_new_folder_line text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="flex-grow">
-                            <h5 class="mb-1">New Projects</h5>
-                            <p>25</p>
-                        </div>
-                        <div>
-                            <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                    data-fc-placement="left-start" type="button">
-                                <i class="mgc_more_2_fill text-xl"></i>
-                            </button>
-
-                            <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Today
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Yesterday
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Week
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Month
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> <!-- Grid End -->
-
-    <div class="grid 2xl:grid-cols-4 md:grid-cols-2 gap-6">
-        <div class="2xl:col-span-2 md:col-span-2">
-            <div class="card">
-                <div class="p-6">
-                    <div class="flex justify-between items-center">
-                        <h4 class="card-title">Project Overview</h4>
-                        <div>
-                            <button class="text-gray-600 dark:text-gray-400" data-fc-type="dropdown"
-                                    data-fc-placement="left-start" type="button">
-                                <i class="mgc_more_2_fill text-xl"></i>
-                            </button>
-
-                            <div class="hidden fc-dropdown fc-dropdown-open:opacity-100 opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Today
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                                   href="javascript:void(0)">
-                                    Yesterday
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Week
-                                </a>
-                                <a class="flex items-center gap-1.5 py-1.5 px-3.5 rounded text-sm transition-all duration-300 bg-transparent text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                                   href="javascript:void(0)">
-                                    Last Month
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid md:grid-cols-2 items-center gap-4">
-                        <div class="md:order-1 order-2">
-                            <div class="flex flex-col gap-6">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="mgc_round_fill h-10 w-10 flex justify-center items-center rounded-full bg-primary/25 text-lg text-primary"></i>
-                                    </div>
-                                    <div class="flex-grow ms-3">
-                                        <h5 class="fw-semibold mb-1">Product Design</h5>
-                                        <ul class="flex items-center gap-2">
-                                            <li class="list-inline-item"><b>26</b> Total Projects</li>
-                                            <li class="list-inline-item">
-                                                <div class="w-1 h-1 rounded bg-gray-400"></div>
-                                            </li>
-                                            <li class="list-inline-item"><b>4</b> Employees</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="mgc_round_fill h-10 w-10 flex justify-center items-center rounded-full bg-danger/25 text-lg text-danger"></i>
-                                    </div>
-                                    <div class="flex-grow ms-3">
-                                        <h5 class="fw-semibold mb-1">Web Development</h5>
-                                        <ul class="flex items-center gap-2">
-                                            <li class="list-inline-item"><b>30</b> Total Projects</li>
-                                            <li class="list-inline-item">
-                                                <div class="w-1 h-1 rounded bg-gray-400"></div>
-                                            </li>
-                                            <li class="list-inline-item"><b>5</b> Employees</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="mgc_round_fill h-10 w-10 flex justify-center items-center rounded-full bg-success/25 text-lg text-success"></i>
-                                    </div>
-                                    <div class="flex-grow ms-3">
-                                        <h5 class="fw-semibold mb-1">Illustration Design</h5>
-                                        <ul class="flex items-center gap-2">
-                                            <li class="list-inline-item"><b>12</b> Total Projects</li>
-                                            <li class="list-inline-item">
-                                                <div class="w-1 h-1 rounded bg-gray-400"></div>
-                                            </li>
-                                            <li class="list-inline-item"><b>3</b> Employees</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="mgc_round_fill h-10 w-10 flex justify-center items-center rounded-full bg-warning/25 text-lg text-warning"></i>
-                                    </div>
-                                    <div class="flex-grow ms-3">
-                                        <h5 class="fw-semibold mb-1">UI/UX Design</h5>
-                                        <ul class="flex items-center gap-2">
-                                            <li class="list-inline-item"><b>8</b> Total Projects</li>
-                                            <li class="list-inline-item">
-                                                <div class="w-1 h-1 rounded bg-gray-400"></div>
-                                            </li>
-                                            <li class="list-inline-item"><b>4</b> Employees</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="md:order-2 order-1">
-                            <div id="project-overview-chart" class="apex-charts"
-                                 data-colors="#3073F1,#ff679b,#0acf97,#ffbc00"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-span-1">
-            <div class="card">
-                <div class="card-header">
-                    <div class="flex justify-between items-center">
-                        <h4 class="card-title">Daily Task</h4>
-                        <div>
-                            <select class="form-input form-select-sm">
-                                <option selected>Today</option>
-                                <option value="1">Yesterday</option>
-                                <option value="2">Tomorrow</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="py-6">
-                    <div class="px-6" data-simplebar style="max-height: 304px;">
-                        <div class="space-y-4">
-                            <div class="border border-gray-200 dark:border-gray-700 rounded p-2">
-                                <ul class="flex items-center gap-2 mb-2">
-                                    <a href="javascript:void(0);" class="text-base text-gray-600 dark:text-gray-400">Landing
-                                        Page Design</a>
-                                    <i class="mgc_round_fill text-[5px]"></i>
-                                    <h5 class="text-sm font-semibold">2 Hrs ago</h5>
-                                </ul>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm mb-1">Create a new landing page (Saas
-                                    Product)</p>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm"><i
-                                        class="mgc_group_line text-xl me-1 align-middle"></i> <b>5</b> People</p>
-                            </div>
-
-                            <div class="border border-gray-200 dark:border-gray-700 rounded p-2">
-                                <ul class="flex items-center gap-2 mb-2">
-                                    <a href="javascript:void(0);" class="text-base text-gray-600 dark:text-gray-400">Admin
-                                        Dashboard</a>
-                                    <i class="mgc_round_fill text-[5px]"></i>
-                                    <h5 class="text-sm font-semibold">3 Hrs ago</h5>
-                                </ul>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm mb-1">Create a new Admin
-                                    dashboard</p>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm"><i
-                                        class="mgc_group_line text-xl me-1 align-middle"></i> <b>2</b> People</p>
-                            </div>
-
-                            <div class="border border-gray-200 dark:border-gray-700 rounded p-2">
-                                <ul class="flex items-center gap-2 mb-2">
-                                    <a href="javascript:void(0);" class="text-base text-gray-600 dark:text-gray-400">Client
-                                        Work</a>
-                                    <i class="mgc_round_fill text-[5px]"></i>
-                                    <h5 class="text-sm font-semibold">5 Hrs ago</h5>
-                                </ul>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm mb-1">Create a new Power Project
-                                    (Sktech design)</p>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm"><i
-                                        class="mgc_group_line text-xl me-1 align-middle"></i> <b>2</b> People</p>
-                            </div>
-
-                            <div class="border border-gray-200 dark:border-gray-700 rounded p-2">
-                                <ul class="flex items-center gap-2 mb-2">
-                                    <a href="javascript:void(0);" class="text-base text-gray-600 dark:text-gray-400">UI/UX
-                                        Design</a>
-                                    <i class="mgc_round_fill text-[5px]"></i>
-                                    <h5 class="text-sm font-semibold">6 Hrs ago</h5>
-                                </ul>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm mb-1">Create a new UI Kit in
-                                    figma</p>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm"><i
-                                        class="mgc_group_line text-xl me-1 align-middle"></i> <b>3</b> People</p>
-                            </div>
-
-                            <div class="flex items-center justify-center">
-                                <div class="animate-spin flex">
-                                    <i class="mgc_loading_2_line text-xl"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-span-1">
-            <div class="card">
-                <div class="card-header flex justify-between items-center">
-                    <h4 class="card-title">Team Members</h4>
-                    <div>
-                        <select class="form-select form-select-sm">
-                            <option selected>Active</option>
-                            <option value="1">Offline</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="py-6">
-                    <div class="px-6" data-simplebar style="max-height: 304px;">
-                        <div class="space-y-6">
-                            <div class="flex items-center">
-                                <img class="me-3 rounded-full" src="{% static 'images/users/avatar-1.jpg' %}" width="40"
-                                     alt="Generic placeholder image">
-                                <div class="w-full overflow-hidden">
-                                    <h5 class="font-semibold"><a href="javascript:void(0);"
-                                                                 class="text-gray-600 dark:text-gray-400">Risa
-                                        Pearson</a></h5>
-                                    <div class="flex items-center gap-2">
-                                        <div>UI/UX Designer</div>
-                                        <i class="mgc_round_fill text-[5px]"></i>
-                                        <div>2.5 Year Experience</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center">
-                                <img class="me-3 rounded-full" src="{% static 'images/users/avatar-2.jpg' %}" width="40"
-                                     alt="Generic placeholder image">
-                                <div class="w-full overflow-hidden">
-                                    <h5 class="font-semibold"><a href="javascript:void(0);"
-                                                                 class="text-gray-600 dark:text-gray-400">Margaret D.
-                                        Evans</a></h5>
-                                    <div class="flex items-center gap-2">
-                                        <div>PHP Developer</div>
-                                        <i class="mgc_round_fill text-[5px]"></i>
-                                        <div>2 Year Experience</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center">
-                                <img class="me-3 rounded-full" src="{% static 'images/users/avatar-3.jpg' %}" width="40"
-                                     alt="Generic placeholder image">
-                                <div class="w-full overflow-hidden">
-                                    <h5 class="font-semibold"><a href="javascript:void(0);"
-                                                                 class="text-gray-600 dark:text-gray-400">Bryan J.
-                                        Luellen</a></h5>
-                                    <div class="flex items-center gap-2">
-                                        <div>Front end Developer</div>
-                                        <i class="mgc_round_fill text-[5px]"></i>
-                                        <div>1 Year Experience</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center">
-                                <img class="me-3 rounded-full" src="{% static 'images/users/avatar-4.jpg' %}" width="40"
-                                     alt="Generic placeholder image">
-                                <div class="w-full overflow-hidden">
-                                    <h5 class="font-semibold"><a href="javascript:void(0);"
-                                                                 class="text-gray-600 dark:text-gray-400">Kathryn S.
-                                        Collier</a></h5>
-                                    <div class="flex items-center gap-2">
-                                        <div>UI/UX Designer</div>
-                                        <i class="mgc_round_fill text-[5px]"></i>
-                                        <div>3 Year Experience</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center">
-                                <img class="me-3 rounded-full" src="{% static 'images/users/avatar-5.jpg' %}" width="40"
-                                     alt="Generic placeholder image">
-                                <div class="w-full overflow-hidden">
-                                    <h5 class="font-semibold"><a href="javascript:void(0);"
-                                                                 class="text-gray-600 dark:text-gray-400">Timothy
-                                        Kauper</a></h5>
-                                    <div class="flex items-center gap-2">
-                                        <div>Backend Developer</div>
-                                        <i class="mgc_round_fill text-[5px]"></i>
-                                        <div>2 Year Experience</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center">
-                                <img class="me-3 rounded-full" src="{% static 'images/users/avatar-6.jpg' %}" width="40"
-                                     alt="Generic placeholder image">
-                                <div class="w-full overflow-hidden">
-                                    <h5 class="font-semibold"><a href="javascript:void(0);"
-                                                                 class="text-gray-600 dark:text-gray-400">Zara Raws</a>
-                                    </h5>
-                                    <div class="flex items-center gap-2">
-                                        <div>Python Developer</div>
-                                        <i class="mgc_round_fill text-[5px]"></i>
-                                        <div>1 Year Experience</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> <!-- Grid End -->
-{% endblock content %}
+    {% endblock content %}
 
 {% block extra_js %}
-    <!-- Apexcharts js -->
-    <script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script>
+<!-- Add Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<!-- Add MarkerCluster JavaScript -->
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<!-- Apexcharts js -->
+{% comment %} <script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script> {% endcomment %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
 
-    <!-- Dashboard Project Page js -->
-    <script src="{% static 'js/pages/dashboard.js' %}"></script>
+    var asset_markers = [];
+
+    $(document).ready(function() {
+        var gpsHistoryMap = L.map('gps-history-map').setView([0, 0], 3);
+        var map = L.map('asset-location-map').setView([0, 0], 2);
+
+        //var showRouteButton = document.getElementById("btn-show-route");
+        //window.showRouteButton = showRouteButton;
+        function plotRoute(device_id){
+
+        }
+
+        function showModal(serial){
+            //var modalWin = document.getElementById("tracking-map-popup");
+            var btn = document.getElementById("btn-show-route");
+            btn.click();
+            gpsHistoryMap.invalidateSize();
+
+            updateLocation(serial);
+
+        }
+        window.showModal = showModal;
+
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(gpsHistoryMap);
+
+        var markers = L.markerClusterGroup();
+
+        var icons = {
+            online: L.icon({ iconUrl: '{% static 'images/green-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+            offline: L.icon({ iconUrl:'{% static 'images/red-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+            alerting: L.icon({ iconUrl: '{% static 'images/orange-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+            dormant: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+            unknown: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] })
+        };
+
+        {% if customer_routers %}
+            {% for dev in customer_routers %}
+                var buttonHTML ="";
+                {% if dev.group_type == 'peplink' %}
+
+                    buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
+
+                {% endif %}
+
+                buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
+
+                var icon = icons['{{ dev.status|lower }}'] ?? icons['unknown'];
+                var marker = L.marker([{{ dev.latitude }}, {{ dev.longitude }}], { icon: icon })
+                    .bindPopup(`<b>{{ dev.name }}</b><br><p>S/N: {{ dev.sn }}</p><p>{{ dev.status }}</p> ${buttonHTML}`);
+                markers.addLayer(marker);
+                asset_markers.push(marker);
+            {% endfor %}
+        {% endif %}
+
+        // Add the marker cluster group to the map
+        map.addLayer(markers);
+
+
+        var customer_id = {{ current_customer.id }};  // Replace with dynamic value if needed
+        var interval = 'day'; // Replace with dynamic value if needed
+        var ctx = document.getElementById('deviceStatusChart').getContext('2d');
+        var historyChart = new Chart(ctx, {
+            type: 'bar',
+            data: [],
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {text: "Date/Time", display: true}
+                    },
+                    y: {
+                        stacked: true,
+                        title: {text: "Number of Devices", display: true}
+                    }
+                }
+            }
+        });
+
+        $(".period-selection a").on("click", function(event) {
+            event.preventDefault(); // Prevent the default anchor behavior
+            var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
+            $("#btn-period-selection").data("period", periodValue); // Set the data-period value to the button
+            $("#btn-period-selection").text($(this).text());
+
+            $.ajax({
+                url: "{% url 'device_status_chart' %}",
+                type: "GET",
+                data: {
+                    customer_id: customer_id,
+                    interval: interval,
+                    time_group: $("#btn-period-selection").data("period")
+                },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                },
+                success: function(data) {
+                    historyChart.data = data;
+                    historyChart.update();
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+
+        });
+        // call the click event of the default time group button
+        // to set the default on page load
+        $('#hist-6-hours').click();
+
+
+        $('#btn-close-tracking-map-popup').click(function(){
+                //stop the location polling timer here
+        });
+
+
+        // Function to be called every 3 minutes
+        function updateLocation(serial) {
+            console.log("Updating location for serial:", serial);
+
+            var period = $("#btn-track-period").data("period");
+            $.ajax({
+                url: "{% url 'device_location_history' %}",
+                type: "GET",
+                data: {
+                    serial: serial,
+                    period_minutes: period
+                },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                },
+                success: function(data) {
+                    console.log(data);
+
+                    if (data.result == 0){
+                        console.log("Error: " + data.message);
+                    }
+                    $("#btn-track-period").data("serial", data.device_info.serial);
+                    $("#tracking-device-name-serial").text(`${data.device_info.name}  (${data.device_info.serial})`);
+                    $("#tracking-device-model").text(`Model: ${data.device_info.model}`);
+                    $("#tracking-device-mac").text(`MAC: ${data.device_info.mac}`);
+                    $("#tracking-device-loc").text(`loc: (${data.last_location})`);
+                    $("#tracking-device-heading").text(`heading: ${data.device_info.heading}`);
+                    $("#tracking-device-last-reported").text(`Location Timestamp: ${data.device_info.last_reported_at}`);
+
+                    //clear all markers and polylines
+                    try{
+                        for (var i in gpsHistoryMap._layers) {
+                            if (gpsHistoryMap._layers[i] instanceof L.Marker) {
+                                gpsHistoryMap.removeLayer(gpsHistoryMap._layers[i]);
+                            }
+                            if (gpsHistoryMap._layers[i] instanceof L.Polyline) {
+                                gpsHistoryMap.removeLayer(gpsHistoryMap._layers[i]);
+                            }
+                        }
+                    }catch(e){
+                        ;
+                    }
+
+                    //TODO: PLOT THE POLYLINE
+                    try {
+                        var polyline = L.polyline(data.coordinates, {color: 'red', weight: 8}).addTo(gpsHistoryMap);
+                        gpsHistoryMap.fitBounds(polyline.getBounds());
+                        var currentZoom = gpsHistoryMap.getZoom();
+                        gpsHistoryMap.setZoom(currentZoom - 2);
+                    }catch(error){
+                        console.log(error);
+                    }
+                    try {
+                        var marker = L.marker(data.last_location).addTo(gpsHistoryMap);
+                        var popUpHTML = `<b>${data.device_info.name}</b>`;
+                        marker.bindPopup(popUpHTML).openPopup();
+                        marker.on('click', function(e) {
+                            marker.openPopup();
+                        });
+                        gpsHistoryMap.panTo(marker.getLatLng());
+                    }catch(error){
+                        console.log(error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+        } //end function
+
+        $(".track-period-selection  a").on("click", function(event) {
+            event.preventDefault(); // Prevent the default anchor behavior
+            var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
+            $("#btn-track-period").data("period", periodValue); // Set the data-period value to the button
+            $("#btn-track-period").text($(this).text());
+
+            updateLocation($("#btn-track-period").data("serial"))
+        });
+
+        // Timer variable
+        let timerInterval;
+
+
+        function startTimer() {
+            //const serialNumber = "your-serial-number";
+            //timerInterval = setInterval(() => updateLocation(serialNumber), 180000);
+            //document.getElementById("controlButton").textContent = "Stop Timer";
+        }
+
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            //document.getElementById("controlButton").textContent = "Start Timer";
+        }
+
+
+    });
+
+
+
+</script>
 {% endblock extra_js %}
 

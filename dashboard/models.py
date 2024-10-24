@@ -1,9 +1,26 @@
 import logging
+import json
 
-from django.db import models
+
+import pandas as pd
+import pytz
+
+from datetime import datetime, timedelta
+
+from django.db import models, connection
+from django.db.models import Count, Avg
+from django.db.models.functions import TruncHour
+
+
+
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
+from django.core.serializers.json import DjangoJSONEncoder
+from django.utils import timezone
 from django.utils.translation import gettext as _
+
+from common.utils import calculate_heading
+
 
 _logger = logging.getLogger(__name__)
 
@@ -23,6 +40,8 @@ class Organization(models.Model):
     org_type = models.CharField("Organization Type", max_length=255, choices=PROVIDER_CHOICES, default='P')
     org_url = models.URLField("Organization URL", max_length=255, null=True, blank=True)
     api_enabled = models.BooleanField("Enable API", default=True)
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         unique_together = ('org_id', 'org_type')
         verbose_name = "Meraki/Peplink Organization"
@@ -46,7 +65,10 @@ class Customer(models.Model):
     # these are users who have access to Customer data
     users = models.ManyToManyField("auth.User", through="CustomerUsers", related_name="customers")
     customer_peplink_groups = models.ManyToManyField("dashboard.PeplinkGroup", through="CustomerPeplinkGroup", related_name="peplink_groups")
+    meraki_networks = models.ManyToManyField("dashboard.Network", through="CustomerNetwork", related_name="meraki_networks")
 
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         verbose_name = "Customer Information"
         verbose_name_plural = "Customer Information"
@@ -56,6 +78,17 @@ class Customer(models.Model):
         first_3_words = self.name.split(" ")[:3]
         initials = "".join([w[0] for w in first_3_words]).upper()
         return initials
+
+    @property
+    def basic_info(self):
+        info = {}
+        info["id"] = self.id
+        info["name"] = self.name
+        info["email"] = self.contact_email
+        info["initials"] = self.initials
+        return info
+        # return json.dumps(info)
+
     def __str__(self):
         return self.name
 
@@ -80,7 +113,6 @@ class CustomerUsers(models.Model):
         verbose_name = "Portal User"
         verbose_name_plural = "Customer's Portal Users"
 
-
     def __str__(self):
         name = ""
         # get the first name and last name for the user if it exists
@@ -104,7 +136,8 @@ class Network(models.Model):
     timezone = models.CharField("Timezone", max_length=255, default="UTC")
     notes = models.TextField("Notes", null=True, blank=True, default="")
     product_types = models.CharField("Product Types", max_length=255, null=True, blank=True, default="[]")
-
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
     class Meta:
         unique_together = ('network_id', 'organization')
         verbose_name = "Meraki Network"
@@ -147,8 +180,9 @@ class PeplinkGroup(models.Model):
     is_low_data_usage_mode = models.BooleanField("Low Data Usage Mode", default=False)
     gps_location_sampling = models.IntegerField("GPS Location Sampling", default=2)
     min_heartbreak_interval = models.IntegerField("Min Heartbreak Interval", default=0)
-
     customer = models.ForeignKey(Customer, related_name="peplink_groups", on_delete=models.CASCADE, null=True,blank=True)
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
 
     class Meta:
         unique_together = ('org_id', 'group_id')
@@ -159,222 +193,188 @@ class PeplinkGroup(models.Model):
         return self.name
 
 
-
 class GroupDevice(models.Model):
-    device_id = models.IntegerField("Device ID",
-            help_text="unique identifier of the device",
-            unique=True)
-    group_id = models.IntegerField(
-            "Group ID",
-            help_text="unique identifier of the group,",
-            default=0)
-    group_name = models.CharField(
-            _("Group Name"),
-            help_text="Name of the group",
-            max_length=150, null=True, blank=True)
-    sn = models.CharField(
-            _("S/N"),
-            help_text="Device S/N",
-            max_length=150, null=True, blank=True)
-    name = models.CharField(
-            _("Device name"),
-            help_text="Device name",
-            max_length=150,
-            null=True, blank=True)
-    status = models.CharField(
-            _("Status"),
-            help_text="Status",
-            max_length=150,
-            null=True, blank=True)
-    product_id = models.IntegerField(
-            _("Product ID"),
-            default=0,
-            help_text="Product ID")
-    client_count = models.IntegerField(
-            _("Client Count"),
-            help_text="Current client count",
-            default=0)
-    fw_ver = models.CharField(
-            _("Firmware"),
-            help_text="Firmware version using",
-            max_length=150,
-            null=True, blank=True)
-    last_online = models.CharField(
-            _("Last Online"),
-            help_text="Last online date and time",
-            max_length=150,
-            null=True, blank=True)
-    offline_at = models.CharField(
-            _("Last Offline"),
-            help_text="Last offline date and time",
-            max_length=150,
-            null=True, blank=True)
-    first_appear = models.CharField(
-            _("First Appeared"),
-            help_text="First appeared date and time",
-            max_length=150,
-            null=True, blank=True)
-    lan_mac = models.CharField(
-            _("LAN MAC"),
-            help_text="LAN MAC address",
-            max_length=150,
-            null=True, blank=True)
-    sp_default = models.BooleanField(
-            _("SP Default"),
-            help_text="SP Default",
-            default=False)
-    interfaces = ArrayField(
-            models.CharField(
-                max_length=10000,
-                blank=True,
-                null=True),
-            blank=True,
-            null=True,
-            verbose_name="Device interfaces",
-            help_text="Device interfaces")
-    starlink_status = ArrayField(
-            models.CharField(
-                max_length=10000,
-                blank=True,
-                null=True),
-            blank=True,
-            null=True,
-            verbose_name="Starlink Status",
-            help_text="Starlink Status")
-    product_name = models.CharField(
-            _("Product Name"),
-            help_text="Product name",
-            max_length=150,
-            null=True, blank=True)
-    address = models.CharField(
-            _("Address"),
-            help_text="Address",
-            max_length=150,
-            null=True, blank=True)
-    expiry_date = models.CharField(
-            _("Expiry Date"),
-            help_text="Warranty expiry date",
-            max_length=150,
-            null=True, blank=True)
-    gps_support = models.BooleanField(
-            _("GPS Support"),
-            help_text="GPS Support",
-            default=False)
-    gps_exist = models.BooleanField(
-            _("GPS Support"),
-            help_text="GPS Support",
-            default=False)
-    expired = models.BooleanField(
-            _("Expired"),
-            help_text="Is Expired",
-            default=False)
-    hw_expired = models.BooleanField(
-            _("HW Expired"),
-            help_text="HW Expired",
-            default=False)
-    support_ssid_count = models.IntegerField(
-            _("Supported SSID Count"),
-            help_text="Supported number of SSIDs",
-            default=1)
-    extap_proxy_supported = models.BooleanField(
-            _("extap_proxy_supported"),
-            help_text="extap_proxy_supported",
-            default=False)
-    extap_proxy_enabled = models.BooleanField(
-            _("extap_proxy_enabled"),
-            help_text="extap_proxy_enabled",
-            default=False)
-    wlan_probe_supported = models.BooleanField(
-            _("wlan_probe_supported"),
-            help_text="wlan_probe_supported",
-            default=False)
-    wlan_probe_enabled = models.BooleanField(
-            _("wlan_probe_enabled"),
-            help_text="wlan_probe_enabled",
-            default=False)
-    low_data_usage_mode = models.BooleanField(
-            _("low_data_usage_mode"),
-            help_text="low_data_usage_mode",
-            default=False)
-    group_type = models.CharField(_("Group type"), max_length=50, null=True, blank=True)
+    address = models.CharField(_("Address"), max_length=150, null=True, blank=True)
+    agps_enabled = models.BooleanField(null=True, blank=True, default=False)
+    agps_support = models.BooleanField(null=True, blank=True, default=False)
+    client_count = models.IntegerField(_("Client Count"), default=0)
+    ddns_available = models.BooleanField(null=True, default=False)
+    ddns_enabled = models.BooleanField(_("DDNS Enabled"), default=False)
+    ddns_letsencrypt_apply_date = models.DateTimeField(null=True, blank=True)
+    ddns_letsencrypt_cert_expiry_date = models.DateTimeField(null=True, blank=True)
+    ddns_letsencrypt_enabled = models.BooleanField(null=True, default=False)
+    ddns_name = models.CharField(max_length=255, null=True, blank=True)
+    ddns_resolve_private_ip = models.BooleanField(null=True, default=False)
+    device_id = models.IntegerField("Device ID", unique=True)
+    device_name = models.CharField(_("Device name"), max_length=150, null=True, blank=True)
     device_type = models.CharField(_("Device type"), max_length=50, null=True, blank=True)
+    dns_resolver_owner = models.IntegerField(null=True, blank=True)
+    dr_support = models.BooleanField(null=True, default=False)
+    endpoint_support = models.BooleanField(null=True, default=False)
+    expired = models.BooleanField(_("Expired"), default=False)
+    expiry_date = models.CharField(_("Expiry Date"), help_text="Warranty expiry date", max_length=150, null=True, blank=True)
+    extap_proxy_enabled = models.BooleanField(_("extap_proxy_enabled"), default=False)
+    extap_proxy_supported = models.BooleanField(_("extap_proxy_supported"), default=False)
+    firewall_rules_managed = models.BooleanField(null=True, default=False)
+    first_appear = models.CharField(_("First Appeared"), max_length=150, null=True, blank=True)
+    fw_pending_group_time = models.DateTimeField(null=True, blank=True)
+    fw_pending_schedule_time = models.DateTimeField(null=True, blank=True)
+    fw_pending_status = models.IntegerField(null=True, blank=True)
+    fw_pending_status_label = models.CharField(max_length=255, null=True, blank=True)
+    fw_pending_trial_round = models.IntegerField(null=True, blank=True)
+    fw_pending_upgrade_time = models.DateTimeField(null=True, blank=True)
+    fw_pending_ver = models.CharField(max_length=255, null=True, blank=True)
+    fw_ver = models.CharField(_("Firmware"), max_length=150, null=True, blank=True)
+    gobi_sim_lock_supported = models.BooleanField(_("GOBI SIM lock Support"), default=False)
+    gps_exist = models.BooleanField(_("GPS Support"), default=False)
+    gps_support = models.BooleanField(_("GPS Support"), default=False)
+    group_id = models.IntegerField("Group ID", default=0)
+    group_name = models.CharField(_("Group Name"), max_length=150, null=True, blank=True)
+    group_timezone = models.IntegerField(null=True, blank=True)
+    group_timezone_label = models.CharField(max_length=255, null=True, blank=True)
+    group_type = models.CharField(_("Group type"), max_length=50, null=True, blank=True)
+    hardware_version = models.CharField(_("Hardware version"), max_length=150, default='')
+    hd_version = models.CharField(_("Hardware version"), max_length=150, default='')
+    hub_support = models.BooleanField(null=True, default=False)
+    ic2_managed = models.BooleanField(null=True, default=False)
+    ic_conn_test_enabled = models.BooleanField(null=True, default=False)
+    ic_conn_test_supported = models.BooleanField(null=True, default=False)
+    icmg_admin = models.BooleanField(null=True, default=False)
+    icmg_bgp = models.BooleanField(null=True, default=False)
+    icmg_bonjour_forward = models.BooleanField(null=True, default=False)
+    icmg_dns_proxy = models.BooleanField(null=True, default=False)
+    icmg_firewall = models.BooleanField(null=True, default=False)
+    icmg_gre = models.BooleanField(null=True, default=False)
+    icmg_inbound_access = models.BooleanField(null=True, default=False)
+    icmg_kvm = models.BooleanField(null=True, default=False)
+    icmg_lan = models.BooleanField(null=True, default=False)
+    icmg_lorawan = models.BooleanField(null=True, default=False)
+    icmg_mvpn = models.BooleanField(null=True, default=False)
+    icmg_named_network = models.BooleanField(null=True, default=False)
+    icmg_netflow = models.BooleanField(null=True, default=False)
+    icmg_ospf = models.BooleanField(null=True, default=False)
+    icmg_oobm = models.BooleanField(null=True, default=False)
+    icmg_outbound = models.BooleanField(null=True, default=False)
+    icmg_portal = models.BooleanField(null=True, default=False)
+    icmg_remote_logging = models.BooleanField(null=True, default=False)
+    icmg_schedule = models.BooleanField(null=True, default=False)
+    icmg_schedule_reboot = models.BooleanField(null=True, default=False)
+    icmg_snmp = models.BooleanField(null=True, default=False)
+    icmg_static_route = models.BooleanField(null=True, default=False)
+    icmg_virtual_network = models.BooleanField(null=True, default=False)
+    icmg_wan = models.BooleanField(null=True, default=False)
+    icmg_wlan = models.BooleanField(null=True, default=False)
+    interfaces = ArrayField(models.CharField(max_length=10000, blank=True, null=True), blank=True, null=True, verbose_name="Device interfaces", help_text="Device interfaces")
+    is_ap_schedule_enabled = models.BooleanField(_("AP Schedule Enabled"), default=False)
+    is_apply_bulk_config = models.BooleanField(null=True, default=False)
+    is_apply_cellular_module_update = models.BooleanField(null=True, default=False)
+    is_apply_csv_override = models.BooleanField(null=True, default=False)
+    is_apply_import_lan = models.BooleanField(null=True, default=False)
+    is_wlan_ap_suspended = models.BooleanField(null=True, blank=True)
+    last_online = models.CharField(_("Last Online"), max_length=150, null=True, blank=True)
     last_sync_date = models.CharField(_("last_sync_date"), max_length=50, null=True, blank=True)
+    low_data_usage_mode = models.BooleanField(null=True, default=False)
+    mvpn_license = models.IntegerField(null=True, blank=True)
+    mvpn_version = models.CharField(_("MVPN version"), max_length=1000, default='')
+    name = models.CharField(_("Device name"), max_length=150, null=True, blank=True)
+    offline_at = models.CharField(_("Last Offline"), max_length=150, null=True, blank=True)
+    onlineStatus = models.CharField(_("Online Status"), max_length=50, default='offline')
+    outbound_policy_managed = models.BooleanField(null=True, default=False)
+    pepvpn_peers = models.IntegerField(_("PEP VPN Peers Count"), default=0)
+    pepvpn_trial_level = models.CharField(max_length=255, null=True, blank=True)
+    peplink_app_access_allowed = models.BooleanField(default=False)
+    prime_expiry_date = models.DateTimeField(null=True, blank=True)
+    prime_expired = models.BooleanField(null=True, blank=True)
+    prime_type = models.IntegerField(null=True, blank=True)
+    product_alias = models.CharField(max_length=255, null=True, blank=True)
+    product_code = models.CharField(max_length=255, null=True, blank=True)
+    product_id = models.IntegerField(_("Product ID"), default=0)
+    product_name = models.CharField(_("Product Name"), max_length=150, null=True, blank=True)
+    product_type = models.CharField(max_length=255, null=True, blank=True)
+    ra_supported = models.BooleanField(null=True, default=False)
+    sf_cloud_license_local = models.TextField(null=True, blank=True, help_text="Dict value")
+    sf_cloud_peer_limit = models.IntegerField(null=True, blank=True)
+    sf_cloud_supported = models.BooleanField(null=True, default=False)
+    site_id = models.CharField(_("Site ID"), max_length=250, default='')
+    sn = models.CharField(_("S/N"), max_length=150, null=True, blank=True)
+    source = models.CharField(max_length=255, null=True, blank=True)
+    sp_default = models.BooleanField(_("SP Default"), default=False)
+    starlink_status = ArrayField(models.CharField(max_length=10000, blank=True, null=True), blank=True, null=True, verbose_name="Starlink Status", help_text="Starlink Status")
+    status = models.CharField(_("Status"), max_length=150, null=True, blank=True)
+    sub_expiry_date = models.DateTimeField(null=True, blank=True)
+    sub_expired = models.BooleanField(null=True, default=False)
+    support_ssid_count = models.IntegerField(_("Supported SSID Count"), default=1)
+    tags = models.TextField(max_length=5000, null=True, blank=True, help_text='List value')
     uptime = models.IntegerField("Device up time", default=0)
-    uptime_appear = models.CharField(
-            _("Uptime Appear"),
-            help_text="Retrieval time of the device up time",
-            max_length=150,
-            null=True,
-            blank=True)
-    pepvpn_peers = models.IntegerField(
-            _("PEP VPN Peers Count"),
-            help_text="PEP VPN Peers Count",
-            default=0)
-    wifi_cfg = models.CharField(
-            _("WiFi Config"),
-            help_text="WiFi Configuration",
-            max_length=150,
-            null=True,
-            blank=True)
-    ddns_enabled = models.BooleanField(
-            _("DDNS Enabled"),
-            help_text="Is DDNS Enabled",
-            default=False)
-    onlineStatus = models.CharField(
-            _("Online Status"),
-            max_length=50,
-            default='offline',
-            help_text="Current online status")
-    wtp_ip = models.CharField(
-            _("WTP IP"),
-            max_length=50,
-            default='',
-            help_text="WTP IP")
-    hd_version = models.CharField(
-            _("Hardware version"),
-            default='',
-            max_length=150,
-            help_text="Hardware version")
-    hardware_version = models.CharField(
-            _("Hardware version"),
-            default='',
-            max_length=150,
-            help_text="Hardware version")
-    mvpn_version = models.CharField(
-            _("MVPN version"),
-            default='',
-            max_length=1000,
-            help_text="MVPN version")
-    site_id = models.CharField(
-            _("Site ID"),
-            default='',
-            max_length=250,
-            help_text="Site ID")
-    is_ap_schedule_enabled = models.BooleanField(
-            _("AP Schedule Enabled"),
-            help_text="Is DDNS Enabled",
-            default=False)
-    gobi_sim_lock_supported = models.BooleanField(
-            _("GOBI SIM lock Support"),
-            help_text="Is GOBI SIM lock Supported",
-            default=False)
+    uptime_appear = models.CharField(_("Uptime Appear"), max_length=150, null=True, blank=True)
+    usage = models.FloatField(null=True, blank=True)
+    vlan_interfaces = models.TextField(max_length=5000, null=True, blank=True, help_text='Dict value')
+    vlan_managed = models.BooleanField(null=True, default=False)
+    wtp_ip = models.CharField(_("WTP IP"), max_length=50, default='')
+    wifi_cfg = models.CharField(_("WiFi Config"), max_length=150, null=True, blank=True)
+    wifi_monitor_enabled = models.BooleanField(null=True, blank=True)
+    wifi_monitor_supported = models.BooleanField(null=True, blank=True)
+    wlan_probe_enabled = models.BooleanField(null=True, default=False)
+    wlan_probe_supported = models.BooleanField(null=True, default=False)
 
-    # location attributes, updated separately
-    # though the device location endpoint
-    location_timestamp = models.DateTimeField(
-            _("Location Timestamp"),
-            help_text="Last known location timestamp",
-            null=True, blank=True)
+    fw_ver = models.CharField(_("Firmware"), max_length=150, null=True, blank=True)
+    hw_expired = models.BooleanField(_("HW Expired"), default=False)
+    is_esim_supported = models.BooleanField(null=True, default=False)
+    lan_mac = models.CharField(_("LAN MAC"), max_length=150, null=True, blank=True)
+    max_esim_support = models.IntegerField(null=True, blank=True)
+    max_wifi_mesh_support = models.IntegerField(null=True, blank=True)
+    model = models.CharField(max_length=255, null=True, blank=True)
+    mv = models.CharField(max_length=255, null=True, blank=True)
+    offline_at = models.CharField(_("Last Offline"), max_length=150, null=True, blank=True)
+    peplink_app_access_allowed = models.BooleanField(default=False)
+    prime_expiry_date = models.DateTimeField(null=True, blank=True)
+    prime_expired = models.BooleanField(null=True, blank=True)
+    prime_type = models.IntegerField(null=True, blank=True)
+    sf_cloud_license_local = models.TextField(null=True, blank=True, help_text="Dict value")
+    sf_cloud_peer_limit = models.IntegerField(null=True, blank=True)
+    sf_cloud_supported = models.BooleanField(null=True, default=False)
+    source = models.CharField(max_length=255, null=True, blank=True)
+    sub_expired = models.BooleanField(null=True, default=False)
+    support_ssid_count = models.IntegerField(_("Supported SSID Count"), default=1)
+    tags = models.TextField(max_length=5000, null=True, blank=True, help_text='List value')
+    uptime = models.IntegerField("Device up time", default=0)
+    uptime_appear = models.CharField(_("Uptime Appear"), max_length=150, null=True, blank=True)
+    usage = models.FloatField(null=True, blank=True)
+    vlan_interfaces = models.TextField(max_length=5000, null=True, blank=True, help_text='Dict value')
+    vlan_managed = models.BooleanField(null=True, default=False)
+    wtp_ip = models.CharField(_("WTP IP"), max_length=50, default='')
+    wifi_cfg = models.CharField(_("WiFi Config"), max_length=150, null=True, blank=True)
+    wifi_monitor_enabled = models.BooleanField(null=True, blank=True)
+    wifi_monitor_supported = models.BooleanField(null=True, blank=True)
+    wlan_probe_enabled = models.BooleanField(null=True, default=False)
+    wlan_probe_supported = models.BooleanField(null=True, default=False)
 
-    latitude = models.FloatField(
-            _("Latitude"),
-            default=0.0,
-            help_text="Last known location (Latitude)")
+    tx = models.FloatField(null=True, blank=True, help_text="Transmission value")
+    rx = models.FloatField(null=True, blank=True, help_text="Reception value")
+    radio_bands = models.TextField(null=True, blank=True, help_text="List of radio bands")
+    dpi_supported = models.BooleanField(null=True, blank=True, help_text="DPI supported")
+    dpi_enabled = models.BooleanField(null=True, blank=True, help_text="DPI enabled")
+    watchdog_enabled = models.BooleanField(null=True, blank=True, help_text="Watchdog enabled")
+    watchdog_supported = models.BooleanField(null=True, blank=True, help_text="Watchdog supported")
+    ssid_mac_list = models.TextField(null=True, blank=True, help_text="List of SSID MACs")
+    v6_license = models.CharField(max_length=50, null=True, blank=True, help_text="IPv6 license status")
+    fw_pending_max_no_of_trial = models.IntegerField(null=True, blank=True, help_text="Max number of trial for pending firmware")
+    fw_managed = models.CharField(max_length=50, null=True, blank=True, help_text="Firmware management type")
+    mac_info = models.TextField(null=True, blank=True, help_text="List of MAC information")
+    slot_module_list = models.TextField(null=True, blank=True, help_text="List of slot modules")
+    route_info = models.TextField(null=True, blank=True, help_text="Route information")
+    ssid_profiles_applied = models.TextField(null=True, blank=True, help_text="SSID profiles applied")
 
-    longitude = models.FloatField(
-            _("Longitude"),
-            default=0.0,
-            help_text="Last known location (Longitude)")
+    timezone = models.IntegerField(null=True, blank=True, default=None)
+    timezone_label = models.CharField(max_length=50, null=True, blank=True, help_text="Timezone Label")
+
+    location_timestamp = models.DateTimeField( _("Location Timestamp"), help_text="Last known location timestamp", null=True, blank=True)
+    latitude = models.FloatField(_("Latitude"), default=0.0, help_text="Last known location (Latitude)")
+    longitude = models.FloatField(_("Longitude"), default=0.0, help_text="Last known location (Longitude)")
+
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+    internal_class = models.CharField("Internal Class", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
 
     class Meta:
         verbose_name = "Peplink Group Device"
@@ -382,6 +382,44 @@ class GroupDevice(models.Model):
 
     def __str__(self):
         return "{} ({})".format(self.name, self.sn)
+
+    @property
+    def last_reported_at(self):
+        last_reported = None
+
+        last_offline_date =  datetime(1970, 1, 1)
+        last_online_date =  datetime(1970, 1, 1)
+        try:
+            last_offline_date = datetime.strptime(self.offline_at, "%Y-%m-%dT%H:%M:%S")
+        except:
+            pass
+
+        try:
+            last_online_date = datetime.strptime(self.last_online, "%Y-%m-%dT%H:%M:%S")
+        except:
+            pass
+
+        if last_online_date > last_offline_date:
+            last_reported = self.last_online
+        else:
+            last_reported = self.offline_at
+
+        return last_reported
+
+    @property
+    def serial(self):
+        return self.sn
+
+    @property
+    def status_list(self):
+        # TODO: remove this method
+        # warnings.warn("status_list is deprecated. Use device_gen_info instead.", DeprecationWarning)
+        return {"model": self.product_name,
+                "status": self.status,
+                "status_text": self.status,
+                "serial": self.serial,
+                "name": self.name,
+                "device_name": self.name}
 
     @property
     def interfaces_list(self):
@@ -393,13 +431,39 @@ class GroupDevice(models.Model):
                 try:
                     tmp.append(literal_eval(interface))
                 except Exception:
-                    _logger.warn("Could not convert interface data to Python data type. {}".format(interface))
+                    _logger.warn("interfaces_list: Could not convert interface data to Python data type. {}".format(interface))
                     pass
         return tmp
 
     @property
-    def starlink_statuses(self):
+    def cellular_interfaces(self):
+        # get all celluar interfaces
+        # based on the interface type gobi
+        return [i for i in self.interfaces_list if i.get("type", "").lower() == "gobi"]
 
+
+    @property
+    def internet_interfaces(self):
+        """returns the list of internet interfaces that are not starlink nor cellular/lte"""
+        interfaces = []
+        for interface in self.interfaces_list:
+            if (interface.get("type", "").lower() == "ethernet"
+                and ("starlink" not in interface.get("status","").lower())):
+                interfaces.append(interface)
+        return interfaces
+
+    @property
+    def starlink_interfaces(self):
+        """returns the interface that is connected via Starlink"""
+        starlinks = []
+        for interface in self.interfaces_list:
+            if "starlink" in interface.get("status", "").lower():
+                starlinks.append(interface)
+        return starlinks
+
+    # TODO: allow multiple starlinks in one devices
+    @property
+    def starlink_status_dicts(self):
         from ast import literal_eval
         tmp = []
         if self.starlink_status:
@@ -407,9 +471,36 @@ class GroupDevice(models.Model):
                 try:
                     tmp.append(literal_eval(status))
                 except Exception:
-                    _logger.warn("Could not convert interface data to Python data type. {}".format(status))
-                    pass
+                    _logger.warn("starlink_status_dicts: Could not convert interface data to Python data type. {}".format(status))
+                pass
         return tmp
+
+    @property
+    def starlink_throughputs(self):
+        """returns a list of starlink trhoughputs"""
+        # TODO: modify so that it can handle multiple starlink info
+        throughputs = []
+        if self.starlink_status_dicts:
+            for status_dict in self.starlink_status_dicts:
+                throughput = {"uplink":"", "downlink":""}
+
+                ul = status_dict['dishGetStatus'].get('uplinkThroughputBps', 0.0)
+                dl = status_dict['dishGetStatus'].get('downlinkThroughputBps', 0.0)
+
+                # round ul to 2 decimals
+                ul = round(ul, 2) / 1000000.0
+                dl = round(dl, 2) / 1000000.0
+                # round ul and dl to 2 decimal places
+                ul = round(ul, 2)
+                dl = round(dl, 2)
+
+                ul_str = f"{ul} Mbps"
+                dl_str = f"{dl} Mbps"
+
+                throughput['uplink'] = ul_str
+                throughput['downlink'] = dl_str
+                throughputs.append(throughput)
+        return throughputs
 
     @property
     def incontrol_group(self):
@@ -452,8 +543,18 @@ class MerakiDevice(models.Model):
     firmware = models.CharField("Firmware", max_length=255, null=True, blank=True)
     url = models.CharField("URL", max_length=255, null=True, blank=True)
     details = models.CharField("Details", max_length=255, null=True, blank=True)
-
     network = models.ForeignKey('Network', on_delete=models.CASCADE, null=True, blank=True, default=None)
+    status_text = models.CharField("Device Status", max_length=100, null=True, blank=True, default='')
+    status_list = models.JSONField("Device Status Details", max_length=10000, null=True, blank=True, default=list)
+
+    publicIp = models.CharField("Public IP Address", max_length=100, null=True, blank=True)
+    gateway = models.CharField("Gateway", max_length=100, null=True, blank=True)
+    primaryDns = models.CharField("Primary DNS", max_length=100, null=True, blank=True)
+    secondaryDns = models.CharField("Secondary DNS", max_length=100, null=True, blank=True)
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+    internal_class = models.CharField("Internal Class", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
+
     class Meta:
         verbose_name = _("Meraki Device")
         verbose_name_plural = _("Meraki Devices")
@@ -461,6 +562,43 @@ class MerakiDevice(models.Model):
 
     def __str__(self):
         return f"{self.device_name} - {self.network_id} - SN: {self.serial}"
+
+    @property
+    def last_reported_at(self):
+        last_reported = ''
+        if self.status_list:
+            try:
+                last_reported = self.status_list[0].get('lastReportedAt', '')
+                return last_reported
+            except:
+                pass
+            # if the status_list does not contain a list
+            try:
+                last_reported = self.status_list.get('lastReportedAt', '')
+                return last_reported
+            except:
+                pass
+
+        return last_reported
+    @property
+    def sn(self):
+        return self.serial
+
+    @property
+    def name(self):
+        return self.device_name
+
+    @property
+    def status(self):
+        return self.status_text
+
+    @property
+    def latitude(self):
+        return self.lat
+
+    @property
+    def longitude(self):
+        return self.lng
 
 
 class CustomerNetwork(models.Model):
@@ -502,6 +640,8 @@ class UnifiSite(models.Model):
             null=True,
             verbose_name="Site Health",
             help_text="Site Health")
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
 
     class Meta:
         verbose_name = "Unifi Site"
@@ -524,15 +664,17 @@ class UnifiSite(models.Model):
 class UnifiDevice(models.Model):
 
     name = models.CharField("Device Name", max_length=255)
-#     _id = models.CharField("Device ID", max_length=255)
     mac = models.CharField("MAC", max_length=255)
     model = models.CharField("Model", max_length=255)
     device_type = models.CharField("Type", max_length=255)
     state = models.IntegerField("State", null=True, blank=True)
     in_gateway_mode = models.BooleanField("In Gateway Mode", null=True, blank=True)
     disabled = models.BooleanField("Disabled", null=True, blank=True)
-
     site = models.ForeignKey("UnifiSite", on_delete=models.CASCADE, null=True, blank=True, default=None)
+    serial = models.CharField("Serial", null=True, blank=True, max_length=255, default='')
+    last_updated_at = models.DateTimeField("Last Updated At", auto_now=True, null=True, blank=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True, null=True, blank=True)
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", null=True, blank=True, default="", max_length=255)
 
     class Meta:
         verbose_name = "Unifi Device"
@@ -541,6 +683,50 @@ class UnifiDevice(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.mac}"
+
+    @property
+    def sn(self):
+        return self.serial
+
+    @property
+    def status(self):
+        """
+        translate the status code to its name
+        ref: https://github.com/Art-of-WiFi/UniFi-API-client/blob/d36a088101e3422e98be1c042afdebaf5f190e8b/src/Client.php#L3379
+        """
+        STATUS = {0: "offline",
+                  1: "online",
+                  2: "pending adoption",
+                  4: "updating",
+                  5: "provisioning",
+                  6: "unreachable",
+                  7: "adopting",
+                  9: "adoption error",
+                  10: "adoption failed",
+                  11: "isolated"}
+
+        return STATUS.get(self.state, f'Unknown State {self.state}')
+
+    @property
+    def latitude(self):
+        return None
+
+    @property
+    def longitude(self):
+        return None
+
+
+    @property
+    def status_list(self):
+        # add deprecation message
+        # TODO: remove this method
+        # warnings.warn("status_list is deprecated. Use device_gen_info instead.", DeprecationWarning)
+        return {"model": self.model,
+                "status": self.status,
+                "status_text": self.status,
+                "serial": self.serial,
+                "name": self.name,
+                "device_name": self.name}
 
 
 class CustomerUnifiSite(models.Model):
@@ -554,3 +740,579 @@ class CustomerUnifiSite(models.Model):
 
     def __str__(self):
         return "{} ({})".format(self.customer.name, self.site.name)
+
+
+class DataSyncLog(models.Model):
+    data_type = models.CharField(verbose_name="Data Type", max_length=255, null=True, blank=True, default='')
+    sync_date = models.DateField(verbose_name="Sync Date", auto_now=True)
+    sync_time = models.DateTimeField(verbose_name="Sync Time", auto_now=True)
+    result = models.CharField(verbose_name="Sync Result", max_length=255, null=True, blank=True, default='')
+    message = models.TextField(verbose_name="Message", null=True, blank=True, default='')
+
+    def __str__(self):
+        return f"{self.data_type} - {self.sync_time} - {self.result}"
+
+# class NetworkSecurityEvent(models.Model):
+#     meraki_network = models.ForeignKey("Network", on_delete=models.CASCADE)
+#     event = models.JSONField("Event", null=True, blank=True)
+
+
+class DeviceStatus(models.Model):
+    ROUTER_STATUS_CHOICES = (
+        ('online', 'Online'),
+        ('offline', 'Offline'),
+        ('alerting', 'Alerting'),
+        ('dormant', 'Dormant'),
+        # Unifi-specific statuses
+        ('pending adoption', 'Pending Adoption'),
+        ('updating', 'Updating'),
+        ('provisioning', 'Provisioning'),
+        ('unreachable', 'Unreachable'),
+        ('adopting', 'Adopting'),
+        ('adoption error', 'Adoption Error'),
+        ('adoption failed', 'Adoption Failed'),
+        ('isolated', 'Isolated')
+
+    )
+    ROUTER_TYPE_CHOICES = (
+        ('M', 'Meraki'),
+        ('P', 'Peplink'),
+        ('U', 'Ubiquiti'),
+    )
+    customer = models.ForeignKey("Customer", on_delete=models.CASCADE)
+    device_name = models.CharField("Device Name", max_length=255, null=True, blank=True, default="")
+    device_type = models.CharField("Device Type", max_length=1, choices=ROUTER_TYPE_CHOICES, default='M')
+    status = models.CharField("Status", max_length=50, choices=ROUTER_STATUS_CHOICES, default='offline')
+    as_of_time = models.DateTimeField("As Of Time", auto_now_add=True)
+    network_id = models.CharField(max_length=255, null=True, blank=True, default='')
+    serial = models.CharField(max_length=255, null=True, blank=True, default='')
+    product_type = models.CharField(max_length=255, null=True, blank=True, default='')
+    model = models.CharField(max_length=255, null=True, blank=True, default='')
+    mac = models.CharField(max_length=255, null=True, blank=True, default='')
+    last_reported_at = models.DateTimeField("Last Reported At", null=True, blank=True, default=None)
+    latitude = models.DecimalField("Latitude", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
+    longitude = models.DecimalField("Longitude", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
+    heading = models.DecimalField("Heading", max_digits=12, decimal_places=8, null=True, blank=True, default=None)
+
+    class Meta:
+        verbose_name = "Device Status"
+        verbose_name_plural = "Device Statuses"
+
+    def __str__(self):
+        return f"{self.device_name} - {self.status} : [{self.as_of_time}]"
+
+    @property
+    def status_list(self):
+        """
+        A property function that returns a dictionary containing various status-related attributes.
+        NOTE: this is just for compatibility with some existing template code
+        """
+        # TODO: remove this method
+        # warnings.warn("status_list is deprecated. Use device_gen_info instead.", DeprecationWarning)
+
+        return {"model": self.model,
+                "status": self.status,
+                "status_text": self.status,
+                "serial": self.serial,
+                "name": self.device_name,
+                "device_name": self.device_name}
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.as_of_time = timezone.now()
+            previous_record = None
+            heading = None
+
+            if self.latitude or self.longitude:
+                past_24_hours = self.as_of_time - timedelta(hours=24)
+                previous_record = DeviceStatus.objects.filter(
+                    mac=self.mac,
+                    serial=self.serial,
+                    as_of_time__lt=self.as_of_time,
+                    as_of_time__gte=past_24_hours
+                ).order_by('-as_of_time').first()
+
+            if previous_record:
+                try:
+                    heading = calculate_heading(previous_record.latitude,
+                                                previous_record.longitude,
+                                                self.latitude,
+                                                self.longitude)
+                    self.heading = heading
+                except:
+                    pass
+
+        super(DeviceStatus, self).save(*args, **kwargs)
+
+    @classmethod
+    def get_wan_uptime_chart_data(cls, internal_class, device_serial, period='hour'):
+
+
+        query_params = []
+        select_query = """
+            with cte_last48hours as (
+                SELECT
+                    device_type,
+                    serial,
+                    as_of_time,
+                    CASE WHEN status = 'online' THEN
+                        100
+                    ELSE
+                        0
+                    END AS status
+                FROM dashboard_devicestatus
+                    WHERE as_of_time >= NOW() - INTERVAL '48 hours'
+                    AND serial = %(serial)s 
+                    ORDER BY as_of_time
+                )
+                ,interval_data AS (
+                    SELECT 
+                        device_type,
+                        serial AS device_serial,
+                        date_trunc(%(period)s, as_of_time) AS hour,
+                        AVG(status) AS uptime
+                    FROM cte_last48hours	
+                    GROUP BY 1, 2, 3
+                )
+                SELECT * FROM interval_data 
+            """
+        query_params = {
+            'serial': device_serial,
+            'period': period
+        }
+
+        result = []
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute(select_query, params=query_params)
+                result = cursor.fetchall()
+            except Exception as e:
+                _logger.warn("error fetching uptime percentage: {}".format(e))
+                raise e
+
+        for row in result:
+            #labels.append(row[0])  # Adjust format as needed
+            date_string = row[0]
+            if time_group in ('1w', '1mo'):
+                date_object = datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
+                # Format datetime object into desired string
+                formatted_date = date_object.strftime("%d-%b-%y").upper()
+                if time_group == '1mo':
+                    iso_year, iso_week_num, _ = date_object.isocalendar()
+                    formatted_date = formatted_date + f" (W{iso_week_num})"
+                labels.append(formatted_date)
+            else:
+                labels.append(row[0])
+
+
+        chart_data = {
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Online',
+                    'data': online_counts,
+                    'backgroundColor': 'rgba(28, 180, 84, 0.8)',
+                    'borderColor': 'rgba(75, 192, 192, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Offline',
+                    'data': offline_counts,
+                    'backgroundColor': 'rgba(180, 0, 0, 0.8)',
+                    'borderColor': 'rgba(255, 99, 132, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Alerting',
+                    'data': alerting_counts,
+                    'backgroundColor': 'rgba(255, 166, 0, 0.8)',
+                    'borderColor': 'rgba(255, 206, 86, 1)',
+                    'borderWidth': 1
+                }
+            ]
+        }
+
+        return json.dumps(chart_data)
+
+    @classmethod
+    def get_median_device_status(cls, customer_id, time_group='1h', calculation_method='median'):
+        interval_mapping = {
+            '1h': ('minute', '1 hour'),
+            '6h': ('hour', '6 hour'),
+            '24h': ('hour', '24 hour'),
+            '1w': ('day', '1 week'),
+            '1mo': ('week', '1 month'),
+        }
+
+        _5_minute_group = "- (EXTRACT(minute FROM as_of_time)::int %% 5) * INTERVAL '1 minute' "
+        extra_field = _5_minute_group if time_group == '1h' else ""
+
+        if time_group not in interval_mapping:
+            raise ValueError("Invalid interval specified")
+
+        if calculation_method not in ['median', 'average']:
+            raise ValueError("Invalid calculation method specified")
+
+        interval_bin = interval_mapping[time_group][0]
+        period_start = interval_mapping[time_group][1]
+        result = []
+
+        query_params = [interval_bin, int(customer_id)]
+
+        if calculation_method == 'median':
+            select_query = f"""
+                WITH daily_counts AS (
+                    SELECT
+                        date_trunc(%s, as_of_time) {extra_field} AS interval,
+                        status,
+                        COUNT(DISTINCT(serial)) AS count
+                    FROM
+                        public.dashboard_devicestatus
+                    WHERE
+                        customer_id = %s AND
+                        as_of_time >= now() - interval '{period_start}' AND
+                        as_of_time <= now() AND
+                        product_type IN ('appliance', 'ugw', 'udm', 'uxg', 'balancemax')
+                    GROUP BY
+                        1, 2
+                ),
+                ranked_counts AS (
+                    SELECT
+                        interval,
+                        status,
+                        count,
+                        ROW_NUMBER() OVER (PARTITION BY interval, status ORDER BY count) AS row_num,
+                        COUNT(*) OVER (PARTITION BY interval, status) AS total_counts
+                    FROM
+                        daily_counts
+                ),
+                median_counts AS (
+                    SELECT
+                        interval,
+                        status,
+                        count
+                    FROM
+                        ranked_counts
+                    WHERE
+                        row_num = (total_counts + 1) / 2
+                        OR (total_counts %% 2 = 0 AND row_num = (total_counts + 2) / 2)
+                )
+                SELECT
+                    to_char(interval, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
+                    COALESCE(MAX(CASE WHEN status = 'online' THEN count END), 0) AS median_online,
+                    COALESCE(MAX(CASE WHEN status = 'offline' THEN count END), 0) AS median_offline,
+                    COALESCE(MAX(CASE WHEN status = 'alerting' THEN count END), 0) AS median_alerting
+                FROM
+                    median_counts
+                GROUP BY
+                    1
+                ORDER BY
+                    formatted_interval
+            """
+        else:  # calculation_method == 'average'
+            select_query = f"""
+                SELECT
+                    to_char(date_trunc(%s, as_of_time) {extra_field}, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
+                    COALESCE(AVG(CASE WHEN status = 'online' THEN count END), 0) AS avg_online,
+                    COALESCE(AVG(CASE WHEN status = 'offline' THEN count END), 0) AS avg_offline,
+                    COALESCE(AVG(CASE WHEN status = 'alerting' THEN count END), 0) AS avg_alerting
+                FROM (
+                    SELECT
+                        date_trunc(%s, as_of_time) {extra_field} AS interval,
+                        status,
+                        COUNT(DISTINCT(serial)) AS count
+                    FROM
+                        public.dashboard_devicestatus
+                    WHERE
+                        customer_id = %s AND
+                        as_of_time >= now() - interval '{period_start}' AND
+                        as_of_time <= now() AND
+                        product_type IN ('appliance', 'ugw', 'udm', 'uxg', 'balancemax')
+                    GROUP BY
+                        1, 2
+                ) AS subquery
+                GROUP BY
+                    1
+                ORDER BY
+                    formatted_interval
+            """
+            query_params.append(interval_bin)  # Add interval_bin again for the nested subquery
+
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute(select_query, params=query_params)
+                result = cursor.fetchall()
+            except Exception as e:
+                _logger.warn("error fetching historical device status: {}".format(e))
+                raise e  # Re-raise the exception after logging
+
+        # Formatting result for ChartJS
+        labels = []
+        online_counts = []
+        offline_counts = []
+        alerting_counts = []
+
+        for row in result:
+            #labels.append(row[0])  # Adjust format as needed
+            date_string = row[0]
+            if time_group in ('1w', '1mo'):
+                date_object = datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
+                # Format datetime object into desired string
+                formatted_date = date_object.strftime("%d-%b-%y").upper()
+                if time_group == '1mo':
+                    iso_year, iso_week_num, _ = date_object.isocalendar()
+                    formatted_date = formatted_date + f" (W{iso_week_num})"
+                labels.append(formatted_date)
+            else:
+                labels.append(row[0])
+
+            online_counts.append(row[1])
+            offline_counts.append(row[2])
+            alerting_counts.append(row[3])
+
+        chart_data = {
+            'labels': labels,
+            'datasets': [
+                {
+                    'label': 'Online',
+                    'data': online_counts,
+                    'backgroundColor': 'rgba(28, 180, 84, 0.8)',
+                    'borderColor': 'rgba(75, 192, 192, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Offline',
+                    'data': offline_counts,
+                    'backgroundColor': 'rgba(180, 0, 0, 0.8)',
+                    'borderColor': 'rgba(255, 99, 132, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Alerting',
+                    'data': alerting_counts,
+                    'backgroundColor': 'rgba(255, 166, 0, 0.8)',
+                    'borderColor': 'rgba(255, 206, 86, 1)',
+                    'borderWidth': 1
+                }
+            ]
+        }
+
+        return json.dumps(chart_data)
+
+class StarlinkInfoHistory(models.Model):
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process",
+                                       max_length=255, default="")
+    #maybe we don't need this id anymore because one record here could contain multiple interfaces
+    interface_id = models.IntegerField(null=True, blank=True, default=0, help_text="index in the interfaces list")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)  # This could contain multiple interfaces
+    dish_status_json = models.JSONField(null=True, blank=True) # this could contain multiple dish statuses
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Starlink Info History"
+        verbose_name_plural = "Starlink Info Histories"
+        unique_together = ('internal_class', 'interface_id', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+
+    @property
+    def dish_status(self):
+        # return json.loads(self.dish_status_json)
+        return self.dish_status_json
+
+    @property
+    def interface(self):
+        # return json.loads(self.interface_json)
+        return self.interface_json
+
+
+    @classmethod
+    def get_starlink_uptime_chart_data(cls, internal_class, device_serial, starlink_index=0, start_date=None, end_date=None):
+        if not start_date:
+            start_date = datetime.now() - timedelta(hours=1000)
+        if not end_date:
+            end_date = datetime.now()
+
+        try:
+            starlink_index = int(starlink_index)
+        except ValueError:
+            starlink_index = 0
+
+        params = {
+            "internal_class": internal_class,
+            "device_serial": device_serial,
+            "starlink_index": starlink_index
+        }
+
+        data_sql = """
+            WITH filtered_data AS (
+                SELECT device_serial,
+                    CASE
+                        WHEN jsonb_typeof(dish_status_json) = 'array' THEN
+                            COALESCE((dish_status_json->%(starlink_index)s->'dishGetStatus'->'deviceState'->>'uptimeS')::int, 0)
+                        ELSE
+                            COALESCE((dish_status_json->'dishGetStatus'->'deviceState'->>'uptimeS')::int, 0)
+                    END AS uptime_s,
+                    as_of_time
+                FROM dashboard_starlinkinfohistory
+                WHERE as_of_time >= NOW() - INTERVAL '24 hours'
+                      AND device_serial = %(device_serial)s
+                      AND internal_class = %(internal_class)s
+            ),
+            interval_data AS (
+                SELECT device_serial,
+                    date_trunc('hour', as_of_time) AS hour,
+                    uptime_s,
+                    CASE
+                        WHEN uptime_s >= 180 THEN 100 
+                        ELSE (uptime_s / 180.0) * 100
+                    END AS uptime_percentage
+                FROM filtered_data
+            )
+            SELECT
+                row_number() OVER () AS id,
+                device_serial,
+                hour,
+                AVG(uptime_percentage) AS avg_uptime_percentage
+            FROM interval_data
+            GROUP BY device_serial, hour
+            ORDER BY device_serial, hour
+        """
+        # import pdb
+        starlink_info_hist = cls.objects.raw(data_sql, params=params)
+        labels = []
+        series_data =[]
+     
+        for info in starlink_info_hist:
+            labels.append(info.hour.strftime("%Y-%m-%d %H:%M:%S"))
+            #serialized_uptime = json.dumps({'value': str(info.avg_uptime_percentage)}, cls=DjangoJSONEncoder)
+            series_data.append(str(info.avg_uptime_percentage))
+            
+        chart_data={    
+            "labels": labels,
+            "series": series_data
+        }
+        return chart_data
+
+
+    @classmethod
+    def get_starlink_chart_data(cls, internal_class, device_serial, data_type, interface_index=0, start_date=None, end_date=None):
+        # time range is 24 hours by default
+        if not start_date:
+            start_date = datetime.now() - timedelta(hours=24)
+        if not end_date:
+            end_date = datetime.now()
+
+        data_types_series = {
+            "bandwidth": ["downlinkThroughputBps", "uplinkThroughputBps"],
+            "latency": ["popPingLatencyMs"]
+        }
+        try:
+            interface_index = int(interface_index)
+        except ValueError:
+            interface_index = 0
+        fields = data_types_series.get(data_type, [])
+        # get data based on time range
+        starlink_info_hist = cls.objects.filter(internal_class=internal_class,
+                           device_serial=device_serial,
+                           as_of_time__gte=start_date,
+                           as_of_time__lte=end_date).order_by('-as_of_time')
+
+        labels = []
+        series_data = { f:[] for f in fields }
+
+        for info in starlink_info_hist:
+            labels.append(info.as_of_time.strftime("%Y-%m-%d %H:%M:%S"))
+
+            for f in fields:
+                field_value = 0.0
+                try:
+                    if type(info.dish_status) is list:
+                        dish_status = info.dish_status[interface_index]
+                    elif type(info.dish_status) is dict:
+                        dish_status = info.dish_status
+
+                    field_value = dish_status.get('dishGetStatus', {}).get(f, 0.0)
+                except:
+                    print("====================================== ERROR GETTING BANDWIDTH DATA")
+                    pass
+                    _logger.error(f"get_starlink_chart_data: could not get value for field {f}", exc_info=True)
+                series_data[f].append(field_value)
+
+
+        return {
+            "labels": labels,
+            "data_series": series_data
+        }
+
+
+
+class CellularInfoHistory(models.Model):
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", max_length=255, default="")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Cellular Info History"
+        verbose_name_plural = "Cellular Info Histories"
+        unique_together = ('internal_class', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+
+
+class RouterGPSHistory(models.Model):
+    """ for a more granular GPS location info """
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process", max_length=255, default="")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Router GPS History"
+        verbose_name_plural = "Router GPS Histories"
+        unique_together = ('internal_class', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+
+
+class WANInfoHistory(models.Model):
+    internal_class = models.CharField("Internal Classification", help_text="Automatically Set by DataSync Process",
+                                       max_length=255, default="")
+    device_serial = models.CharField(max_length=255, null=True, blank=True)
+    interface_json = models.JSONField(null=True, blank=True)  # This could contain multiple interfaces
+    as_of_time = models.DateTimeField("As Of Time", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "WAN Info History"
+        verbose_name_plural = "WAN Info Histories"
+        unique_together = ('internal_class', 'device_serial', 'as_of_time')
+
+    def __str__(self):
+        return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
+    
+    @classmethod
+    def get_wan_chart_data(cls, internal_class, device_serial, data_type, interface_index=0, start_date=None, end_date=None):
+        # time range is 24 hours by default
+        if not start_date:
+            start_date = datetime.now() - timedelta(hours=24)
+        if not end_date:
+            end_date = datetime.now()
+
+        
+        try:
+            interface_index = int(interface_index)
+        except ValueError:
+            interface_index = 0
+        fields = data_types_series.get(data_type, [])
+        # get data based on time range
+        wan_info_hist = cls.objects.filter(internal_class=internal_class,
+                           device_serial=device_serial,
+                           as_of_time__gte=start_date,
+                           as_of_time__lte=end_date).order_by('-as_of_time')
+

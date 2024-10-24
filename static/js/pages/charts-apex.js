@@ -74,6 +74,7 @@ var options = {
                     show: false
                 }
             },
+
             legend: {
                 show: false
             },

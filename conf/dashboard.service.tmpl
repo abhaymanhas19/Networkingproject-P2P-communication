@@ -1,0 +1,14 @@
+[Unit]
+Description=P2P Dashboard (dev)
+After=network.target
+
+[Service]
+User=P2Pmgmt
+Group=www-data
+WorkingDirectory=/home/P2Pmgmt/sites/dashboard/dev/src
+Environment="DJANGO_SETTINGS_MODULE=userdashboard.settings"
+ExecStart=/home/P2Pmgmt/sites/dashboard/dev/env/bin/gunicorn -c /home/P2Pmgmt/sites/dashboard/dev/src/conf/gunicorn.conf.py userdashboard.wsgi
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

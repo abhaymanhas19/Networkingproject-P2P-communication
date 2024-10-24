@@ -34,11 +34,12 @@
     <!-- Customer Dropdown Button -->
     <div id="organization-dropdown" class="relative">
 
-        {% if customer_data %}
+        {% if current_customer %}
+
             <button id="current-customer" data-fc-type="dropdown" data-fc-placement="bottom-end" type="button" class="nav-link p-2 fc-dropdown"
-                    data-customer-id="{{ customer_data.0.id }}">
+                    data-customer-id="{{ current_customer.id }}">
                 <span id="current-customer-initials" class="flex items-center justify-center h-6 w-6">
-                    {{ customer_data.0.initials }}
+                    {{ current_customer.initials }}
                 </span>
             </button>
         {% else %}

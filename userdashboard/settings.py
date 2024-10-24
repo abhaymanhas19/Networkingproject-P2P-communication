@@ -92,6 +92,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "dashboard.context_processors.dashboard_context",
             ],
         },
     },
@@ -163,6 +164,7 @@ MERAKI_BASE_URL = "https://api.meraki.com/api/v1"
 PEPLINK_CLIENT_ID = "e6cae6bc74aae418f0fde7f81d4ac79b"
 PEPLINK_CLIENT_SECRET ="a442d62121547623b5e6c26242e2d268"
 
+DATA_RETENTION_DAYS = 180
 
 SEMANTIC_APP_LIST = [
     {
@@ -176,6 +178,10 @@ SEMANTIC_APP_LIST = [
                    {"object_name": "GroupDevice"},
                    {"object_name": "UnifiSite"},
                    {"object_name": "UnifiDevice"},
+                   {"object_name": "DataSyncLog"},
+                   {"object_name": "DeviceStatus"},
+                   {"object_name": "StarlinkInfoHistory"},
+                   {"object_name": "CellularInfoHistory"}
                    ],
     },
     {
@@ -183,6 +189,9 @@ SEMANTIC_APP_LIST = [
         "models": [{"object_name": "User"}, {"object_name": "Group"}],
     },
 ]
+
+# the status to use when Status is not available in the APIs
+MISSING_STATUS_TEXT = 'unknown'
 
 # This is just for additional settings if you don't want to user .env
 # LOCAL SETTINGS
