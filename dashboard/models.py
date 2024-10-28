@@ -862,19 +862,19 @@ class DeviceStatus(models.Model):
                     END AS status
                 FROM dashboard_devicestatus
                     WHERE as_of_time >= NOW() - INTERVAL '48 hours'
-                    AND serial = %(serial)s 
+                    AND serial = %(serial)s
                     ORDER BY as_of_time
                 )
                 ,interval_data AS (
-                    SELECT 
+                    SELECT
                         device_type,
                         serial AS device_serial,
                         date_trunc(%(period)s, as_of_time) AS hour,
                         AVG(status) AS uptime
-                    FROM cte_last48hours	
+                    FROM cte_last48hours
                     GROUP BY 1, 2, 3
                 )
-                SELECT * FROM interval_data 
+                SELECT * FROM interval_data
             """
         query_params = {
             'serial': device_serial,
@@ -1078,21 +1078,21 @@ class DeviceStatus(models.Model):
                     'data': online_counts,
                     'backgroundColor': 'rgba(28, 180, 84, 0.8)',
                     'borderColor': 'rgba(75, 192, 192, 1)',
-                    'borderWidth': 1
+                    'borderWidth': 4
                 },
                 {
                     'label': 'Offline',
                     'data': offline_counts,
                     'backgroundColor': 'rgba(180, 0, 0, 0.8)',
                     'borderColor': 'rgba(255, 99, 132, 1)',
-                    'borderWidth': 1
+                    'borderWidth': 4
                 },
                 {
                     'label': 'Alerting',
                     'data': alerting_counts,
                     'backgroundColor': 'rgba(255, 166, 0, 0.8)',
                     'borderColor': 'rgba(255, 206, 86, 1)',
-                    'borderWidth': 1
+                    'borderWidth': 4
                 }
             ]
         }
@@ -1166,7 +1166,7 @@ class StarlinkInfoHistory(models.Model):
                     date_trunc('hour', as_of_time) AS hour,
                     uptime_s,
                     CASE
-                        WHEN uptime_s >= 180 THEN 100 
+                        WHEN uptime_s >= 180 THEN 100
                         ELSE (uptime_s / 180.0) * 100
                     END AS uptime_percentage
                 FROM filtered_data
@@ -1184,13 +1184,13 @@ class StarlinkInfoHistory(models.Model):
         starlink_info_hist = cls.objects.raw(data_sql, params=params)
         labels = []
         series_data =[]
-     
+
         for info in starlink_info_hist:
             labels.append(info.hour.strftime("%Y-%m-%d %H:%M:%S"))
             #serialized_uptime = json.dumps({'value': str(info.avg_uptime_percentage)}, cls=DjangoJSONEncoder)
             series_data.append(str(info.avg_uptime_percentage))
-            
-        chart_data={    
+
+        chart_data={
             "labels": labels,
             "series": series_data
         }
@@ -1295,7 +1295,7 @@ class WANInfoHistory(models.Model):
 
     def __str__(self):
         return f"{self.internal_class} - {self.device_serial} - {self.as_of_time}"
-    
+
     @classmethod
     def get_wan_chart_data(cls, internal_class, device_serial, data_type, interface_index=0, start_date=None, end_date=None):
         # time range is 24 hours by default
@@ -1304,7 +1304,7 @@ class WANInfoHistory(models.Model):
         if not end_date:
             end_date = datetime.now()
 
-        
+
         try:
             interface_index = int(interface_index)
         except ValueError:

@@ -580,17 +580,17 @@
         var interval = 'day'; // Replace with dynamic value if needed
         var ctx = document.getElementById('deviceStatusChart').getContext('2d');
         var historyChart = new Chart(ctx, {
-            type: 'bar',
+            type: 'line',
             data: [],
             options: {
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        stacked: true,
+                        stacked: false,
                         title: {text: "Date/Time", display: true}
                     },
                     y: {
-                        stacked: true,
+                        stacked: false,
                         title: {text: "Number of Devices", display: true}
                     }
                 }
