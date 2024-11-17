@@ -164,14 +164,14 @@
             </button>
         </div>
         <div class="p-6">
-            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-2 xl:grid-cols-2 md:grid-cols-1 sm:grid-cols-1 w-full overflow-auto transition-[height] duration-300 flex">
+            <div id="collapseStarlinkDetails" class="grid lg:grid-cols-1 xl:grid-cols-1 md:grid-cols-1 sm:grid-cols-1 w-full overflow-auto transition-[height] duration-300 flex">
 
                 {% if device.starlink_status %}
+                <div class="card-body">
                 <!--STARLINK STATUS START -->
                 {% comment %} loop over starlink interfaces {% endcomment %}
                     {% for starlink_interface in device.starlink_interfaces %}
                         <div class="col-span-2">
-
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style="margin-bottom:20px">
 
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -195,7 +195,7 @@
                                     {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">Alerts</td>
-                                        <td id="starlink-alerts-{{ forloop.counter0 }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{starlink_status.dishGetStatus.alerts}}</td>
+                                        <td id="starlink-alerts-{{ forloop.counter0 }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{starlink_status.dishGetStatus.alerts|keys_with_true_values}}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"></td>
                                     </tr>
                                     {% endwith %}
@@ -205,8 +205,10 @@
                             </table>
                         </div> <!--table end -->
 
-                        <div class="card flex justify-between items-center col-span-2"  style="box-shadow:none;">
-                            <div class="flex">
+                        <!-- <div class="card flex justify-between items-center col-span-2"  style="box-shadow:none;"> -->
+                        <div class="card flex"  style="box-shadow:none;border:none; box-shadow:none;">
+                        
+                            <div class="flex" style="padding-top:40px;">
                                 <div class="canvas-container">
                                     <h2>Latency</h2>
                                     <canvas id="speed-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
@@ -222,24 +224,7 @@
                                 </div>
                                 {% endwith %}
                             </div> 
-
-                            <div class="card w-full" style="margin-left:10px; border-width: 1px;boder-color:white;">
-                                <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}"
-                                            class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white"
-                                            data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
-
-                                <div class="chart-container" style="height: 250px; min-height:250px; border: solid 1px red;">
-                                    
-                                    <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}"></canvas>
-                                </div>
-                            </div>
-                            
-                        </div>
-
-
-
-                        <div class="card flex justify-between items-center col-span-2"  style="margin-top:20px; box-shadow:none; width:100%;">
-                            <div class="gauge-container">
+                            <div class="gauge-container" style="margin-left:30px;padding-top:40px;">
                                 <h2>Obstruction</h2>
                                 <canvas id="obstruction-gauge-{{ forloop.counter0 }}" width="250px" height="250px"></canvas>
                                 <div class="gauge-text-container">
@@ -250,16 +235,27 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="card col-span-2" style="margin-left:10px; border-width: 1px;boder-color:white; ">
+                        </div>
 
-                                    <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}"  width="550px" height="250px"></canvas>
+                        <!-- <div class="card w-full" style="margin-top:20px; box-shadow:none; width:100%;"> -->
+                        <div class="card" style="margin-bottom:20px; border:none; box-shadow:none;">
+                            <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}"
+                                    class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white"
+                                    data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
+
+                            <div class="chart-container" style="position: relative; height: 350px; min-height:250px; width:90vw;">
+                                <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}" style="height: 300px; min-height:245px; width:1800px;"></canvas>
                             </div>
-
-
+                        </div>
+            
+                        <div class="card" style="margin-bottom:20px; border:none; box-shadow:none;">
+                            <div class="card w-full" style="position: relative; height: 350px; min-height:300px; width:90vw; border:none; box-shadow:none;">
+                                <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}" style="height: 245px; min-height:245px; width:1800px;"></canvas>
+                            </div>
                         </div>
                     {% endfor %}
                 <!-- STARLINK INFO END -->
-
+                </div>
                 {% else %}
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white">
                         No Starlink Status
