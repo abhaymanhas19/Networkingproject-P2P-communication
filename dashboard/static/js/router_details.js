@@ -137,6 +137,7 @@ function  renderUptimeChart(data, ctx, chartName){
         },
         options: {
             responsive: true,
+            // maintainAspectRatio: true,
             plugins: {
                 legend: {
                     position: 'top',

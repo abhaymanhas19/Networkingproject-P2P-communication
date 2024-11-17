@@ -477,7 +477,7 @@ class GroupDevice(models.Model):
 
     @property
     def starlink_throughputs(self):
-        """returns a list of starlink trhoughputs"""
+        """returns a list of starlink throughputs"""
         # TODO: modify so that it can handle multiple starlink info
         throughputs = []
         if self.starlink_status_dicts:
