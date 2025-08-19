@@ -579,23 +579,105 @@
         var customer_id = {{ current_customer.id }};  // Replace with dynamic value if needed
         var interval = 'day'; // Replace with dynamic value if needed
         var ctx = document.getElementById('deviceStatusChart').getContext('2d');
+
+        // soft gradient for fills
+        function makeGradient(ctx, color) {
+            const g = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+            g.addColorStop(0, color);                   // top = solid color
+            g.addColorStop(1, 'rgba(255,255,255,0.05)'); // bottom = almost white
+            return g;
+        }
+
         var historyChart = new Chart(ctx, {
-            type: 'line',
-            data: [],
-            options: {
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        stacked: false,
-                        title: {text: "Date/Time", display: true}
-                    },
-                    y: {
-                        stacked: false,
-                        title: {text: "Number of Devices", display: true}
-                    }
-                }
+        type: 'line', // area chart in Chart.js = line + fill:true
+        data: { labels: [], datasets: [] },
+        options: {
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: true } },
+            scales: {
+            x: {
+                stacked: false,
+                title: { text: "Date/Time", display: true }
+                // We need to enable this if we'll use timestamps
+                // type: 'time',
+                // time: { tooltipFormat: 'MMM d, HH:mm' }
+            },
+            y: {
+                stacked: true, // 👈 stacked areas
+                beginAtZero: true,
+                title: { text: "Number of Devices", display: true }
             }
+            },
+            elements: {
+            line: { borderWidth: 2, tension: 0.3 },
+            point: { radius: 0 }
+            }
+        }
         });
+
+        // Normalize color coming from server (string/array/gradient)
+        function toColorString(c) {
+        if (!c) return null;
+        if (Array.isArray(c)) return toColorString(c[0]);
+        if (typeof c === 'object') return null; // gradient/pattern, skip
+        const s = String(c).trim();
+        return s ? s : null;
+        }
+
+        // Build vertical gradient: solid at top -> near white bottom
+        function makeTopSolidGradient(ctx, solid) {
+        // final fallback if caller forgets to pass a color
+        const solidColor = toColorString(solid) || 'rgba(75,192,192,0.95)';
+        const h = (ctx.canvas && ctx.canvas.height) ? ctx.canvas.height : 300;
+        const g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, solidColor);                 // top: solid
+        g.addColorStop(1, 'rgba(255,255,255,0.05)');   // bottom: near white
+        return g;
+        }
+
+        function applyChartData(chart, incoming) {
+        if (!incoming || !Array.isArray(incoming.datasets)) {
+            console.warn('Unexpected chart payload:', incoming);
+            return;
+        }
+
+        const ctx = chart.ctx;
+
+        // Preferred top colors by label
+        const labelColorMap = {
+            'Online':   'rgba(28,180,84,0.95)',  // green
+            'Offline':  'rgba(180,0,0,0.95)',    // red
+            'Alerting': 'rgba(255,166,0,0.95)'   // orange
+        };
+
+        chart.data.labels = incoming.labels || [];
+
+        chart.data.datasets = incoming.datasets.map((ds) => {
+            // pick a safe color
+            const candidate =
+            labelColorMap[ds.label] ||
+            toColorString(ds.borderColor) ||
+            toColorString(ds.backgroundColor) ||
+            'rgba(75,192,192,0.95)';
+
+            const gradient = makeTopSolidGradient(ctx, candidate);
+
+            return {
+            ...ds,                     // keep server data
+            type: 'line',
+            fill: true,                // area
+            tension: 0.3,
+            pointRadius: 0,
+            borderWidth: ds.borderWidth ?? 2,
+            borderColor: toColorString(ds.borderColor) || candidate,
+            backgroundColor: gradient
+            };
+        });
+
+        chart.update();
+        }
+
 
         $(".period-selection a").on("click", function(event) {
             event.preventDefault(); // Prevent the default anchor behavior
@@ -615,8 +697,9 @@
                     xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
                 },
                 success: function(data) {
-                    historyChart.data = data;
-                    historyChart.update();
+                    // historyChart.data = data;
+                    // historyChart.update();
+                    applyChartData(historyChart, data);
                 },
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", status, error);
