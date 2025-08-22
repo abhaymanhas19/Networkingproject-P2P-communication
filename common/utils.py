@@ -169,3 +169,24 @@ def calculate_heading(start_lat, start_lng, end_lat, end_lng):
     heading = (initial_heading + 360) % 360
 
     return heading
+
+
+
+def is_valid_date_range(s: str) -> bool:
+    """
+    Check if the string follows the pattern YYYY-MM-DD to YYYY-MM-DD
+    and that both dates are valid.
+    """
+    pattern = r"^\d{4}-\d{2}-\d{2}\s+to\s+\d{4}-\d{2}-\d{2}$"
+    if not re.match(pattern, s):
+        return False
+
+    try:
+        start_str, end_str = s.split(" to ")
+        start_date = datetime.datetime.strptime(start_str, "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(end_str, "%Y-%m-%d")
+
+        # Optional: enforce that end_date is after start_date
+        return start_date < end_date
+    except ValueError:
+        return False
