@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 
+ <!-- datepicker css -->
+ <link rel="stylesheet" href="{% static 'libs/flatpickr/flatpickr.min.css' %}">
 
 {% endblock extra_css %}
 
@@ -401,6 +403,10 @@
                                 <a id="hist-24-hour" data-period="24h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">24 hours</a>
                                 <a id="hist-1-week" data-period="1w" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
                                 <a id="hist-1-month" data-period="1mo" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
+                                <button id="hist-custom" data-period="range" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" 
+                                    data-fc-type="modal" type="button" data-fc-offset="0" data-fc-trigger="click" data-fc-target="device-status-date-filter-popup"
+                                >Custom</button>
+
                             </div>
 
                             {% comment %} <button id="btn-method-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
@@ -442,6 +448,32 @@
 
     </div> <!-- Grid End -->
 
+        <!-- Custom date range pop-up -->
+        <div id="device-status-date-filter-popup" class="fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden w-full h-full min-h-full items-center fc-modal-open:flex">
+            <div class="fc-modal-open:opacity-100 duration-500 opacity-0 ease-out transition-[opacity] sm:max-w-lg sm:w-full sm:mx-auto  flex-col bg-white border shadow-sm rounded-md dark:bg-slate-800 dark:border-gray-700">
+                <div class="flex justify-between items-center py-2.5 px-4 border-b dark:border-gray-700">
+                    <h3 class="font-medium text-gray-800 dark:text-white text-lg">
+                        Select Date Range
+                    </h3>
+                    <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 dark:text-gray-200"
+                            data-fc-dismiss type="button">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+                <div class="px-4 py-8 overflow-y-auto">
+                    <p class="text-gray-800 dark:text-gray-200">
+                        Date format: YYYY-MM-DD
+                    </p>
+                    <input type="text" class="form-input" id="datepicker-custom-date-range">
+                    
+                </div>
+                
+                <div class="flex justify-end items-center gap-4 p-4 border-t dark:border-slate-700">
+                    <button class="py-2 px-5 inline-flex justify-center items-center gap-2 rounded dark:text-gray-200 border dark:border-slate-700 font-medium hover:bg-slate-100 hover:dark:bg-slate-700 transition-all" data-fc-dismiss type="button">Cancel</button>
+                    <a id="btn-device-status-filter" class="py-2.5 px-4 inline-flex justify-center items-center gap-2 rounded bg-primary hover:bg-primary-600 text-white" data-fc-dismiss type="button"  href="javascript:void(0)">OK</a>
+                </div>
+            </div>
+        </div>
 
         <div id="tracking-map-popup" class="w-full h-full fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden">
             <div
@@ -507,11 +539,23 @@
 <!-- Apexcharts js -->
 {% comment %} <script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script> {% endcomment %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <!-- init js -->
+ <script src="{% static 'libs/flatpickr/flatpickr.min.js' %}"></script>
+
 <script>
 
     var asset_markers = [];
 
     $(document).ready(function() {
+
+        flatpickr('#datepicker-custom-date-range', {
+            mode: "range",
+            defaultDate: [                                   // last 30 days
+                new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+                new Date()                                     // or "today"
+                ],
+            maxDate: new Date()
+        });
         var gpsHistoryMap = L.map('gps-history-map').setView([0, 0], 3);
         var map = L.map('asset-location-map').setView([0, 0], 2);
 
@@ -707,6 +751,39 @@
             });
 
         });
+
+        $("#btn-device-status-filter").on("click", function(event) {
+            event.preventDefault(); // Prevent the default anchor behavior
+            var periodValue = $("#datepicker-custom-date-range").val();
+            if (periodValue == ''){
+                alert("Please select a range of date");
+                return;
+            }
+            $("#btn-period-selection").text(periodValue);
+
+            $.ajax({
+                url: "{% url 'device_status_chart' %}",
+                type: "GET",
+                data: {
+                    customer_id: customer_id,
+                    interval: interval,
+                    time_group: periodValue
+                },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
+                },
+                success: function(data) {
+                    // historyChart.data = data;
+                    // historyChart.update();
+                    applyChartData(historyChart, data);
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+
+        });
+       
         // call the click event of the default time group button
         // to set the default on page load
         $('#hist-6-hours').click();
