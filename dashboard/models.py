@@ -19,7 +19,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from common.utils import calculate_heading
+from common.utils import calculate_heading, is_valid_date_range
 
 
 _logger = logging.getLogger(__name__)
@@ -943,35 +943,49 @@ class DeviceStatus(models.Model):
             '1w': ('day', '1 week'),
             '1mo': ('week', '1 month'),
         }
+        
+        period_end = ''
+        period_start = ''
+        extra_field = ''
+        # expect this format: 2025-07-11 to 2025-07-31
+        if is_valid_date_range (time_group):
 
-        _5_minute_group = "- (EXTRACT(minute FROM as_of_time)::int %% 5) * INTERVAL '1 minute' "
-        extra_field = _5_minute_group if time_group == '1h' else ""
+            date_range = time_group.split('to')
+            period_start = f"'{date_range[0].strip()}'::DATE"
+            period_end = f"'{date_range[1].strip()}'::DATE"
+            extra_field = ''
+            interval_bin = 'day'
+            
+        else:
+            period_end = 'now()'
+            _5_minute_group = "- (EXTRACT(minute FROM as_of_time)::int %% 5) * INTERVAL '1 minute' "
+            extra_field = _5_minute_group if time_group == '1h' else ""
 
-        if time_group not in interval_mapping:
-            raise ValueError("Invalid interval specified")
+            if time_group not in interval_mapping:
+                raise ValueError("Invalid interval specified")
 
-        if calculation_method not in ['median', 'average']:
-            raise ValueError("Invalid calculation method specified")
-
-        interval_bin = interval_mapping[time_group][0]
-        period_start = interval_mapping[time_group][1]
-        result = []
+            if calculation_method not in ['median', 'average']:
+                raise ValueError("Invalid calculation method specified")
+            #TODO: add period_start and period_end
+            interval_bin = interval_mapping[time_group][0]
+            period_start = f"now() - interval '{interval_mapping[time_group][1]}'"
+            result = []
 
         query_params = [interval_bin, int(customer_id)]
-
+        #TODO: modify the query so that the end date is a variable based from the  given time_group
         if calculation_method == 'median':
             select_query = f"""
                 WITH daily_counts AS (
                     SELECT
-                        date_trunc(%s, as_of_time) {extra_field} AS interval,
+                        date_trunc(%(interval_bin)s, as_of_time) {extra_field} AS interval,
                         status,
                         COUNT(DISTINCT(serial)) AS count
                     FROM
                         public.dashboard_devicestatus
                     WHERE
-                        customer_id = %s AND
-                        as_of_time >= now() - interval '{period_start}' AND
-                        as_of_time <= now() AND
+                        customer_id = %(customer_id)s AND
+                        as_of_time >= {period_start} AND
+                        as_of_time <= {period_end} AND
                         product_type IN ('appliance', 'ugw', 'udm', 'uxg', 'balancemax')
                     GROUP BY
                         1, 2
@@ -1012,7 +1026,7 @@ class DeviceStatus(models.Model):
         else:  # calculation_method == 'average'
             select_query = f"""
                 SELECT
-                    to_char(date_trunc(%s, as_of_time) {extra_field}, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
+                    to_char(date_trunc(%(interval_bin)s, as_of_time) {extra_field}, 'YYYY-MM-DD HH24:MI:SS') AS formatted_interval,
                     COALESCE(AVG(CASE WHEN status = 'online' THEN count END), 0) AS avg_online,
                     COALESCE(AVG(CASE WHEN status = 'offline' THEN count END), 0) AS avg_offline,
                     COALESCE(AVG(CASE WHEN status = 'alerting' THEN count END), 0) AS avg_alerting
@@ -1024,9 +1038,9 @@ class DeviceStatus(models.Model):
                     FROM
                         public.dashboard_devicestatus
                     WHERE
-                        customer_id = %s AND
-                        as_of_time >= now() - interval '{period_start}' AND
-                        as_of_time <= now() AND
+                        customer_id = %(customer_id)s AND
+                        as_of_time >= {period_start} AND
+                        as_of_time <= {period_end} AND
                         product_type IN ('appliance', 'ugw', 'udm', 'uxg', 'balancemax')
                     GROUP BY
                         1, 2
@@ -1036,10 +1050,16 @@ class DeviceStatus(models.Model):
                 ORDER BY
                     formatted_interval
             """
-            query_params.append(interval_bin)  # Add interval_bin again for the nested subquery
-
+        query_params = {
+            "interval_bin": interval_bin,
+            "customer_id": customer_id,
+            "period_start": period_start,
+            "period_end": period_end,
+        }
+            
         with connection.cursor() as cursor:
             try:
+                sql_debug = cursor.mogrify(select_query, query_params).decode("utf-8")
                 cursor.execute(select_query, params=query_params)
                 result = cursor.fetchall()
             except Exception as e:

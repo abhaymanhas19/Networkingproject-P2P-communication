@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-=lqx#r=na287jn-%uk*nxf)l=*@^lqxfe&o2a*#%q1a0w8n9g0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['dashboard-dev.p2pnetworks.net', 'dashboard.p2pnetworks.net']
 
 
 AUTHENTICATION_BACKENDS = [
@@ -181,7 +181,8 @@ SEMANTIC_APP_LIST = [
                    {"object_name": "DataSyncLog"},
                    {"object_name": "DeviceStatus"},
                    {"object_name": "StarlinkInfoHistory"},
-                   {"object_name": "CellularInfoHistory"}
+                   {"object_name": "CellularInfoHistory"},
+                   {"object_name": "WANInfoHistory"}
                    ],
     },
     {
@@ -192,6 +193,8 @@ SEMANTIC_APP_LIST = [
 
 # the status to use when Status is not available in the APIs
 MISSING_STATUS_TEXT = 'unknown'
+
+CSRF_TRUSTED_ORIGINS = ["https://dashboard-dev.p2pnetworks.net", "https://dashboard.p2pnetworks.net"]
 
 # This is just for additional settings if you don't want to user .env
 # LOCAL SETTINGS
