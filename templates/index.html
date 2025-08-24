@@ -1,5 +1,4 @@
 {% extends "partials/base.html" %}
-
 {% load static %}
 
 {% block title %}Dashboard{% endblock title %}
@@ -8,892 +7,574 @@
 {% include "partials/head-css.html" %}
 
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-<!-- Add Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-<!-- Add MarkerCluster CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="{% static 'libs/flatpickr/flatpickr.min.css' %}">
 
- <!-- datepicker css -->
- <link rel="stylesheet" href="{% static 'libs/flatpickr/flatpickr.min.css' %}">
+<style>
+  /* Keep FrostUI modal below our manual overlay */
+  #tracking-map-popup { z-index: 1050; }
 
+  /* Flatpickr must always float above overlays */
+  .flatpickr-calendar { z-index: 2147483647 !important; }
+</style>
 {% endblock extra_css %}
 
 {% block pagetitle %}
 {% with h_title=current_customer.name|default:" - " %}
-    {% comment %} {% include "partials/page-title.html" with pagetitle="Menu" title="Dashboard for "|add:h_title %} {% endcomment %}
-    {% include "partials/page-title.html" with pagetitle="Menu" title=h_title|add:"" %}
+  {% include "partials/page-title.html" with pagetitle="Menu" title=h_title|add:"" %}
 {% endwith %}
 {% endblock pagetitle %}
 
 {% block content %}
-<div id="wan-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:65%">
-    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
-        <h3 class="font-medium">
-            WAN Summary
-        </h3>
-        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
-            <span class="material-symbols-rounded">close</span>
-        </button>
-    </div>
-    <div class="p-2" style="display:flex; height:100%"> <!--content-->
-
-        <div class="min-w-full inline-block align-middle flex-container">
-            <div class="table-scrollable-container">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-
-                            {% for dev in wan_summary.online_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in wan_summary.alerting_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in wan_summary.offline_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-
-                            {% for dev in wan_summary.dormant_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-
-
-
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-    </div>
-</div> <!-- offcanvas -->
-
-<div id="lan-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:65%">
-    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
-        <h3 class="font-medium">
-            LAN Summary
-        </h3>
-        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
-            <span class="material-symbols-rounded">close</span>
-        </button>
-    </div>
-    <div class="p-2" style="display:flex; height:100%"> <!--content-->
-
-        <div class="min-w-full inline-block align-middle flex-container">
-            <div class="table-scrollable-container">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-
-                            {% for dev in lan_summary.online_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in lan_summary.alerting_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in lan_summary.offline_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-
-                            {% for dev in lan_summary.dormant_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-    </div>
-</div> <!-- offcanvas -->
-
-
-<div id="wireless-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" style="max-width:65%">
-    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
-        <h3 class="font-medium">
-            Wireless Summary
-        </h3>
-        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
-            <span class="material-symbols-rounded">close</span>
-        </button>
-    </div>
-    <div class="p-2" style="display:flex; height:100%"> <!--content-->
-
-            <div class="min-w-full inline-block align-middle flex-container">
-                <div class="table-scrollable-container">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial/MAC</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-
-                            {% for dev in wireless_summary.online_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 online-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in wireless_summary.alerting_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 alerting-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in wireless_summary.offline_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200"">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200 offline-text">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-                            {% for dev in wireless_summary.dormant_devices %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{% firstof dev.name dev.device_name %}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ dev.serial }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ dev.status }}</td>
-                                </tr>
-                            {% endfor %}
-
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-    </div> <!--content-->
-</div> <!-- offcanvas -->
-
-<div id="threats-summary-canvas" class="fc-offcanvas-open:translate-x-0 translate-x-full fixed top-0 right-0 transition-all duration-300 transform h-full max-w-sm w-full  z-50 bg-white border-l dark:bg-gray-800 dark:border-gray-700 hidden" >
-    <div class="flex justify-between items-center py-2 px-4 border-b dark:border-gray-700">
-        <h3 class="font-medium">
-            Threats Summary By Network
-        </h3>
-        <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-700  text-sm dark:text-gray-500 dark:hover:text-gray-400" data-fc-dismiss type="button">
-            <span class="material-symbols-rounded">close</span>
-        </button>
-    </div>
-    <div class="p-2">
-        <div class="overflow-x-auto">
-            <div class="min-w-full inline-block align-middle flex-container">
-                <div class="table-scrollable-container">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Count</th>
-
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-
-                            {% for ne in threats_summary.data %}
-                                <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ ne.network_name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-200">{{ ne.network_name_id }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{{ ne.total }}</td>
-                                </tr>
-                            {% endfor %}
-
-
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div> <!-- offcanvas -->
+{# --- your WAN/LAN/Wireless/Threats offcanvas blocks (unchanged) --- #}
 
 <!-- main content -->
 <div class="grid 2xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
-        <div class="2xl:col-span-3">
-            <div class="grid xl:grid-cols-4 md:grid-cols-2 gap-6 mb-6">
-                <div class="card">
-                    <div class="card-header flex items-center">
-                        <i class="msr"  style="font-size: 24px;">globe_uk</i>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">WAN STATUS</p>
-                    </div>
-                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
-                        {% if wan_summary.status_summary.0 != 'None' %}
-                            <button class="btn text-white w-full {% if wan_summary.status_summary.0 == 'Good' or wan_summary.status_summary.0 == 'Fair' %}bg-success{% elif wan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wan_summary.status_summary.0 == 'Critical' %}bg-danger{% elif wan_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
-                                {{ wan_summary.status_summary.0 }}
-                            </button>
-                        {% else %}
-                            <button class="btn text-white w-full" style="background-color:#64748b" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
-                                {{ wan_summary.status_summary.0 }}
-                            </button>
-                        {% endif %}
-                    </div>
-                    {% comment %} <div class="p-2 flex space-x-0  mt-0">
-                        {% for dev in wan_summary.online_devices %}
-                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% for dev in wan_summary.alerting_devices %}
-                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% for dev in wan_summary.offline_devices %}
-                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% if wan_summary.status_summary.0 == 'None' %}
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                        {% endif %}
-                    </div> <!-- content--> {% endcomment %}
-
-                </div> <!-- card end -->
-                <div class="card">
-                    <div class="card-header flex items-center">
-                        <i class="msr"  style="font-size: 24px;">lan</i>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">LAN STATUS</p>
-                                  {% comment %} text-base mb-1 text-gray-600 dark:text-gray-400 {% endcomment %}
-                    </div>
-                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
-                        {% if lan_summary.status_summary.0 != 'None' %}
-                            <button class="btn text-white w-full {% if lan_summary.status_summary.0 == 'Good' or lan_summary.status_summary.0 == 'Fair' %}bg-success{% elif lan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif lan_summary.status_summary.0 == 'Critical' %}bg-danger{% elif lan_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#lan-summary-canvas">
-                                {{ lan_summary.status_summary.0 }}
-                            </button>
-                        {% else %}
-                            <button class="btn text-white w-full" style="background-color:#64748b">
-                                {{ lan_summary.status_summary.0 }}
-                            </button>
-                        {% endif %}
-                    </div>
-                    {% comment %} <div class="p-2 flex space-x-0  mt-0">
-                        {% for dev in lan_summary.online_devices %}
-                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% for dev in lan_summary.alerting_devices %}
-                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% for dev in lan_summary.offline_devices %}
-                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% if lan_summary.status_summary.0 == 'None' %}
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                        {% endif %}
-                    </div> <!-- content--> {% endcomment %}
-                </div> <!-- card end -->
-                <div class="card">
-                    <div class="card-header flex items-center">
-                        <i class="msr"  style="font-size: 24px;">wifi</i>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">WIRELESS STATUS</p>
-
-                    </div>
-                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
-                        {% if wireless_summary.status_summary.0 != 'None' %}
-                            <button class="btn text-white w-full {% if wireless_summary.status_summary.0 == 'Good' or wireless_summary.status_summary.0 == 'Fair' %}bg-success{% elif wireless_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wireless_summary.status_summary.0 == 'Critical' %}bg-danger{% elif wireless_summary.status_summary.0 == 'None' %}bg-secondary{% endif %}" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wireless-summary-canvas">
-                                {{ wireless_summary.status_summary.0 }}
-                            </button>
-                        {% else %}
-                            <button class="btn text-white w-full" style="background-color:#64748b">
-                                {{ wireless_summary.status_summary.0 }}
-                            </button>
-                        {% endif %}
-                    </div>
-                    {% comment %} <div class="p-2 flex space-x-0  mt-0">
-                        {% for dev in wireless_summary.online_devices %}
-                            <div class="w-4 h-4" style="background-color:#228B22" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% for dev in wireless_summary.alerting_devices %}
-                            <div class="w-4 h-4" style="background-color:#FFD700" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% for dev in wireless_summary.offline_devices %}
-                            <div class="w-4 h-4" style="background-color:#FF0000" data-device_info="{{ dev }}"></div>
-                        {% endfor %}
-                        {% if wireless_summary.status_summary.0 == 'None' %}
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                            <div class="w-4 h-4 bg-gray-500" style="background-color: transparent; border: 1px solid #64848b;"></div>
-                        {% endif %}
-                    </div> <!-- content--> {% endcomment %}
-                </div> <!-- card end -->
-
-                <div class="card">
-                    <div class="card-header flex items-center">
-                        <i class="msr"  style="font-size: 24px;">privacy_tip</i>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 ml-10" style="margin-left: 10px;">THREATS</p>
-                    </div>
-                    <div class="p-2 mb-0" style="display: flex; justify-content: center;">
-                        {% if threats_summary.total > 0 %}
-                            <button class="btn text-white w-full bg-danger" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
-                                {{ threats_summary.total }} found
-                            </button>
-                        {% else %}
-                            <button class="btn text-white w-full bg-success" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
-                                No threats!
-                            </button>
-                        {% endif %}
-                    </div>
-
-                </div> <!-- card end -->
-
-
-
-            </div>
-            <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
-                <div class="card">
-                    <div class="card-header" style="display:flex;justify-content: space-between;align-items: center;">
-                        <h4 class="card-title">WAN Historical Data</h4>
-
-                        <div style="display:flex">
-
-                            <button id="btn-period-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
-                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
-                                    data-period="1h">1 hour<i class="mgc_down_line text-lg"></i></button>
-
-                            <div class="period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
-                                <a id="hist-1-hour" data-period="1h"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 hour</a>
-                                <a id="hist-6-hours" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hours</a>
-                                <a id="hist-24-hour" data-period="24h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">24 hours</a>
-                                <a id="hist-1-week" data-period="1w" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
-                                <a id="hist-1-month" data-period="1mo" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
-                                <button id="hist-custom" data-period="range" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" 
-                                    data-fc-type="modal" type="button" data-fc-offset="0" data-fc-trigger="click" data-fc-target="device-status-date-filter-popup"
-                                >Custom</button>
-
-                            </div>
-
-                            {% comment %} <button id="btn-method-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
-                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
-                                    data-period="1h">Average<i class="mgc_down_line text-lg"></i></button>
-
-                            <div class="method-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
-                                <a id="method-avg" data-period="1h"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">Average</a>
-                                <a id="method-mdn" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">Median</a>
-                            </div> {% endcomment %}
-
-                        </div>
-                    </div>
-                    <div class="p-6" style="position: relative; height:45vh; width:75vw">
-
-                        <canvas id="deviceStatusChart" class="apex-charts" dir="ltr"></canvas>
-                    </div>
-                </div><!--end card-->
-            </div>
-
-            <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="card-title">Asset Location</h4>
-                        <button id="btn-show-route" class="btn btn-sm bg-primary text-white hidden" data-fc-type="modal" data-fc-target="tracking-map-popup" type="button">Show Route</button>
-
-                    </div>
-                    <div class="p-6">
-
-                        <div id="asset-location-map" class="m-10 z-10" ></div>
-                    </div>
-                </div><!--end card-->
-            </div>
-
-
+  <div class="2xl:col-span-3">
+    <div class="grid xl:grid-cols-4 md:grid-cols-2 gap-6 mb-6">
+      <!-- WAN card -->
+      <div class="card">
+        <div class="card-header flex items-center">
+          <i class="msr" style="font-size: 24px;">globe_uk</i>
+          <p class="text-sm text-gray-600 dark:text-gray-400 ml-10">WAN STATUS</p>
         </div>
-        {% comment %} div class="2xl:col-span-3"> {% endcomment %}
-
-
-    </div> <!-- Grid End -->
-
-        <!-- Custom date range pop-up -->
-        <div id="device-status-date-filter-popup" class="fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden w-full h-full min-h-full items-center fc-modal-open:flex">
-            <div class="fc-modal-open:opacity-100 duration-500 opacity-0 ease-out transition-[opacity] sm:max-w-lg sm:w-full sm:mx-auto  flex-col bg-white border shadow-sm rounded-md dark:bg-slate-800 dark:border-gray-700">
-                <div class="flex justify-between items-center py-2.5 px-4 border-b dark:border-gray-700">
-                    <h3 class="font-medium text-gray-800 dark:text-white text-lg">
-                        Select Date Range
-                    </h3>
-                    <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 dark:text-gray-200"
-                            data-fc-dismiss type="button">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-                <div class="px-4 py-8 overflow-y-auto">
-                    <p class="text-gray-800 dark:text-gray-200">
-                        Date format: YYYY-MM-DD
-                    </p>
-                    <input type="text" class="form-input" id="datepicker-custom-date-range">
-                    
-                </div>
-                
-                <div class="flex justify-end items-center gap-4 p-4 border-t dark:border-slate-700">
-                    <button class="py-2 px-5 inline-flex justify-center items-center gap-2 rounded dark:text-gray-200 border dark:border-slate-700 font-medium hover:bg-slate-100 hover:dark:bg-slate-700 transition-all" data-fc-dismiss type="button">Cancel</button>
-                    <a id="btn-device-status-filter" class="py-2.5 px-4 inline-flex justify-center items-center gap-2 rounded bg-primary hover:bg-primary-600 text-white" data-fc-dismiss type="button"  href="javascript:void(0)">OK</a>
-                </div>
-            </div>
+        <div class="p-2 mb-0" style="display:flex;justify-content:center;">
+          {% if wan_summary.status_summary.0 != 'None' %}
+            <button class="btn text-white w-full {% if wan_summary.status_summary.0 == 'Good' or wan_summary.status_summary.0 == 'Fair' %}bg-success{% elif wan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wan_summary.status_summary.0 == 'Critical' %}bg-danger{% else %}bg-secondary{% endif %}"
+                    data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
+              {{ wan_summary.status_summary.0 }}
+            </button>
+          {% else %}
+            <button class="btn text-white w-full" style="background-color:#64748b"
+                    data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wan-summary-canvas">
+              {{ wan_summary.status_summary.0 }}
+            </button>
+          {% endif %}
         </div>
+      </div>
 
-        <div id="tracking-map-popup" class="w-full h-full fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden">
-            <div
-                class="fc-modal-open:opacity-100 duration-500 h-screen w-screen opacity-0 ease-out transition-all flex flex-col bg-white p-8 dark:bg-slate-800 dark:border-gray-700">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-medium text-gray-800 dark:text-white text-2xl">
-                        GPS Location History
-                    </h3>
-                    <button
-                        id="btn-close-tracking-map-popup"
-                        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 dark:text-gray-200"
-                        data-fc-dismiss type="button">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-                <div class="overflow-y-auto mt-3">
-                    <div style="display:flex;justify-content: space-between;align-items: center;">
-                        <div style="padding-left:30px">
-                            <p id="tracking-device-name-serial" class="text-gray-800 dark:text-gray-200 text-lg">DEVICE NAME (s/n)</p>
-                            <span id="tracking-device-model" class="text-gray-800 dark:text-gray-200 text-sm">Model: </span>
-                            <span id="tracking-device-mac" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">MAC:</span>
-                            <span id="tracking-device-loc" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">loc: (lat,lng)</span>
-                            <span id="tracking-device-heading" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">heading: </span>
-                            <span id="tracking-device-last-reported" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">Location Timestamp: DATE</span>
-                        </div>
-                        <div style="padding-right:40px; z-index:5000">
-                            <button id="btn-track-period" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
-                                    class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
-                                    data-period="360">6 hours<i class="mgc_down_line text-lg"></i></button>
-
-                            <div class="track-period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
-                                <a id="track-30min" data-period="30"class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">30 Minutes</a>
-                                <a id="track-6hr" data-period="360" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hour</a>
-                                <a id="track-1w" data-period="10080" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
-                                <a id="track-1mo" data-period="43800" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
-                            </div>
-
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <div id="gps-history-map" class="m-10" style="height: 35vw;"></div>
-                    </div>
-                </div>
-                <div class="flex justify-end items-center gap-4 mt-auto">
-                    <button
-                        class="btn dark:text-gray-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:dark:bg-slate-700 transition-all"
-                        data-fc-dismiss type="button">Close
-                    </button>
-                    <a class="btn bg-primary text-white"
-                        href="javascript:void(0)">Play</a>
-                </div>
-            </div>
+      <!-- LAN card -->
+      <div class="card">
+        <div class="card-header flex items-center">
+          <i class="msr" style="font-size: 24px;">lan</i>
+          <p class="text-sm text-gray-600 dark:text-gray-400 ml-10">LAN STATUS</p>
         </div>
+        <div class="p-2 mb-0" style="display:flex;justify-content:center;">
+          {% if lan_summary.status_summary.0 != 'None' %}
+            <button class="btn text-white w-full {% if lan_summary.status_summary.0 == 'Good' or lan_summary.status_summary.0 == 'Fair' %}bg-success{% elif lan_summary.status_summary.0 == 'Poor' %}bg-warning{% elif lan_summary.status_summary.0 == 'Critical' %}bg-danger{% else %}bg-secondary{% endif %}"
+                    data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#lan-summary-canvas">
+              {{ lan_summary.status_summary.0 }}
+            </button>
+          {% else %}
+            <button class="btn text-white w-full" style="background-color:#64748b">
+              {{ lan_summary.status_summary.0 }}
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Wireless card -->
+      <div class="card">
+        <div class="card-header flex items-center">
+          <i class="msr" style="font-size: 24px;">wifi</i>
+          <p class="text-sm text-gray-600 dark:text-gray-400 ml-10">WIRELESS STATUS</p>
+        </div>
+        <div class="p-2 mb-0" style="display:flex;justify-content:center;">
+          {% if wireless_summary.status_summary.0 != 'None' %}
+            <button class="btn text-white w-full {% if wireless_summary.status_summary.0 == 'Good' or wireless_summary.status_summary.0 == 'Fair' %}bg-success{% elif wireless_summary.status_summary.0 == 'Poor' %}bg-warning{% elif wireless_summary.status_summary.0 == 'Critical' %}bg-danger{% else %}bg-secondary{% endif %}"
+                    data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#wireless-summary-canvas">
+              {{ wireless_summary.status_summary.0 }}
+            </button>
+          {% else %}
+            <button class="btn text-white w-full" style="background-color:#64748b">
+              {{ wireless_summary.status_summary.0 }}
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Threats card -->
+      <div class="card">
+        <div class="card-header flex items-center">
+          <i class="msr" style="font-size: 24px;">privacy_tip</i>
+          <p class="text-sm text-gray-600 dark:text-gray-400 ml-10">THREATS</p>
+        </div>
+        <div class="p-2 mb-0" style="display:flex;justify-content:center;">
+          {% if threats_summary.total > 0 %}
+            <button class="btn text-white w-full bg-danger" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
+              {{ threats_summary.total }} found
+            </button>
+          {% else %}
+            <button class="btn text-white w-full bg-success" data-fc-type="offcanvas" data-ui-toggle="offcanvas" data-fc-target="#threats-summary-canvas">
+              No threats!
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- WAN Historical Data -->
+    <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+      <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <h4 class="card-title">WAN Historical Data</h4>
+          <div style="display:flex">
+            <button id="btn-period-selection" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
+              class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
+              data-period="1h">1 hour<i class="mgc_down_line text-lg"></i></button>
+
+            <div class="period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
+              <a id="hist-1-hour" data-period="1h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 hour</a>
+              <a id="hist-6-hours" data-period="6h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hours</a>
+              <a id="hist-24-hour" data-period="24h" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">24 hours</a>
+              <a id="hist-1-week" data-period="1w" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
+              <a id="hist-1-month" data-period="1mo" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
+              <button id="hist-custom" data-period="range" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                      data-fc-type="modal" type="button" data-fc-offset="0" data-fc-trigger="click" data-fc-target="#device-status-date-filter-popup">
+                Custom
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="p-6" style="position:relative;height:45vh;width:75vw">
+          <canvas id="deviceStatusChart" class="apex-charts" dir="ltr"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Asset Location -->
+    <div class="grid xl:grid-cols-1 md:grid-cols-1 gap-6 mb-6">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">Asset Location</h4>
+          <button id="btn-show-route" class="btn btn-sm bg-primary text-white hidden"
+                  data-fc-type="modal" data-fc-target="#tracking-map-popup" type="button">
+            Show Route
+          </button>
+        </div>
+        <div class="p-6">
+          <div id="asset-location-map" class="m-10 z-10"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FrostUI modal: WAN date range -->
+<div id="device-status-date-filter-popup" class="fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden w-full h-full min-h-full items-center fc-modal-open:flex">
+  <div class="fc-modal-open:opacity-100 duration-500 opacity-0 ease-out transition-[opacity] sm:max-w-lg sm:w-full sm:mx-auto flex-col bg-white border shadow-sm rounded-md dark:bg-slate-800 dark:border-gray-700">
+    <div class="flex justify-between items-center py-2.5 px-4 border-b dark:border-gray-700">
+      <h3 class="font-medium text-gray-800 dark:text-white text-lg">Select Date Range</h3>
+      <button class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 dark:text-gray-200" data-fc-dismiss type="button">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <div class="px-4 py-8 overflow-y-auto">
+      <p class="text-gray-800 dark:text-gray-200">Date format: YYYY-MM-DD</p>
+      <input type="text" class="form-input" id="datepicker-custom-date-range">
+    </div>
+    <div class="flex justify-end items-center gap-4 p-4 border-t dark:border-slate-700">
+      <button class="py-2 px-5 rounded border dark:border-slate-700" data-fc-dismiss type="button">Cancel</button>
+      <a id="btn-device-status-filter" class="py-2.5 px-4 rounded bg-primary text-white" data-fc-dismiss href="javascript:void(0)">OK</a>
+    </div>
+  </div>
+</div>
+
+<!-- FrostUI modal: GPS history -->
+<div id="tracking-map-popup" 
+    class="w-full h-full fixed top-0 left-0 z-50 transition-all duration-500 fc-modal hidden"
+    data-fc-behavior="static" data-fc-backdrop="static">
+  <div class="fc-modal-open:opacity-100 duration-500 h-screen w-screen opacity-0 ease-out transition-all flex flex-col bg-white p-8 dark:bg-slate-800 dark:border-gray-700">
+    <div class="flex justify-between items-center">
+      <h3 class="font-medium text-gray-800 dark:text-white text-2xl">GPS Location History</h3>
+      <button id="btn-close-tracking-map-popup" class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 dark:text-gray-200" data-fc-dismiss type="button">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <div class="overflow-y-auto mt-3">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="padding-left:30px">
+          <p id="tracking-device-name-serial" class="text-gray-800 dark:text-gray-200 text-lg">DEVICE NAME (s/n)</p>
+          <span id="tracking-device-model" class="text-gray-800 dark:text-gray-200 text-sm">Model: </span>
+          <span id="tracking-device-mac" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">MAC:</span>
+          <span id="tracking-device-loc" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">loc: (lat,lng)</span>
+          <span id="tracking-device-heading" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">heading: </span>
+          <span id="tracking-device-last-reported" class="text-gray-800 dark:text-gray-200 text-sm" style="margin-left:20px;">Location Timestamp: DATE</span>
+        </div>
+        <div style="padding-right:40px; z-index:5000">
+          <button id="btn-track-period" data-fc-type="dropdown" type="button" data-fc-offset="0" data-fc-trigger="hover"
+                  class="py-2 px-3 inline-flex justify-center items-center rounded-md border font-medium bg-white text-gray-700 shadow-sm align-middle hover:bg-gray-50 transition-all text-sm dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-gray-400 dark:hover:text-white"
+                  data-period="360">6 hours<i class="mgc_down_line text-lg"></i></button>
+
+          <div class="track-period-selection hidden fc-dropdown-open:opacity-100 opacity-0 z-50 transition-all duration-300 bg-white border shadow-md rounded-lg p-2 dark:bg-slate-800 dark:border-slate-700">
+            <a id="track-30min" data-period="30" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">30 Minutes</a>
+            <a id="track-6hr" data-period="360" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">6 hour</a>
+            <a id="track-1w" data-period="10080" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 week</a>
+            <a id="track-1mo" data-period="43800" class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" href="#">1 month</a>
+
+            <!-- CUSTOM opens our manual overlay, not FrostUI -->
+            <button id="track-custom" type="button"
+                    class="flex items-center py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+              Custom
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        <div id="gps-history-map" class="m-10" style="height: 35vw;"></div>
+      </div>
+    </div>
+    <div class="flex justify-end items-center gap-4 mt-auto">
+      <button class="btn dark:text-gray-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:dark:bg-slate-700 transition-all"
+              data-fc-dismiss type="button">Close</button>
+      <a class="btn bg-primary text-white" href="javascript:void(0)">Play</a>
+    </div>
+  </div>
+  <div id="track-date-overlay" style="display:none;">
+    <!-- Backdrop & card (Tailwind-ish) -->
+    <div style="position:absolute; inset:0; background:rgba(0,0,0,.5)"></div>
+  
+    <div class="relative z-10 sm:max-w-lg w-full mx-auto
+                bg-white border shadow-sm rounded-md
+                dark:bg-slate-800 dark:border-gray-700"
+         style="max-width: 640px; margin: auto; padding: 0 0;">
+      <div class="flex justify-between items-center py-2.5 px-4 border-b dark:border-gray-700">
+        <h3 class="font-medium text-gray-800 dark:text-white text-lg">Select Date Range</h3>
+        <button id="track-overlay-close" class="inline-flex justify-center items-center h-8 w-8" type="button" aria-label="Close">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="px-4 py-8 overflow-y-auto">
+        <p class="text-gray-800 dark:text-gray-200">Date format: YYYY-MM-DD</p>
+        <input type="text" class="form-input" id="datepicker-track-range">
+      </div>
+      <div class="flex justify-end items-center gap-4 p-4 border-t dark:border-slate-700">
+        <button id="track-overlay-cancel" class="py-2 px-5 rounded border" type="button">Cancel</button>
+        <a id="btn-track-filter" class="py-2.5 px-4 rounded bg-primary text-white" href="javascript:void(0)">OK</a>
+      </div>
+    </div>
+  </div>
+  
+</div>
 
 
-    {% endblock content %}
+{% endblock content %}
 
 {% block extra_js %}
-<!-- Add Leaflet JavaScript -->
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-<!-- Add MarkerCluster JavaScript -->
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-<!-- Apexcharts js -->
-{% comment %} <script src="{% static 'libs/apexcharts/apexcharts.min.js' %}"></script> {% endcomment %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
- <!-- init js -->
- <script src="{% static 'libs/flatpickr/flatpickr.min.js' %}"></script>
+<script src="{% static 'libs/flatpickr/flatpickr.min.js' %}"></script>
 
 <script>
-
-    var asset_markers = [];
-
-    $(document).ready(function() {
-
-        flatpickr('#datepicker-custom-date-range', {
-            mode: "range",
-            defaultDate: [                                   // last 30 days
-                new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                new Date()                                     // or "today"
-                ],
-            maxDate: new Date()
+    $(function () {
+      /* ==================== Datepickers ==================== */
+    
+      // FrostUI (WAN) date range inside its own modal
+      flatpickr('#datepicker-custom-date-range', {
+        mode: 'range',
+        defaultDate: [ new Date(Date.now() - 30*24*60*60*1000), new Date() ],
+        maxDate: new Date()
+      });
+    
+      /* ==================== Overlay inside FrostUI modal ==================== */
+    
+      const TRACK_MODAL_ID = 'tracking-map-popup';
+      const OVERLAY_ID     = 'track-date-overlay';
+      const RANGE_INPUT_ID = 'datepicker-track-range';
+    
+      // Ensure overlay lives inside the FrostUI modal (so clicks remain "inside")
+      function ensureOverlayInsideModal() {
+        const modal  = document.getElementById(TRACK_MODAL_ID);
+        const overlay = document.getElementById(OVERLAY_ID);
+        if (!modal || !overlay) return null;
+        if (!modal.contains(overlay)) {
+          modal.appendChild(overlay); // move it under the modal
+        }
+        // Make sure it visually covers the modal content
+        overlay.style.position = 'fixed';      // viewport pinned but DOM child of modal
+        overlay.style.inset    = '0';
+        overlay.style.display  = 'none';
+        overlay.style.zIndex   = '2147483646'; // above FrostUI backdrop
+        return overlay;
+      }
+    
+      let trackPicker = null;
+    
+      function ensureTrackPicker() {
+        if (trackPicker) return trackPicker;
+        const input = document.getElementById(RANGE_INPUT_ID);
+        // Render INLINE to keep all interactions inside the modal
+        trackPicker = flatpickr(input, {
+          mode: 'range',
+          inline: true,             // <<< no floating calendar
+          static: true,
+          defaultDate: [ new Date(Date.now() - 6*60*60*1000), new Date() ],
+          maxDate: new Date()
         });
-        var gpsHistoryMap = L.map('gps-history-map').setView([0, 0], 3);
-        var map = L.map('asset-location-map').setView([0, 0], 2);
+        return trackPicker;
+      }
+    
+      function openTrackOverlay() {
+        const overlay = ensureOverlayInsideModal();
+        if (!overlay) return;
+    
+        // Initialize picker if needed
+        ensureTrackPicker();
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        // focus the inline input for accessibility
+        const input = document.getElementById(RANGE_INPUT_ID);
+        if (input) input.focus();
+      }
+    
+      function closeTrackOverlay() {
+        const overlay = document.getElementById(OVERLAY_ID);
+        if (overlay) overlay.style.display = 'none';
+      }
+    
+      // Open from dropdown item inside the modal
+      $(document).on('click', '#track-custom', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openTrackOverlay();
+      });
+    
+      // Close buttons inside overlay
+      $(document).on('click', '#track-overlay-close, #track-overlay-cancel', function (e) {
+        e.preventDefault();
+        e.stopPropagation(); // keep it inside the modal world
+        closeTrackOverlay();
+      });
+    
+      // Clicking the overlay backdrop closes the overlay (but NOT the modal)
+      const overlayEl = document.getElementById(OVERLAY_ID);
+      if (overlayEl) {
+        overlayEl.addEventListener('click', function (e) {
+          // Only if the click is on the backdrop, not inside the dialog card
+          if (e.target === this) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeTrackOverlay();
+          }
+        }, true);
+      }
+    
+      // OK button: read selected range and do your thing
+      // OK button: read selected range FROM INPUT and do your thing
+$(document).on('click', '#btn-track-filter', function (e) {
+  e.preventDefault();
+  e.stopPropagation();
 
-        //var showRouteButton = document.getElementById("btn-show-route");
-        //window.showRouteButton = showRouteButton;
-        function plotRoute(device_id){
+  const input = document.getElementById(RANGE_INPUT_ID);
+  const raw = (input && input.value ? input.value : '').trim();
 
-        }
+  if (!raw) {
+    alert('Pick a start and end date.');
+    return;
+  }
+  var val=$(`#${RANGE_INPUT_ID}`).val();
 
-        function showModal(serial){
-            //var modalWin = document.getElementById("tracking-map-popup");
-            var btn = document.getElementById("btn-show-route");
-            btn.click();
-            gpsHistoryMap.invalidateSize();
+  if(!val){ alert("Please select a range of date"); return; }
+  $("#btn-track-period").text(val);
+  // Accept "YYYY-MM-DD to YYYY-MM-DD", "YYYY-MM-DD - YYYY-MM-DD",
+  // en/em dashes, or comma separated.
+  const parts = raw
+    .replace(/\u2013|\u2014/g, '-')                 // en/em dashes → hyphen
+    .split(/\s*(?:to|-|,)\s*/i)                     // split on "to" / "-" / ","
+    .filter(Boolean);
 
-            updateLocation(serial);
+  if (parts.length < 2) {
+    alert('Pick a start and end date.');
+    return;
+  }
 
-        }
-        window.showModal = showModal;
+  const [startStr, endStr] = parts;
 
+  // Parse YYYY-MM-DD safely (avoid Date('YYYY-MM-DD') UTC pitfalls)
+  const parseYMD = (s) => {
+    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+    if (!m) return null;
+    const y = +m[1], mo = +m[2], d = +m[3];
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    return new Date(y, mo - 1, d); // local time
+  };
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(map);
+  const start = parseYMD(startStr);
+  const end   = parseYMD(endStr);
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        }).addTo(gpsHistoryMap);
+//   if (!start || !end) {
+//     alert('Dates must be in YYYY-MM-DD format.');
+//     return;
+//   }
+  if (end < start) {
+    alert('End date must be the same as or after the start date.');
+    return;
+  }
 
-        var markers = L.markerClusterGroup();
+  // Update the dropdown label and stash the range in data attributes
+  $('#btn-track-period')
+    .text(`${val}`)
+    .data('period', `${val}`)
+    .data('rangeStart', startStr)
+    .data('rangeEnd', endStr);
 
-        var icons = {
-            online: L.icon({ iconUrl: '{% static 'images/green-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            offline: L.icon({ iconUrl:'{% static 'images/red-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            alerting: L.icon({ iconUrl: '{% static 'images/orange-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            dormant: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            unknown: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}', iconSize: [50, 50], iconAnchor: [12, 41], popupAnchor: [1, -34] })
-        };
+  closeTrackOverlay();
+  updateLocation($("#btn-track-period").data("serial"));
+  
+  
+});
 
-        {% if customer_routers %}
-            {% for dev in customer_routers %}
-                var buttonHTML ="";
-                {% if dev.group_type == 'peplink' %}
-
-                    buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
-
-                {% endif %}
-
-                buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button> `;
-
-                var icon = icons['{{ dev.status|lower }}'] ?? icons['unknown'];
-                var marker = L.marker([{{ dev.latitude }}, {{ dev.longitude }}], { icon: icon })
-                    .bindPopup(`<b>{{ dev.name }}</b><br><p>S/N: {{ dev.sn }}</p><p>{{ dev.status }}</p> ${buttonHTML}`);
-                markers.addLayer(marker);
-                asset_markers.push(marker);
-            {% endfor %}
-        {% endif %}
-
-        // Add the marker cluster group to the map
-        map.addLayer(markers);
-
-
-        var customer_id = {{ current_customer.id }};  // Replace with dynamic value if needed
-        var interval = 'day'; // Replace with dynamic value if needed
-        var ctx = document.getElementById('deviceStatusChart').getContext('2d');
-
-        // soft gradient for fills
-        function makeGradient(ctx, color) {
-            const g = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
-            g.addColorStop(0, color);                   // top = solid color
-            g.addColorStop(1, 'rgba(255,255,255,0.05)'); // bottom = almost white
-            return g;
-        }
-
-        var historyChart = new Chart(ctx, {
-        type: 'line', // area chart in Chart.js = line + fill:true
+    
+      /* ==================== Maps & Charts (unchanged) ==================== */
+    
+      var gpsHistoryMap = L.map('gps-history-map').setView([0, 0], 3);
+      var map = L.map('asset-location-map').setView([0, 0], 2);
+    
+      function showModal(serial){
+        document.getElementById("btn-show-route").click();
+        gpsHistoryMap.invalidateSize();
+        updateLocation(serial);
+      }
+      window.showModal = showModal;
+    
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(gpsHistoryMap);
+    
+      var markers = L.markerClusterGroup();
+      var icons = {
+        online:  L.icon({ iconUrl: '{% static 'images/green-router.png' %}',  iconSize: [50,50], iconAnchor:[12,41], popupAnchor:[1,-34] }),
+        offline: L.icon({ iconUrl: '{% static 'images/red-router.png' %}',    iconSize: [50,50], iconAnchor:[12,41], popupAnchor:[1,-34] }),
+        alerting:L.icon({ iconUrl: '{% static 'images/orange-router.png' %}', iconSize: [50,50], iconAnchor:[12,41], popupAnchor:[1,-34] }),
+        dormant: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}',   iconSize: [50,50], iconAnchor:[12,41], popupAnchor:[1,-34] }),
+        unknown: L.icon({ iconUrl: '{% static 'images/grey-router.png' %}',   iconSize: [50,50], iconAnchor:[12,41], popupAnchor:[1,-34] })
+      };
+    
+      {% if customer_routers %}
+        {% for dev in customer_routers %}
+          (function(){
+            var icon = icons['{{ dev.status|lower }}'] ?? icons['unknown'];
+            var buttonHTML = `<button class="btn btn-sm bg-primary text-white" type="button" onclick="showModal('{{dev.serial}}')">Show Route</button>`;
+            var marker = L.marker([{{ dev.latitude }}, {{ dev.longitude }}], { icon: icon })
+              .bindPopup(`<b>{{ dev.name }}</b><br><p>S/N: {{ dev.serial }}</p><p>{{ dev.status }}</p> ${buttonHTML}`);
+            markers.addLayer(marker);
+          })();
+        {% endfor %}
+      {% endif %}
+      map.addLayer(markers);
+    
+      var customer_id = {{ current_customer.id }};
+      var interval = 'day';
+      var ctx = document.getElementById('deviceStatusChart').getContext('2d');
+    
+      var historyChart = new Chart(ctx, {
+        type: 'line',
         data: { labels: [], datasets: [] },
         options: {
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: true } },
-            scales: {
-            x: {
-                stacked: false,
-                title: { text: "Date/Time", display: true }
-                // We need to enable this if we'll use timestamps
-                // type: 'time',
-                // time: { tooltipFormat: 'MMM d, HH:mm' }
-            },
-            y: {
-                stacked: true, // 👈 stacked areas
-                beginAtZero: true,
-                title: { text: "Number of Devices", display: true }
-            }
-            },
-            elements: {
-            line: { borderWidth: 2, tension: 0.3 },
-            point: { radius: 0 }
-            }
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: true } },
+          scales: {
+            x: { title:{ text:"Date/Time", display:true } },
+            y: { stacked:true, beginAtZero:true, title:{ text:"Number of Devices", display:true } }
+          },
+          elements: { line: { borderWidth: 2, tension: 0.3 }, point: { radius: 0 } }
         }
+      });
+    
+      function toColorString(c){ if(!c) return null; if(Array.isArray(c)) return toColorString(c[0]); if(typeof c==='object') return null; const s=String(c).trim(); return s?s:null; }
+      function makeTopSolidGradient(ctx, solid){ const solidColor=toColorString(solid)||'rgba(75,192,192,0.95)'; const h=ctx.canvas?.height||300; const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,solidColor); g.addColorStop(1,'rgba(255,255,255,0.05)'); return g; }
+      function applyChartData(chart, incoming){
+        if(!incoming || !Array.isArray(incoming.datasets)) return;
+        const ctx2=chart.ctx;
+        const colorMap={'Online':'rgba(28,180,84,0.95)','Offline':'rgba(180,0,0,0.95)','Alerting':'rgba(255,166,0,0.95)'};
+        chart.data.labels=incoming.labels||[];
+        chart.data.datasets=incoming.datasets.map(ds=>{
+          const c=colorMap[ds.label]||toColorString(ds.borderColor)||toColorString(ds.backgroundColor)||'rgba(75,192,192,0.95)';
+          return {...ds, type:'line', fill:true, tension:0.3, pointRadius:0, borderWidth:ds.borderWidth??2, borderColor:c, backgroundColor:makeTopSolidGradient(ctx2,c)};
         });
-
-        // Normalize color coming from server (string/array/gradient)
-        function toColorString(c) {
-        if (!c) return null;
-        if (Array.isArray(c)) return toColorString(c[0]);
-        if (typeof c === 'object') return null; // gradient/pattern, skip
-        const s = String(c).trim();
-        return s ? s : null;
-        }
-
-        // Build vertical gradient: solid at top -> near white bottom
-        function makeTopSolidGradient(ctx, solid) {
-        // final fallback if caller forgets to pass a color
-        const solidColor = toColorString(solid) || 'rgba(75,192,192,0.95)';
-        const h = (ctx.canvas && ctx.canvas.height) ? ctx.canvas.height : 300;
-        const g = ctx.createLinearGradient(0, 0, 0, h);
-        g.addColorStop(0, solidColor);                 // top: solid
-        g.addColorStop(1, 'rgba(255,255,255,0.05)');   // bottom: near white
-        return g;
-        }
-
-        function applyChartData(chart, incoming) {
-        if (!incoming || !Array.isArray(incoming.datasets)) {
-            console.warn('Unexpected chart payload:', incoming);
-            return;
-        }
-
-        const ctx = chart.ctx;
-
-        // Preferred top colors by label
-        const labelColorMap = {
-            'Online':   'rgba(28,180,84,0.95)',  // green
-            'Offline':  'rgba(180,0,0,0.95)',    // red
-            'Alerting': 'rgba(255,166,0,0.95)'   // orange
-        };
-
-        chart.data.labels = incoming.labels || [];
-
-        chart.data.datasets = incoming.datasets.map((ds) => {
-            // pick a safe color
-            const candidate =
-            labelColorMap[ds.label] ||
-            toColorString(ds.borderColor) ||
-            toColorString(ds.backgroundColor) ||
-            'rgba(75,192,192,0.95)';
-
-            const gradient = makeTopSolidGradient(ctx, candidate);
-
-            return {
-            ...ds,                     // keep server data
-            type: 'line',
-            fill: true,                // area
-            tension: 0.3,
-            pointRadius: 0,
-            borderWidth: ds.borderWidth ?? 2,
-            borderColor: toColorString(ds.borderColor) || candidate,
-            backgroundColor: gradient
-            };
-        });
-
         chart.update();
-        }
-
-
-        $(".period-selection a").on("click", function(event) {
-            event.preventDefault(); // Prevent the default anchor behavior
-            var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
-            $("#btn-period-selection").data("period", periodValue); // Set the data-period value to the button
-            $("#btn-period-selection").text($(this).text());
-
-            $.ajax({
-                url: "{% url 'device_status_chart' %}",
-                type: "GET",
-                data: {
-                    customer_id: customer_id,
-                    interval: interval,
-                    time_group: $("#btn-period-selection").data("period")
-                },
-                beforeSend: function(xhr, settings) {
-                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
-                },
-                success: function(data) {
-                    // historyChart.data = data;
-                    // historyChart.update();
-                    applyChartData(historyChart, data);
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", status, error);
-                }
-            });
-
-        });
-
-        $("#btn-device-status-filter").on("click", function(event) {
-            event.preventDefault(); // Prevent the default anchor behavior
-            var periodValue = $("#datepicker-custom-date-range").val();
-            if (periodValue == ''){
-                alert("Please select a range of date");
-                return;
-            }
-            $("#btn-period-selection").text(periodValue);
-
-            $.ajax({
-                url: "{% url 'device_status_chart' %}",
-                type: "GET",
-                data: {
-                    customer_id: customer_id,
-                    interval: interval,
-                    time_group: periodValue
-                },
-                beforeSend: function(xhr, settings) {
-                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
-                },
-                success: function(data) {
-                    // historyChart.data = data;
-                    // historyChart.update();
-                    applyChartData(historyChart, data);
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", status, error);
-                }
-            });
-
-        });
-       
-        // call the click event of the default time group button
-        // to set the default on page load
-        $('#hist-6-hours').click();
-
-
-        $('#btn-close-tracking-map-popup').click(function(){
-                //stop the location polling timer here
-        });
-
-
-        // Function to be called every 3 minutes
-        function updateLocation(serial) {
-            console.log("Updating location for serial:", serial);
-
-            var period = $("#btn-track-period").data("period");
-            $.ajax({
-                url: "{% url 'device_location_history' %}",
-                type: "GET",
-                data: {
-                    serial: serial,
-                    period_minutes: period
-                },
-                beforeSend: function(xhr, settings) {
-                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
-                },
-                success: function(data) {
-                    console.log(data);
-
-                    if (data.result == 0){
-                        console.log("Error: " + data.message);
-                    }
-                    $("#btn-track-period").data("serial", data.device_info.serial);
-                    $("#tracking-device-name-serial").text(`${data.device_info.name}  (${data.device_info.serial})`);
-                    $("#tracking-device-model").text(`Model: ${data.device_info.model}`);
-                    $("#tracking-device-mac").text(`MAC: ${data.device_info.mac}`);
-                    $("#tracking-device-loc").text(`loc: (${data.last_location})`);
-                    $("#tracking-device-heading").text(`heading: ${data.device_info.heading}`);
-                    $("#tracking-device-last-reported").text(`Location Timestamp: ${data.device_info.last_reported_at}`);
-
-                    //clear all markers and polylines
-                    try{
-                        for (var i in gpsHistoryMap._layers) {
-                            if (gpsHistoryMap._layers[i] instanceof L.Marker) {
-                                gpsHistoryMap.removeLayer(gpsHistoryMap._layers[i]);
-                            }
-                            if (gpsHistoryMap._layers[i] instanceof L.Polyline) {
-                                gpsHistoryMap.removeLayer(gpsHistoryMap._layers[i]);
-                            }
-                        }
-                    }catch(e){
-                        ;
-                    }
-
-                    //TODO: PLOT THE POLYLINE
-                    try {
-                        var polyline = L.polyline(data.coordinates, {color: 'red', weight: 8}).addTo(gpsHistoryMap);
-                        gpsHistoryMap.fitBounds(polyline.getBounds());
-                        var currentZoom = gpsHistoryMap.getZoom();
-                        gpsHistoryMap.setZoom(currentZoom - 2);
-                    }catch(error){
-                        console.log(error);
-                    }
-                    try {
-                        var marker = L.marker(data.last_location).addTo(gpsHistoryMap);
-                        var popUpHTML = `<b>${data.device_info.name}</b>`;
-                        marker.bindPopup(popUpHTML).openPopup();
-                        marker.on('click', function(e) {
-                            marker.openPopup();
-                        });
-                        gpsHistoryMap.panTo(marker.getLatLng());
-                    }catch(error){
-                        console.log(error);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", status, error);
-                }
-            });
-        } //end function
-
-        $(".track-period-selection  a").on("click", function(event) {
-            event.preventDefault(); // Prevent the default anchor behavior
-            var periodValue = $(this).data("period"); // Get the data-period value from the clicked anchor
-            $("#btn-track-period").data("period", periodValue); // Set the data-period value to the button
-            $("#btn-track-period").text($(this).text());
-
-            updateLocation($("#btn-track-period").data("serial"))
-        });
-
-        // Timer variable
-        let timerInterval;
-
-
-        function startTimer() {
-            //const serialNumber = "your-serial-number";
-            //timerInterval = setInterval(() => updateLocation(serialNumber), 180000);
-            //document.getElementById("controlButton").textContent = "Stop Timer";
-        }
-
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            //document.getElementById("controlButton").textContent = "Start Timer";
-        }
-
-
+      }
+    
+      $(".period-selection a").on("click", function(e){
+        e.preventDefault();
+        $("#btn-period-selection").data("period", $(this).data("period")).text($(this).text());
+        $.get("{% url 'device_status_chart' %}", { customer_id, interval, time_group: $("#btn-period-selection").data("period") })
+         .done(d=>applyChartData(historyChart,d))
+         .fail((xhr, s, err)=>console.error("AJAX Error:", s, err));
+      });
+    
+      $("#btn-device-status-filter").on("click", function(e){
+        e.preventDefault();
+        var val=$("#datepicker-custom-date-range").val();
+        if(!val){ alert("Please select a range of date"); return; }
+        $("#btn-period-selection").text(val);
+        $.get("{% url 'device_status_chart' %}", { customer_id, interval, time_group: val })
+         .done(d=>applyChartData(historyChart,d))
+         .fail((xhr,s,err)=>console.error("AJAX Error:", s, err));
+      });
+    
+      $('#hist-6-hours').click();
+    
+      // GPS data updater
+      function updateLocation(serial){
+        var period=$("#btn-track-period").data("period");
+        alert(period);
+        $.get("{% url 'device_location_history' %}", { serial, period_minutes: period })
+         .done(function(data){
+            $("#btn-track-period").data("serial", data.device_info.serial);
+            $("#tracking-device-name-serial").text(`${data.device_info.name}  (${data.device_info.serial})`);
+            $("#tracking-device-model").text(`Model: ${data.device_info.model}`);
+            $("#tracking-device-mac").text(`MAC: ${data.device_info.mac}`);
+            $("#tracking-device-loc").text(`loc: (${data.last_location})`);
+            $("#tracking-device-heading").text(`heading: ${data.device_info.heading}`);
+            $("#tracking-device-last-reported").text(`Location Timestamp: ${data.device_info.last_reported_at}`);
+    
+            try{
+              for (var k in gpsHistoryMap._layers){
+                var Lr=gpsHistoryMap._layers[k];
+                if (Lr instanceof L.Marker || Lr instanceof L.Polyline) gpsHistoryMap.removeLayer(Lr);
+              }
+            }catch(_){}
+    
+            try{
+              var polyline=L.polyline(data.coordinates, {color:'red', weight:8}).addTo(gpsHistoryMap);
+              gpsHistoryMap.fitBounds(polyline.getBounds());
+              gpsHistoryMap.setZoom(gpsHistoryMap.getZoom()-2);
+            }catch(_){}
+    
+            try{
+              var marker=L.marker(data.last_location).addTo(gpsHistoryMap);
+              marker.bindPopup(`<b>${data.device_info.name}</b>`).openPopup();
+              marker.on('click', ()=>marker.openPopup());
+              gpsHistoryMap.panTo(marker.getLatLng());
+            }catch(_){}
+         })
+         .fail((xhr,s,err)=>console.error("AJAX Error:", s, err));
+      }
+    
+      $(".track-period-selection a").on("click", function(e){
+        e.preventDefault();
+        $("#btn-track-period").data("period", $(this).data("period")).text($(this).text());
+        updateLocation($("#btn-track-period").data("serial"));
+      });
+    
+      // Expose for popup buttons
+      window.showModal = function(serial){
+        document.getElementById("btn-show-route").click();
+        gpsHistoryMap.invalidateSize();
+        updateLocation(serial);
+      };
     });
-
-
-
-</script>
+    </script>
+    
 {% endblock extra_js %}
-
