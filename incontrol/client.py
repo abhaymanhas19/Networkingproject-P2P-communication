@@ -430,8 +430,10 @@ class API(object):
 
         path_vars = {
             "base_url": _BASE_URL,
-            "organization_id": organization_id
+            "organization_id": organization_id,
         }
+        kwargs["report_date"] =  datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        kwargs["type"]= "daily"
         endpoint_url = "{base_url}/{organization_id}/bandwidth_per_device"
         endpoint_url = endpoint_url.format(**path_vars)
         res = self._get_data(endpoint_url, params=kwargs)

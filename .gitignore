@@ -7,3 +7,6 @@ local_settings.py
 .DS_Store
 dashboard-dev.service
 dashboard-prod.service
+.vscode/launch.json
+.venv
+*.sqlite3
