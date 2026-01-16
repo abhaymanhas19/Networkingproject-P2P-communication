@@ -230,7 +230,7 @@
                     </div>
                   </div>
                   <div style="width:250px;margin:auto 100px;text-align:center;position: relative; margin-right: 80px;">
-                    <h2 class="mb-2">Band Width</h2>
+                    <h2 class="mb-2">Monthly Data Usage</h2>
                     <canvas id="dataUsageChart"></canvas>
 
                     <div style="font-size:14px;position: absolute;top: 45%;left: 65px;">
@@ -401,6 +401,14 @@
   <script src="{% static '/js/router_details.js' %}"></script>
   <script>
 
+    document.addEventListener('DOMContentLoaded', function () {
+    const savedTotal = localStorage.getItem('totalGB');
+
+    if (savedTotal !== null) {
+        document.getElementById('totaldata').value = savedTotal;
+        totalGB = parseInt(savedTotal) || 0;
+    }
+});
 
       $(document).ready(function() {
 
@@ -408,7 +416,6 @@
             $(".starlink-bandwidth-chart-reset-zoom").click(function(e){
                 window["starlinkBandwidthChart{{ forloop.counter0 }}"].resetZoom();
             });
-
             {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
                 var maxVal{{ forloop.counter0 }} = 250;
                 var latency{{ forloop.counter0 }} = {{ starlink_status.dishGetStatus.popPingLatencyMs }};
@@ -449,8 +456,9 @@
                 };
 
                 <!-- obstruction -->
+
                 var obstruction{{ forloop.counter0 }} = 0;
-                obstruction{{ forloop.counter0 }} = parseFloat({{ starlink_status.dishGetStatus.obstructionStats.fractionObstructed  }} * 100.00);
+                obstruction{{ forloop.counter0 }} = parseFloat({{ starlink_status.dishGetStatus.obstructionStats.fractionObstructed|default:0  }} * 100.00);
                 obstruction{{ forloop.counter0 }} = parseFloat(obstruction{{ forloop.counter0 }}.toFixed(3));
 
             {% endwith %}  {# with starlink_status #}
@@ -588,7 +596,7 @@
         // 🔁 Update when input changes
         document.getElementById('totaldata').addEventListener('input', function () {
         totalGB = parseInt(this.value) || 0;
-
+        localStorage.setItem('totalGB', totalGB);
         chart.data.datasets[0].data = getChartData();
         chart.update();
 
