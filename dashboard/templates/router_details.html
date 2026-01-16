@@ -407,6 +407,7 @@
     if (savedTotal !== null) {
         document.getElementById('totaldata').value = savedTotal;
         totalGB = parseInt(savedTotal) || 0;
+        document.getElementById('totalLabel').innerText = `${totalGB} GB`;
     }
 });
 
@@ -569,8 +570,7 @@
       });
       // data usage chart
     const usedGB = {{bw_used_data_gb}};
-        let totalGB = 10;
-
+        let totalGB = parseInt(localStorage.getItem('totalGB'), 10) || 10;
         const ctx = document.getElementById('dataUsageChart');
 
         const chart = new Chart(ctx, {
