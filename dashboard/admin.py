@@ -135,9 +135,23 @@ class NetworkAdmin(admin.ModelAdmin):
 @admin.register(dashboard_models.GroupDevice)
 class GroupDeviceAdmin(SemanticModelAdmin):
     list_filter = ['group_name', 'name', 'device_type']
-    list_display = ('group_name', 'name', 'sn', 'product_id')
+    list_display = ('group_name', 'name', 'sn', 'product_id', 'starlink_data_limit_gb')
     search_fields = ('name', 'sn', 'product_id')
     readonly_fields = ['last_updated_at', 'created_at', 'pk', 'internal_class']
+    fieldsets = (
+        ('Starlink Data Settings', {
+            'fields': ('starlink_data_limit_gb',),
+            'description': 'Set the monthly Starlink data limit for this device. This value will be displayed on the device details page.',
+        }),
+        ('Device Info', {
+            'fields': ('name', 'sn', 'group_name', 'group_id', 'device_type', 'product_name', 'internal_class'),
+            'classes': ('collapse',),
+        }),
+        ('Timestamps', {
+            'fields': ('last_updated_at', 'created_at', 'pk'),
+            'classes': ('collapse',),
+        }),
+    )
 
 
 @admin.register(dashboard_models.MerakiDevice)
