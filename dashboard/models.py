@@ -300,6 +300,7 @@ class GroupDevice(models.Model):
     source = models.CharField(max_length=255, null=True, blank=True)
     sp_default = models.BooleanField(_("SP Default"), default=False)
     starlink_status = ArrayField(models.CharField(max_length=10000, blank=True, null=True), blank=True, null=True, verbose_name="Starlink Status", help_text="Starlink Status")
+    starlink_data_limit_gb = models.FloatField("Starlink Data Limit (GB)", null=True, blank=True, default=None, help_text="Monthly Starlink data limit in GB. Set this value via the admin page.")
     status = models.CharField(_("Status"), max_length=150, null=True, blank=True)
     sub_expiry_date = models.DateTimeField(null=True, blank=True)
     sub_expired = models.BooleanField(null=True, default=False)
