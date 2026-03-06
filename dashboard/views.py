@@ -283,12 +283,18 @@ class DeviceDetailView(LoginRequiredMixin, TemplateView):
             for u in device.get("usages", [])
         )
         bw_used_data_gb = round(bw_used_data / 1024,2)
+        # Get the starlink data limit stored in the DB (set via admin page)
+        starlink_data_limit_gb = None
+        if device and hasattr(device, 'starlink_data_limit_gb'):
+            starlink_data_limit_gb = device.starlink_data_limit_gb
+
         context["device"] = device
         context["inet_interfaces"] = inet_interfaces
         context["device_raw_data"] = device_raw_data
         context["bw_data"] = bw_data
         context["bw_used_data"] = bw_used_data
         context["bw_used_data_gb"] = bw_used_data_gb
+        context["starlink_data_limit_gb"] = starlink_data_limit_gb
         return context
 
 
