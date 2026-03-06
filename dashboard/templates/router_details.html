@@ -577,6 +577,7 @@
     const usedGB = {{bw_used_data_gb}};
         // Use value from DB (set via admin page), fallback to 0 if not set
         let totalGB = {% if starlink_data_limit_gb %}{{ starlink_data_limit_gb }}{% else %}0{% endif %};
+    document.getElementById('totalLabel').innerText = totalGB > 0 ? `${totalGB} GB` : '— GB';
         const ctx = document.getElementById('dataUsageChart');
 
         const chart = new Chart(ctx, {
