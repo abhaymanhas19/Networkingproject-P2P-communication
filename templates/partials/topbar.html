@@ -72,6 +72,34 @@
         </button>
     </div>
 
+    <!-- Auto-Refresh Dropdown -->
+    <div class="relative md:flex hidden" id="autorefresh-container">
+        <button id="autorefresh-btn" data-fc-type="dropdown" data-fc-placement="bottom-end" type="button"
+                class="nav-link p-2 flex items-center gap-1" title="Auto Refresh">
+            <span class="flex items-center justify-center h-6 w-6">
+                <i class="mgc_refresh_2_line text-2xl" id="autorefresh-icon"></i>
+            </span>
+            <span id="autorefresh-label" class="text-xs font-medium text-gray-500 dark:text-gray-400">Off</span>
+        </button>
+        <div class="fc-dropdown fc-dropdown-open:opacity-100 hidden opacity-0 w-36 z-50 mt-2 transition-[margin,opacity] duration-300 bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+            <a href="javascript:void(0);" class="autorefresh-option flex items-center gap-2 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" data-interval="0">
+                <i class="mgc_close_line text-base"></i> Off
+            </a>
+            <a href="javascript:void(0);" class="autorefresh-option flex items-center gap-2 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" data-interval="3000">
+                <i class="mgc_refresh_2_line text-base"></i> 3 sec
+            </a>
+            <a href="javascript:void(0);" class="autorefresh-option flex items-center gap-2 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" data-interval="30000">
+                <i class="mgc_refresh_2_line text-base"></i> 30 sec
+            </a>
+            <a href="javascript:void(0);" class="autorefresh-option flex items-center gap-2 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" data-interval="60000">
+                <i class="mgc_refresh_2_line text-base"></i> 1 min
+            </a>
+            <a href="javascript:void(0);" class="autorefresh-option flex items-center gap-2 py-2 px-3 rounded-md text-sm text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300" data-interval="300000">
+                <i class="mgc_refresh_2_line text-base"></i> 5 mins
+            </a>
+        </div>
+    </div>
+
     <!-- Notification Bell Button -->
     <div class="relative md:flex hidden">
         <button data-fc-type="dropdown" data-fc-placement="bottom-end" type="button" class="nav-link p-2">
@@ -256,6 +284,80 @@
 </div>
 
 
+
+<!-- Auto-Refresh Script -->
+<script>
+(function () {
+    var refreshTimer = null;
+    var countdownTimer = null;
+    var currentInterval = 0;
+    var remainingSeconds = 0;
+
+    var btn = document.getElementById('autorefresh-btn');
+    var label = document.getElementById('autorefresh-label');
+    var icon = document.getElementById('autorefresh-icon');
+
+    // Persist selection across page loads
+    var savedInterval = parseInt(sessionStorage.getItem('autorefresh_interval') || '0', 10);
+    if (savedInterval > 0) {
+        startRefresh(savedInterval);
+    }
+
+    document.querySelectorAll('.autorefresh-option').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            var interval = parseInt(this.getAttribute('data-interval'), 10);
+            sessionStorage.setItem('autorefresh_interval', interval);
+            startRefresh(interval);
+        });
+    });
+
+    function startRefresh(interval) {
+        clearInterval(refreshTimer);
+        clearInterval(countdownTimer);
+        currentInterval = interval;
+
+        if (interval === 0) {
+            label.textContent = 'Off';
+            icon.classList.remove('autorefresh-spin');
+            return;
+        }
+
+        var labels = { 3000: '3s', 30000: '30s', 60000: '1m', 300000: '5m' };
+        remainingSeconds = interval / 1000;
+        updateCountdown();
+        icon.classList.add('autorefresh-spin');
+
+        countdownTimer = setInterval(function () {
+            remainingSeconds--;
+            if (remainingSeconds <= 0) {
+                remainingSeconds = interval / 1000;
+            }
+            updateCountdown();
+        }, 1000);
+
+        refreshTimer = setInterval(function () {
+            window.location.reload();
+        }, interval);
+    }
+
+    function updateCountdown() {
+        if (currentInterval === 0) { label.textContent = 'Off'; return; }
+        label.textContent = remainingSeconds + 's';
+    }
+})();
+</script>
+
+<style>
+@keyframes autorefresh-rotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.autorefresh-spin {
+    animation: autorefresh-rotate 2s linear infinite;
+    display: inline-block;
+}
+</style>
 
 <!-- Topbar Search Modal -->
 <div>
