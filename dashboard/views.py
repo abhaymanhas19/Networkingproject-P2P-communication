@@ -309,6 +309,25 @@ class StarlinkDataView(LoginRequiredMixin, View):
         except ValueError:
             interface_index = 0
 
+        # Parse optional start_date / end_date from query params (sent by the
+        # frontend time-range tab system). Falls back to model defaults if absent.
+        start_date = None
+        end_date = None
+        start_date_str = request.GET.get("start_date")
+        end_date_str = request.GET.get("end_date")
+        if start_date_str:
+            try:
+                from datetime import datetime as dt
+                start_date = dt.fromisoformat(start_date_str)
+            except ValueError:
+                pass
+        if end_date_str:
+            try:
+                from datetime import datetime as dt
+                end_date = dt.fromisoformat(end_date_str)
+            except ValueError:
+                pass
+
         if data_type == "bandwidth":
             try:
                 chart_data_json = StarlinkInfoHistory.get_starlink_chart_data(
@@ -316,6 +335,8 @@ class StarlinkDataView(LoginRequiredMixin, View):
                     device_serial,
                     data_type,
                     interface_index=interface_index,
+                    start_date=start_date,
+                    end_date=end_date,
                 )
                 chart_data = json.dumps(chart_data_json)
                 return JsonResponse(chart_data, safe=False)
@@ -325,7 +346,8 @@ class StarlinkDataView(LoginRequiredMixin, View):
         elif data_type == "uptime":
             try:
                 chart_data_json = StarlinkInfoHistory.get_starlink_uptime_chart_data(
-                    internal_class, device_serial, starlink_index=interface_index
+                    internal_class, device_serial, starlink_index=interface_index,
+                    start_date=start_date, end_date=end_date,
                 )
                 chart_data = json.dumps(chart_data_json)
                 return JsonResponse(chart_data, safe=False)
