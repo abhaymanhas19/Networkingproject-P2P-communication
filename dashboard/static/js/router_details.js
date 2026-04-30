@@ -144,32 +144,11 @@ function renderBandwidthChart(data, ctx, chartName) {
                 tooltip: {
                     callbacks: {
                         label: ctx => {
-                            if (ctx.dataset.label === 'Spike') return '⚡ Traffic spike — drag or pinch to zoom in';
+                            if (ctx.dataset.label === 'Spike') return '⚡ Traffic spike';
                             return ctx.dataset.label + ': ' + Number(ctx.parsed.y).toFixed(3) + ' Mbps';
                         }
                     }
                 },
-                zoom: {
-                    zoom: {
-                        wheel: {
-                            enabled: true,  // Mouse wheel zoom
-                        },
-                        drag: {
-                            enabled: true,  // Drag to zoom on desktop
-                            backgroundColor: 'rgba(29,158,117,0.15)',
-                            borderColor: 'rgba(29,158,117,0.5)',
-                            borderWidth: 1,
-                        },
-                        pinch: {
-                            enabled: true,  // Pinch-to-zoom on touch devices
-                        },
-                        mode: 'xy',
-                    },
-                    pan: {
-                        enabled: true,  // Pan after zooming in
-                        mode: 'xy',
-                    }
-                }
             },
             scales: {
                 x: {
@@ -263,21 +242,6 @@ function renderUptimeChart(data, ctx, chartName) {
                         label: ctx => 'Uptime: ' + Number(ctx.parsed.y).toFixed(1) + '%'
                     }
                 },
-                zoom: {
-                    zoom: {
-                        wheel: {
-                            enabled: false,
-                        },
-                        drag: {
-                            enabled: false
-                        },
-                        mode: 'xy',
-                    },
-                    pan: {
-                        enabled: false,
-                        mode: 'y',
-                    }
-                }
             },
             scales: {
                 x: {
@@ -345,4 +309,155 @@ function drawSignalBars(canvasId, numBars, maxBars, barColor='green') {
         ctx.fillStyle = barColor; // Set fill style for solid color
         ctx.fill();
     }
+}
+
+
+/**
+ * Initialises the Realtime / Hourly / Daily / Monthly tab bar for both the
+ * bandwidth and uptime Starlink charts.
+ *
+ * Added by: Claude (Anthropic) — 2026-04-30
+ *
+ * How it works:
+ *   - Each tab computes a start_date / end_date window and fires a fresh AJAX
+ *     request to the existing StarlinkDataView endpoint (same URL, extra params).
+ *   - The existing chart instance is destroyed before re-rendering so Chart.js
+ *     doesn't complain about canvas reuse.
+ *   - Realtime tab auto-refreshes every 60 seconds using setInterval; switching
+ *     away from Realtime clears the interval.
+ *   - A small "● Live" badge next to the tabs is shown only in Realtime mode.
+ *
+ * @param {number} idx            - Starlink interface index (from Django forloop)
+ * @param {string} bwUrl          - URL for bandwidth chart data endpoint
+ * @param {string} uptimeUrl      - URL for uptime chart data endpoint
+ */
+function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
+
+    // Map tab name → { hours back from now }. Monthly = 30 days.
+    const rangeHours = {
+        realtime: 1,
+        hourly:   24,
+        daily:    24 * 7,
+        monthly:  24 * 30,
+    };
+
+    // Track the realtime auto-refresh intervals so we can clear them on tab switch
+    let bwInterval     = null;
+    let uptimeInterval = null;
+
+    /**
+     * Returns ISO-formatted start/end date strings for a given range key.
+     * @param {string} range
+     * @returns {{ start_date: string, end_date: string }}
+     */
+    function getDateParams(range) {
+        const now   = new Date();
+        const start = new Date(now.getTime() - rangeHours[range] * 60 * 60 * 1000);
+        return {
+            start_date: start.toISOString().slice(0, 19).replace('T', ' '),
+            end_date:   now.toISOString().slice(0, 19).replace('T', ' '),
+        };
+    }
+
+    /**
+     * Fetches bandwidth data for the given range and re-renders the chart.
+     * Destroys any existing chart instance first.
+     * @param {string} range
+     */
+    function loadBandwidth(range) {
+        const chartName = 'starlinkBandwidthChart' + idx;
+        if (window[chartName]) {
+            window[chartName].destroy();
+            window[chartName] = null;
+        }
+        $.ajax({
+            url: bwUrl,
+            type: 'GET',
+            data: Object.assign({ interface_index: idx }, getDateParams(range)),
+            success: function(data) {
+                const ctx = document.getElementById('starlink-bandwidth-chart-' + idx).getContext('2d');
+                renderBandwidthChart(data, ctx, chartName);
+            },
+            error: function(xhr, status, error) {
+                console.error('Bandwidth AJAX Error:', status, error);
+            }
+        });
+    }
+
+    /**
+     * Fetches uptime data for the given range and re-renders the chart.
+     * Destroys any existing chart instance first.
+     * @param {string} range
+     */
+    function loadUptime(range) {
+        const chartName = 'starlinkUptimeChart' + idx;
+        if (window[chartName]) {
+            window[chartName].destroy();
+            window[chartName] = null;
+        }
+        $.ajax({
+            url: uptimeUrl,
+            type: 'GET',
+            data: Object.assign({ interface_index: idx }, getDateParams(range)),
+            success: function(data) {
+                const ctx = document.getElementById('starlink-uptime-chart-' + idx).getContext('2d');
+                renderUptimeChart(data, ctx, chartName);
+            },
+            error: function(xhr, status, error) {
+                console.error('Uptime AJAX Error:', status, error);
+            }
+        });
+    }
+
+    /**
+     * Wires up a set of tab buttons for a single chart type (bandwidth or uptime).
+     * @param {string} chartType  - 'bandwidth' | 'uptime'
+     * @param {Function} loadFn   - loadBandwidth or loadUptime
+     */
+    function bindTabs(chartType, loadFn) {
+        // Find this chart's tab bar using data attributes set in the template
+        const tabBar  = $('[data-chart-index="' + idx + '"][data-chart-type="' + chartType + '"]');
+        const buttons = tabBar.find('.starlink-tab-btn');
+        const badge   = tabBar.find('.starlink-realtime-badge');
+
+        // Track the interval local to this chart type
+        let liveInterval = null;
+
+        buttons.on('click', function() {
+            const range = $(this).data('range');
+
+            // Update active styling
+            buttons.removeClass('active bg-primary text-white').addClass('text-primary');
+            $(this).addClass('active bg-primary text-white').removeClass('text-primary');
+
+            // Show/hide live badge
+            if (range === 'realtime') {
+                badge.removeClass('hidden');
+            } else {
+                badge.addClass('hidden');
+            }
+
+            // Clear any existing auto-refresh
+            if (liveInterval) {
+                clearInterval(liveInterval);
+                liveInterval = null;
+            }
+
+            // Load data immediately
+            loadFn(range);
+
+            // For realtime, set up auto-refresh every 60 seconds
+            if (range === 'realtime') {
+                liveInterval = setInterval(function() {
+                    loadFn('realtime');
+                }, 60000);
+            }
+        });
+
+        // Trigger realtime on load
+        buttons.filter('[data-range="realtime"]').trigger('click');
+    }
+
+    bindTabs('bandwidth', loadBandwidth);
+    bindTabs('uptime',    loadUptime);
 }
