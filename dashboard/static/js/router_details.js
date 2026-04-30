@@ -74,28 +74,20 @@ function renderBandwidthChart(data, ctx, chartName) {
     const canvas   = ctx.canvas;
     const wrapper  = canvas.closest('.chart-container') || canvas.parentElement;
     if (!wrapper.parentElement.querySelector('.p2p-bw-metrics')) {
-        const isDark = document.documentElement.classList.contains('dark') ||
-                       document.body.classList.contains('dark') ||
-                       matchMedia('(prefers-color-scheme: dark)').matches;
-
-        const cardBg     = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
-        const cardBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
-        const labelColor = isDark ? 'rgba(255,255,255,0.5)'  : '#6b7280';
-        const avgColor   = isDark ? 'rgba(255,255,255,0.85)' : '#111827';
-
+        // Use Tailwind classes matching the rest of the template (dark: variants handled by Tailwind)
         const metricsHtml = `
-        <div class="p2p-bw-metrics" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
-            <div style="background:${cardBg};border-radius:8px;padding:10px 14px;border:1px solid ${cardBorder};">
-                <div style="font-size:11px;color:${labelColor};margin-bottom:4px;">Peak download</div>
-                <div style="font-size:18px;font-weight:500;color:#1D9E75;">${peakDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
+        <div class="p2p-bw-metrics grid grid-cols-3 gap-3 mb-3">
+            <div class="rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Peak download</div>
+                <div class="text-lg font-medium" style="color:#1D9E75;">${peakDl} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">Mbps</span></div>
             </div>
-            <div style="background:${cardBg};border-radius:8px;padding:10px 14px;border:1px solid ${cardBorder};">
-                <div style="font-size:11px;color:${labelColor};margin-bottom:4px;">Avg download</div>
-                <div style="font-size:18px;font-weight:500;color:${avgColor};">${avgDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
+            <div class="rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg download</div>
+                <div class="text-lg font-medium text-gray-800 dark:text-gray-200">${avgDl} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">Mbps</span></div>
             </div>
-            <div style="background:${cardBg};border-radius:8px;padding:10px 14px;border:1px solid ${cardBorder};">
-                <div style="font-size:11px;color:${labelColor};margin-bottom:4px;">Peak upload</div>
-                <div style="font-size:18px;font-weight:500;color:#9f97e8;">${peakUl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
+            <div class="rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Peak upload</div>
+                <div class="text-lg font-medium" style="color:#9f97e8;">${peakUl} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">Mbps</span></div>
             </div>
         </div>`;
         wrapper.insertAdjacentHTML('beforebegin', metricsHtml);
