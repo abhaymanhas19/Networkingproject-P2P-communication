@@ -464,6 +464,11 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
         const buttons = tabBar.find('.starlink-tab-btn');
         const badge   = tabBar.find('.starlink-realtime-badge');
 
+        if (!tabBar.length) {
+            console.warn('initStarlinkTabs: no tab bar found for', chartType, 'index', idx);
+            return;
+        }
+
         // Track the interval local to this chart type
         let liveInterval = null;
 
@@ -490,15 +495,17 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
             // Load data immediately
             loadFn(range);
 
-            // Show zoom preset buttons only on Per-Minute (hourly) tab
+            // Show zoom preset buttons only on Per-Minute (hourly) bandwidth tab.
+            // Scope lookup to the bandwidth card only using the canvas ID, not closest().
             if (chartType === 'bandwidth') {
-                const zoomBar = tabBar.closest('.card, div').querySelector('.p2p-zoom-presets');
+                const bwCanvas  = document.getElementById('starlink-bandwidth-chart-' + idx);
+                const bwCard    = bwCanvas ? bwCanvas.closest('.card') : null;
+                const zoomBar   = bwCard ? bwCard.querySelector('.p2p-zoom-presets') : null;
                 if (zoomBar) {
                     if (range === 'hourly') {
                         zoomBar.classList.remove('hidden');
-                        // Default to 1 Hour zoom on Per-Minute load
                         const defaultBtn = zoomBar.querySelector('[data-hours="1"]');
-                        if (defaultBtn) defaultBtn.click();
+                        if (defaultBtn) setTimeout(() => defaultBtn.click(), 300);
                     } else {
                         zoomBar.classList.add('hidden');
                     }
