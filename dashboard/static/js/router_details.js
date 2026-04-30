@@ -45,7 +45,7 @@ function convertBpsToMbps(bps) {
  * @param {string} chartName - The global window key to store the chart instance.
  * @return {void}
  */
-function renderBandwidthChart(data, ctx, chartName) {
+function renderBandwidthChart(data, ctx, chartName, rangeLabel) {
 
     data = JSON.parse(data);
     const downlinkThroughputMbps = data.data_series.downlinkThroughputBps.map(convertBpsToMbps);
@@ -133,13 +133,14 @@ function renderBandwidthChart(data, ctx, chartName) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'top',
                 },
                 title: {
                     display: true,
-                    text: '24 hours Bandwidth (DL/UL)'
+                    text: 'Bandwidth (DL/UL)' + (rangeLabel ? ' — ' + rangeLabel : '')
                 },
                 tooltip: {
                     callbacks: {
@@ -192,7 +193,7 @@ function renderBandwidthChart(data, ctx, chartName) {
  * @param {string} chartName - The global window key to store the chart instance.
  * @return {void}
  */
-function renderUptimeChart(data, ctx, chartName) {
+function renderUptimeChart(data, ctx, chartName, rangeLabel) {
 
     data = JSON.parse(data);
     console.log("converting data to float");
@@ -228,14 +229,14 @@ function renderUptimeChart(data, ctx, chartName) {
         },
         options: {
             responsive: true,
-            // maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'top',
                 },
                 title: {
                     display: true,
-                    text: `Average Uptime (last 24 hours) — avg ${avg}%`
+                    text: `Average Uptime${rangeLabel ? " — " + rangeLabel : ""} — avg ${avg}%`
                 },
                 tooltip: {
                     callbacks: {
@@ -333,12 +334,20 @@ function drawSignalBars(canvasId, numBars, maxBars, barColor='green') {
  */
 function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
 
-    // Map tab name → { hours back from now }. Monthly = 30 days.
+    // Map tab name → hours back from now. Monthly = 30 days.
     const rangeHours = {
         realtime: 1,
         hourly:   24,
         daily:    24 * 7,
         monthly:  24 * 30,
+    };
+
+    // Human-readable label shown in the chart title per tab
+    const rangeLabels = {
+        realtime: 'Last hour',
+        hourly:   'Last 24 hours',
+        daily:    'Last 7 days',
+        monthly:  'Last 30 days',
     };
 
     // Track the realtime auto-refresh intervals so we can clear them on tab switch
@@ -376,7 +385,7 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
             data: Object.assign({ interface_index: idx }, getDateParams(range)),
             success: function(data) {
                 const ctx = document.getElementById('starlink-bandwidth-chart-' + idx).getContext('2d');
-                renderBandwidthChart(data, ctx, chartName);
+                renderBandwidthChart(data, ctx, chartName, rangeLabels[range]);
             },
             error: function(xhr, status, error) {
                 console.error('Bandwidth AJAX Error:', status, error);
@@ -401,7 +410,7 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
             data: Object.assign({ interface_index: idx }, getDateParams(range)),
             success: function(data) {
                 const ctx = document.getElementById('starlink-uptime-chart-' + idx).getContext('2d');
-                renderUptimeChart(data, ctx, chartName);
+                renderUptimeChart(data, ctx, chartName, rangeLabels[range]);
             },
             error: function(xhr, status, error) {
                 console.error('Uptime AJAX Error:', status, error);
