@@ -4,12 +4,14 @@
  * Description: This file contains the code for the router details page.
  *
  * Enhanced by: Claude (Anthropic)
- * Date: 2026-APR-30
+ * Date: 2026-04-30
  * Changes:
  *   - renderBandwidthChart: switched from line to bar chart for clearer per-sample
- *     visibility; added auto-detected spike highlighting (3× median threshold) with
- *     orange triangle markers; injected a summary metrics row (peak DL, avg DL,
- *     peak UL) above the chart dynamically — no HTML changes required.
+ *     visibility; spike detection changed from 3x median to 95th percentile threshold
+ *     (more accurate for bursty Starlink data); y-axis max capped at p95x1.5 so the
+ *     baseline stays readable while spikes remain inspectable via zoom; pinch-to-zoom
+ *     and pan enabled for touch devices; metric cards use rgba backgrounds and borders
+ *     for dark/light mode compatibility.
  *   - renderUptimeChart: y-axis now starts just below the data minimum instead of
  *     always at 0, making small dips visible; title dynamically shows the average
  *     uptime %; removed point markers for a cleaner line; removed downtime event
@@ -25,16 +27,18 @@
  */
 function convertBpsToMbps(bps) {
     return bps / 1_000_000;
-  }
+}
 
 
 /**
  * Renders a bar chart displaying bandwidth data.
  *
  * Original: rendered as a line chart with teal/purple colours.
- * Enhanced: switched to bar chart; spikes auto-detected at 3× median and
- * highlighted with a darker green fill + orange triangle scatter marker;
- * summary metric cards (peak DL, avg DL, peak UL) injected above the chart.
+ * Enhanced: switched to bar chart; spikes auto-detected at the 95th percentile
+ * (more accurate than 3x median for bursty Starlink data); y-axis max capped at
+ * the 95th percentile value x1.5 so the baseline is readable — large spikes are
+ * still visible but don't squash everything else; pinch-to-zoom and pan enabled
+ * for touch devices; metric cards use rgba for dark mode compatibility.
  *
  * @param {string} data - The bandwidth data in JSON format.
  * @param {CanvasRenderingContext2D} ctx - The rendering context for the chart.
@@ -47,38 +51,46 @@ function renderBandwidthChart(data, ctx, chartName) {
     const downlinkThroughputMbps = data.data_series.downlinkThroughputBps.map(convertBpsToMbps);
     const uplinkThroughputMbps = data.data_series.uplinkThroughputBps.map(convertBpsToMbps);
 
-    const dlReversed = downlinkThroughputMbps.reverse(); // Reverse the data series to match the labels
-    const ulReversed = uplinkThroughputMbps.reverse();   // Reverse the data series to match the labels
-    const labelsReversed = data.labels.reverse();        // Reverse the labels to maintain chronological order
+    const dlReversed     = downlinkThroughputMbps.reverse(); // Reverse the data series to match the labels
+    const ulReversed     = uplinkThroughputMbps.reverse();   // Reverse the data series to match the labels
+    const labelsReversed = data.labels.reverse();            // Reverse the labels to maintain chronological order
 
-    // Auto-detect spikes: any point more than 3× the median is considered a spike.
-    // Falls back to 0.1 Mbps minimum so near-zero baselines don't false-positive.
-    const sorted = [...dlReversed].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)] || 0;
-    const spikeThreshold = Math.max(median * 3, 0.1);
+    // Spike detection: use the 95th percentile as the threshold.
+    // This is more robust than 3x median for Starlink data which has a very low
+    // baseline but occasional large legitimate bursts.
+    const sorted         = [...dlReversed].sort((a, b) => a - b);
+    const p95Index       = Math.floor(sorted.length * 0.95);
+    const p95Value       = sorted[p95Index] || 0;
+    const spikeThreshold = Math.max(p95Value, 0.5); // Minimum 0.5 Mbps to avoid noise flags
+
+    // Cap the y-axis at p95 x 1.5 so the baseline stays readable.
+    // Spikes above this are still rendered — the user can zoom in using drag or
+    // pinch to inspect them in detail.
+    const yMax = Math.max(p95Value * 1.5, 1);
 
     // Compute summary values for the metric cards
     const peakDl = Math.max(...dlReversed).toFixed(3);
     const avgDl  = (dlReversed.reduce((a, b) => a + b, 0) / dlReversed.length).toFixed(3);
     const peakUl = Math.max(...ulReversed).toFixed(3);
 
-    // Inject summary metric cards above the chart (idempotent — skipped if already present)
-    const canvas = ctx.canvas;
+    // Inject summary metric cards above the chart (idempotent — skipped if already present).
+    // Uses rgba backgrounds and borders so cards render correctly in both light and dark mode.
+    const canvas  = ctx.canvas;
     const wrapper = canvas.closest('.chart-container') || canvas.parentElement;
     if (!wrapper.parentElement.querySelector('.p2p-bw-metrics')) {
         const metricsHtml = `
         <div class="p2p-bw-metrics" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
-            <div style="background:#f9fafb;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb;">
-                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Peak download</div>
-                <div style="font-size:18px;font-weight:500;color:#0F6E56;">${peakDl} <span style="font-size:12px;font-weight:400">Mbps</span></div>
+            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.12);">
+                <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Peak download</div>
+                <div style="font-size:18px;font-weight:500;color:#1D9E75;">${peakDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
             </div>
-            <div style="background:#f9fafb;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb;">
-                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Avg download</div>
-                <div style="font-size:18px;font-weight:500;color:#374151;">${avgDl} <span style="font-size:12px;font-weight:400">Mbps</span></div>
+            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.12);">
+                <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Avg download</div>
+                <div style="font-size:18px;font-weight:500;color:rgba(255,255,255,0.85);">${avgDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
             </div>
-            <div style="background:#f9fafb;border-radius:8px;padding:10px 14px;border:1px solid #e5e7eb;">
-                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">Peak upload</div>
-                <div style="font-size:18px;font-weight:500;color:#7F77DD;">${peakUl} <span style="font-size:12px;font-weight:400">Mbps</span></div>
+            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.12);">
+                <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Peak upload</div>
+                <div style="font-size:18px;font-weight:500;color:#9f97e8;">${peakUl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
             </div>
         </div>`;
         wrapper.insertAdjacentHTML('beforebegin', metricsHtml);
@@ -92,18 +104,18 @@ function renderBandwidthChart(data, ctx, chartName) {
                 {
                     label: 'Download',
                     data: dlReversed,
-                    // Spike bars get a darker green; normal bars use the standard teal
-                    backgroundColor: dlReversed.map(v => v > spikeThreshold ? 'rgba(15,110,86,0.85)' : 'rgba(29,158,117,0.55)'),
-                    borderColor: dlReversed.map(v => v > spikeThreshold ? '#0F6E56' : '#1D9E75'),
-                    borderWidth: dlReversed.map(v => v > spikeThreshold ? 1.5 : 0.5),
+                    // Spike bars render at full opacity; normal bars are more transparent
+                    backgroundColor: dlReversed.map(v => v > spikeThreshold ? 'rgba(29,158,117,0.9)' : 'rgba(29,158,117,0.5)'),
+                    borderColor: dlReversed.map(v => v > spikeThreshold ? '#1D9E75' : 'rgba(29,158,117,0.7)'),
+                    borderWidth: 0.5,
                     borderRadius: 2,
                     order: 1
                 },
                 {
                     label: 'Upload',
                     data: ulReversed,
-                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.3)',
+                    borderColor: 'rgba(153, 102, 255, 0.8)',
                     borderWidth: 0.5,
                     borderRadius: 2,
                     order: 2
@@ -113,11 +125,11 @@ function renderBandwidthChart(data, ctx, chartName) {
                     label: 'Spike',
                     type: 'scatter',
                     data: labelsReversed
-                        .map((label, i) => dlReversed[i] > spikeThreshold ? { x: label, y: dlReversed[i] * 1.08 } : null)
+                        .map((label, i) => dlReversed[i] > spikeThreshold ? { x: label, y: Math.min(dlReversed[i] * 1.08, yMax * 0.97) } : null)
                         .filter(Boolean),
-                    backgroundColor: '#D85A30',
+                    backgroundColor: '#f97316',
                     pointStyle: 'triangle',
-                    radius: 7,
+                    radius: 6,
                     order: 0
                 }
             ]
@@ -135,7 +147,7 @@ function renderBandwidthChart(data, ctx, chartName) {
                 tooltip: {
                     callbacks: {
                         label: ctx => {
-                            if (ctx.dataset.label === 'Spike') return '⚡ Traffic spike';
+                            if (ctx.dataset.label === 'Spike') return '⚡ Traffic spike — drag or pinch to zoom in';
                             return ctx.dataset.label + ': ' + Number(ctx.parsed.y).toFixed(3) + ' Mbps';
                         }
                     }
@@ -143,16 +155,22 @@ function renderBandwidthChart(data, ctx, chartName) {
                 zoom: {
                     zoom: {
                         wheel: {
-                            enabled: true,
+                            enabled: true,  // Mouse wheel zoom
                         },
                         drag: {
-                            enabled: true
+                            enabled: true,  // Drag to zoom on desktop
+                            backgroundColor: 'rgba(29,158,117,0.15)',
+                            borderColor: 'rgba(29,158,117,0.5)',
+                            borderWidth: 1,
+                        },
+                        pinch: {
+                            enabled: true,  // Pinch-to-zoom on touch devices
                         },
                         mode: 'xy',
                     },
                     pan: {
-                        enabled: false,
-                        mode: 'y',
+                        enabled: true,  // Pan after zooming in
+                        mode: 'xy',
                     }
                 }
             },
@@ -176,7 +194,8 @@ function renderBandwidthChart(data, ctx, chartName) {
                         display: true,
                         text: 'Mbps'
                     },
-                    min: 0
+                    min: 0,
+                    max: yMax,  // Capped at p95x1.5 — drag or pinch to zoom into spikes
                 }
             }
         }
@@ -188,7 +207,7 @@ function renderBandwidthChart(data, ctx, chartName) {
 /**
  * Renders a line chart displaying Uptime data.
  *
- * Original: y-axis fixed 0–100; no dynamic title; point markers on every sample.
+ * Original: y-axis fixed 0-100; no dynamic title; point markers on every sample.
  * Enhanced: y-axis min set just below the data minimum so small dips are visible;
  * title dynamically includes the average uptime %; point markers removed for a
  * cleaner line; downtime event markers removed per client request.
@@ -305,29 +324,29 @@ function drawSignalBars(canvasId, numBars, maxBars, barColor='green') {
     maxBars = maxBars + 1;
     var canvas = document.getElementById(canvasId);
     var ctx = canvas.getContext("2d");
-  
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
     // Get the actual width of the canvas element
     var canvasWidth = canvas.offsetWidth;
-  
+
     // Calculate bar width based on maxBars and canvas width
     var barWidth = canvasWidth / (maxBars + 1); // Adjust for spacing between bars
-  
+
     // Calculate spacing based on canvas width, bar width, and maxBars
     var spacing = (canvasWidth - maxBars * barWidth) / (maxBars + 1);
-  
+
     // Calculate the maximum possible height based on canvas height and maxBars
-    var maxHeight = canvas.offsetHeight / (maxBars * (maxBars + 1) / 2); 
-  
+    var maxHeight = canvas.offsetHeight / (maxBars * (maxBars + 1) / 2);
+
     for (var i = 0; i <= numBars; i++) {
-      ctx.beginPath();
-      var x = spacing + i * (barWidth + spacing);
-      var y = canvas.height;
-      var barHeight = maxHeight * (i * (i + 1)) / 2; // Calculate height based on loop counter
-  
-      ctx.rect(x, y - barHeight, barWidth, barHeight);
-      ctx.fillStyle = barColor; // Set fill style for solid color
-      ctx.fill();
+        ctx.beginPath();
+        var x = spacing + i * (barWidth + spacing);
+        var y = canvas.height;
+        var barHeight = maxHeight * (i * (i + 1)) / 2; // Calculate height based on loop counter
+
+        ctx.rect(x, y - barHeight, barWidth, barHeight);
+        ctx.fillStyle = barColor; // Set fill style for solid color
+        ctx.fill();
     }
-  }
+}
