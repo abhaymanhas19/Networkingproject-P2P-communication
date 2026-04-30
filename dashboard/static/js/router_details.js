@@ -45,7 +45,7 @@ function convertBpsToMbps(bps) {
  * @param {string} chartName - The global window key to store the chart instance.
  * @return {void}
  */
-function renderBandwidthChart(data, ctx, chartName, rangeLabel) {
+function renderBandwidthChart(data, ctx, chartName, rangeLabel, xAxis) {
 
     data = JSON.parse(data);
     const downlinkThroughputMbps = data.data_series.downlinkThroughputBps.map(convertBpsToMbps);
@@ -155,11 +155,19 @@ function renderBandwidthChart(data, ctx, chartName, rangeLabel) {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'hour',
+                        unit: (xAxis && xAxis.unit) || 'hour',
                         tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
                         displayFormats: {
-                            hour: 'H a'
+                            minute: (xAxis && xAxis.displayFormat) || 'HH:mm',
+                            hour:   (xAxis && xAxis.displayFormat) || 'H a',
+                            day:    (xAxis && xAxis.displayFormat) || 'MMM D',
+                            week:   (xAxis && xAxis.displayFormat) || 'MMM D',
                         }
+                    },
+                    ticks: {
+                        stepSize: (xAxis && xAxis.stepSize) || 1,
+                        maxRotation: 45,
+                        autoSkip: false,
                     },
                     title: {
                         display: false,
@@ -193,7 +201,7 @@ function renderBandwidthChart(data, ctx, chartName, rangeLabel) {
  * @param {string} chartName - The global window key to store the chart instance.
  * @return {void}
  */
-function renderUptimeChart(data, ctx, chartName, rangeLabel) {
+function renderUptimeChart(data, ctx, chartName, rangeLabel, xAxis) {
 
     data = JSON.parse(data);
     console.log("converting data to float");
@@ -248,11 +256,19 @@ function renderUptimeChart(data, ctx, chartName, rangeLabel) {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'hour',
+                        unit: (xAxis && xAxis.unit) || 'hour',
                         tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
                         displayFormats: {
-                            hour: 'H a'
+                            minute: (xAxis && xAxis.displayFormat) || 'HH:mm',
+                            hour:   (xAxis && xAxis.displayFormat) || 'H a',
+                            day:    (xAxis && xAxis.displayFormat) || 'MMM D',
+                            week:   (xAxis && xAxis.displayFormat) || 'MMM D',
                         }
+                    },
+                    ticks: {
+                        stepSize: (xAxis && xAxis.stepSize) || 1,
+                        maxRotation: 45,
+                        autoSkip: false,
                     },
                     title: {
                         display: false,
@@ -334,20 +350,28 @@ function drawSignalBars(canvasId, numBars, maxBars, barColor='green') {
  */
 function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
 
-    // Map tab name → hours back from now. Monthly = 30 days.
+    // Map tab name → hours back from now
     const rangeHours = {
-        realtime: 1,
-        hourly:   24,
-        daily:    24 * 7,
-        monthly:  24 * 30,
+        realtime: 0.25,   // 15 minutes
+        hourly:   24,     // 24 hours
+        daily:    24 * 7, // 7 days
+        monthly:  24 * 30 // 30 days
     };
 
     // Human-readable label shown in the chart title per tab
     const rangeLabels = {
-        realtime: 'Last hour',
+        realtime: 'Last 15 min',
         hourly:   'Last 24 hours',
         daily:    'Last 7 days',
         monthly:  'Last 30 days',
+    };
+
+    // x-axis time configuration per tab so the scale matches the selected range
+    const rangeXAxis = {
+        realtime: { unit: 'minute', stepSize: 1,  displayFormat: 'HH:mm' },
+        hourly:   { unit: 'hour',   stepSize: 1,  displayFormat: 'H a'   },
+        daily:    { unit: 'day',    stepSize: 1,  displayFormat: 'MMM D' },
+        monthly:  { unit: 'week',   stepSize: 1,  displayFormat: 'MMM D' },
     };
 
     // Track the realtime auto-refresh intervals so we can clear them on tab switch
@@ -385,7 +409,7 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
             data: Object.assign({ interface_index: idx }, getDateParams(range)),
             success: function(data) {
                 const ctx = document.getElementById('starlink-bandwidth-chart-' + idx).getContext('2d');
-                renderBandwidthChart(data, ctx, chartName, rangeLabels[range]);
+                renderBandwidthChart(data, ctx, chartName, rangeLabels[range], rangeXAxis[range]);
             },
             error: function(xhr, status, error) {
                 console.error('Bandwidth AJAX Error:', status, error);
@@ -410,7 +434,7 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
             data: Object.assign({ interface_index: idx }, getDateParams(range)),
             success: function(data) {
                 const ctx = document.getElementById('starlink-uptime-chart-' + idx).getContext('2d');
-                renderUptimeChart(data, ctx, chartName, rangeLabels[range]);
+                renderUptimeChart(data, ctx, chartName, rangeLabels[range], rangeXAxis[range]);
             },
             error: function(xhr, status, error) {
                 console.error('Uptime AJAX Error:', status, error);
