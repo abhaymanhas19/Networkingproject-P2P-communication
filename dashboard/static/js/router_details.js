@@ -4,7 +4,7 @@
  * Description: This file contains the code for the router details page.
  *
  * Enhanced by: Claude (Anthropic)
- * Date: 2026-04-30
+ * Date: 2026-APR-30
  * Changes:
  *   - renderBandwidthChart: switched from line to bar chart for clearer per-sample
  *     visibility; added auto-detected spike highlighting (3× median threshold) with
