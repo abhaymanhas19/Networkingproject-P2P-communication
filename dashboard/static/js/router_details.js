@@ -63,33 +63,38 @@ function renderBandwidthChart(data, ctx, chartName) {
     const p95Value       = sorted[p95Index] || 0;
     const spikeThreshold = Math.max(p95Value, 0.5); // Minimum 0.5 Mbps to avoid noise flags
 
-    // Cap the y-axis at p95 x 1.5 so the baseline stays readable.
-    // Spikes above this are still rendered — the user can zoom in using drag or
-    // pinch to inspect them in detail.
-    const yMax = Math.max(p95Value * 1.5, 1);
-
     // Compute summary values for the metric cards
     const peakDl = Math.max(...dlReversed).toFixed(3);
     const avgDl  = (dlReversed.reduce((a, b) => a + b, 0) / dlReversed.length).toFixed(3);
     const peakUl = Math.max(...ulReversed).toFixed(3);
 
     // Inject summary metric cards above the chart (idempotent — skipped if already present).
-    // Uses rgba backgrounds and borders so cards render correctly in both light and dark mode.
-    const canvas  = ctx.canvas;
-    const wrapper = canvas.closest('.chart-container') || canvas.parentElement;
+    // Detects dark mode via the page's dark class or prefers-color-scheme media query
+    // and applies appropriate background, border, and text colours for each mode.
+    const canvas   = ctx.canvas;
+    const wrapper  = canvas.closest('.chart-container') || canvas.parentElement;
     if (!wrapper.parentElement.querySelector('.p2p-bw-metrics')) {
+        const isDark = document.documentElement.classList.contains('dark') ||
+                       document.body.classList.contains('dark') ||
+                       matchMedia('(prefers-color-scheme: dark)').matches;
+
+        const cardBg     = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+        const cardBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+        const labelColor = isDark ? 'rgba(255,255,255,0.5)'  : '#6b7280';
+        const avgColor   = isDark ? 'rgba(255,255,255,0.85)' : '#111827';
+
         const metricsHtml = `
         <div class="p2p-bw-metrics" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
-            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.12);">
-                <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Peak download</div>
+            <div style="background:${cardBg};border-radius:8px;padding:10px 14px;border:1px solid ${cardBorder};">
+                <div style="font-size:11px;color:${labelColor};margin-bottom:4px;">Peak download</div>
                 <div style="font-size:18px;font-weight:500;color:#1D9E75;">${peakDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
             </div>
-            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.12);">
-                <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Avg download</div>
-                <div style="font-size:18px;font-weight:500;color:rgba(255,255,255,0.85);">${avgDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
+            <div style="background:${cardBg};border-radius:8px;padding:10px 14px;border:1px solid ${cardBorder};">
+                <div style="font-size:11px;color:${labelColor};margin-bottom:4px;">Avg download</div>
+                <div style="font-size:18px;font-weight:500;color:${avgColor};">${avgDl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
             </div>
-            <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;border:1px solid rgba(255,255,255,0.12);">
-                <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Peak upload</div>
+            <div style="background:${cardBg};border-radius:8px;padding:10px 14px;border:1px solid ${cardBorder};">
+                <div style="font-size:11px;color:${labelColor};margin-bottom:4px;">Peak upload</div>
                 <div style="font-size:18px;font-weight:500;color:#9f97e8;">${peakUl} <span style="font-size:12px;font-weight:400;opacity:0.7">Mbps</span></div>
             </div>
         </div>`;
@@ -125,7 +130,7 @@ function renderBandwidthChart(data, ctx, chartName) {
                     label: 'Spike',
                     type: 'scatter',
                     data: labelsReversed
-                        .map((label, i) => dlReversed[i] > spikeThreshold ? { x: label, y: Math.min(dlReversed[i] * 1.08, yMax * 0.97) } : null)
+                        .map((label, i) => dlReversed[i] > spikeThreshold ? { x: label, y: dlReversed[i] * 1.08 } : null)
                         .filter(Boolean),
                     backgroundColor: '#f97316',
                     pointStyle: 'triangle',
@@ -194,8 +199,7 @@ function renderBandwidthChart(data, ctx, chartName) {
                         display: true,
                         text: 'Mbps'
                     },
-                    min: 0,
-                    max: yMax,  // Capped at p95x1.5 — drag or pinch to zoom into spikes
+                    min: 0
                 }
             }
         }
