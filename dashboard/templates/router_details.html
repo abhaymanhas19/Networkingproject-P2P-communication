@@ -278,15 +278,39 @@
                 </div>
 
                 <!-- <div class="card w-full" style="margin-top:20px; box-shadow:none; width:100%;"> -->
+                <!-- Bandwidth Chart -->
                 <div class="card" style="margin-bottom:20px; border:none; box-shadow:none;">
-                  <button id="starlink-bandwidth-chart-reset-zoom-{{ forloop.counter0 }}" class="starlink-bandwidth-chart-reset-zoom btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-target="starlink-bandwidth-chart-{{ forloop.counter0 }}">Reset</button>
-
+                  <!-- Time range tab bar for bandwidth chart -->
+                  <div class="starlink-time-tabs flex gap-1 mb-3"
+                       data-chart-index="{{ forloop.counter0 }}"
+                       data-chart-type="bandwidth">
+                    <button class="starlink-tab-btn active btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="realtime">Realtime</button>
+                    <button class="starlink-tab-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="hourly">Hourly</button>
+                    <button class="starlink-tab-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="daily">Daily</button>
+                    <button class="starlink-tab-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="monthly">Monthly</button>
+                    <span class="starlink-realtime-badge hidden ml-2 text-xs text-green-500 dark:text-green-400 self-center">
+                      ● Live
+                    </span>
+                  </div>
                   <div class="chart-container" style="position: relative; height: 350px; min-height:250px; width:90vw;">
                     <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}" style="height: 300px; min-height:245px; width:1800px;"></canvas>
                   </div>
                 </div>
 
+                <!-- Uptime Chart -->
                 <div class="card" style="margin-bottom:20px; border:none; box-shadow:none;">
+                  <!-- Time range tab bar for uptime chart -->
+                  <div class="starlink-time-tabs flex gap-1 mb-3"
+                       data-chart-index="{{ forloop.counter0 }}"
+                       data-chart-type="uptime">
+                    <button class="starlink-tab-btn active btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="realtime">Realtime</button>
+                    <button class="starlink-tab-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="hourly">Hourly</button>
+                    <button class="starlink-tab-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="daily">Daily</button>
+                    <button class="starlink-tab-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-range="monthly">Monthly</button>
+                    <span class="starlink-realtime-badge hidden ml-2 text-xs text-green-500 dark:text-green-400 self-center">
+                      ● Live
+                    </span>
+                  </div>
                   <div class="card w-full" style="position: relative; height: 350px; min-height:300px; width:90vw; border:none; box-shadow:none;">
                     <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}" style="height: 245px; min-height:245px; width:1800px;"></canvas>
                   </div>
@@ -397,13 +421,8 @@
   {% comment %} <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0barColor"></script> {% endcomment %}
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
 
-  <!-- hammer.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-
-  <!-- chartjs-plugin-zoom compatible with Chart.js 4.x -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.0"></script>
-
   <script src="{% static '/js/router_details.js' %}"></script>
+
   <script>
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -419,9 +438,12 @@
       $(document).ready(function() {
 
         {% for starlink_interface in device.starlink_interfaces %}
-            $(".starlink-bandwidth-chart-reset-zoom").click(function(e){
-                window["starlinkBandwidthChart{{ forloop.counter0 }}"].resetZoom();
-            });
+            // Initialise time-range tabs for bandwidth and uptime charts
+            initStarlinkTabs(
+                {{ forloop.counter0 }},
+                "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='bandwidth' %}",
+                "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='uptime' %}"
+            );
             {% with starlink_status=device.starlink_status_dicts|get_item_at_index:forloop.counter0 %}
                 var maxVal{{ forloop.counter0 }} = 250;
                 var latency{{ forloop.counter0 }} = {{ starlink_status.dishGetStatus.popPingLatencyMs }};
@@ -512,48 +534,6 @@
             obstructionGauge{{ forloop.counter0 }}.set(obstruction{{ forloop.counter0 }});
             actualValue{{ forloop.counter0 }}.innerHTML = obstruction{{ forloop.counter0 }}.toFixed(3) + "%";
 
-            // get bandwidth data and plot in the chart
-            $.ajax({
-                url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='bandwidth' %}",
-                type: "GET",
-                data: {
-                    interface_index: {{ forloop.counter0 }}
-                },
-                beforeSend: function(xhr, settings) {
-                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
-                },
-                success: function(data) {
-                    const ctx = document.getElementById('starlink-bandwidth-chart-{{ forloop.counter0 }}').getContext('2d');
-                    var chartName='starlinkBandwidthChart{{ forloop.counter0 }}';
-                    renderBandwidthChart(data, ctx, chartName);
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", status, error);
-                }
-            });
-
-            // get the uptime data and show it in the chart
-            $.ajax({
-                url: "{% url 'starlink_chart_data' internal_class=device.internal_class serial=device.serial data_type='uptime' %}",
-                type: "GET",
-                data: {
-                    interface_index: {{ forloop.counter0 }}
-                },
-                beforeSend: function(xhr, settings) {
-                    xhr.setRequestHeader("X-CSRFToken", '{% csrf_token %}');
-                },
-                success: function(data) {
-                    console.log(data);
-
-                    const ctx = document.getElementById('starlink-uptime-chart-{{ forloop.counter0 }}').getContext('2d');
-                    var chartName='starlinkUptimeChart{{ forloop.counter0 }}';
-                    renderUptimeChart(data, ctx, chartName);
-
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", status, error);
-                }
-            });
         {% endfor %}
 
         //draw the signalbars
