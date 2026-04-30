@@ -1169,7 +1169,11 @@ class StarlinkInfoHistory(models.Model):
             "end_date": end_date,
         }
 
-        data_sql = """
+        # Use minute-level aggregation for short ranges (<=1 hour), hour-level otherwise
+        range_seconds = (end_date - start_date).total_seconds()
+        trunc_level = 'minute' if range_seconds <= 3600 else 'hour'
+
+        data_sql = f"""
             WITH filtered_data AS (
                 SELECT device_serial,
                     CASE
@@ -1187,7 +1191,7 @@ class StarlinkInfoHistory(models.Model):
             ),
             interval_data AS (
                 SELECT device_serial,
-                    date_trunc('hour', as_of_time) AS hour,
+                    date_trunc('{trunc_level}', as_of_time) AS hour,
                     uptime_s,
                     CASE
                         WHEN uptime_s >= 180 THEN 100
