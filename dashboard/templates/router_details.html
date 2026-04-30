@@ -292,8 +292,8 @@
                       ● Live
                     </span>
                   </div>
-                  <div class="chart-container" style="position: relative; height: 350px; min-height:250px; width:90vw;">
-                    <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}" style="height: 300px; min-height:245px; width:1800px;"></canvas>
+                  <div class="chart-container" style="position: relative; height: 350px; min-height:250px; width:100%;">
+                    <canvas id="starlink-bandwidth-chart-{{ forloop.counter0 }}"></canvas>
                   </div>
                 </div>
 
@@ -311,8 +311,8 @@
                       ● Live
                     </span>
                   </div>
-                  <div class="card w-full" style="position: relative; height: 350px; min-height:300px; width:90vw; border:none; box-shadow:none;">
-                    <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}" style="height: 245px; min-height:245px; width:1800px;"></canvas>
+                  <div class="card w-full" style="position: relative; height: 350px; min-height:300px; width:100%; border:none; box-shadow:none;">
+                    <canvas id="starlink-uptime-chart-{{ forloop.counter0 }}"></canvas>
                   </div>
                 </div>
               {% endfor %}
