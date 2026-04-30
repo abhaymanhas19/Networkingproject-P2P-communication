@@ -1152,7 +1152,7 @@ class StarlinkInfoHistory(models.Model):
     @classmethod
     def get_starlink_uptime_chart_data(cls, internal_class, device_serial, starlink_index=0, start_date=None, end_date=None):
         if not start_date:
-            start_date = datetime.now() - timedelta(hours=1000)
+            start_date = datetime.now() - timedelta(hours=24)
         if not end_date:
             end_date = datetime.now()
 
@@ -1164,7 +1164,9 @@ class StarlinkInfoHistory(models.Model):
         params = {
             "internal_class": internal_class,
             "device_serial": device_serial,
-            "starlink_index": starlink_index
+            "starlink_index": starlink_index,
+            "start_date": start_date,
+            "end_date": end_date,
         }
 
         data_sql = """
@@ -1178,7 +1180,8 @@ class StarlinkInfoHistory(models.Model):
                     END AS uptime_s,
                     as_of_time
                 FROM dashboard_starlinkinfohistory
-                WHERE as_of_time >= NOW() - INTERVAL '24 hours'
+                WHERE as_of_time >= %(start_date)s
+                      AND as_of_time <= %(end_date)s
                       AND device_serial = %(device_serial)s
                       AND internal_class = %(internal_class)s
             ),
