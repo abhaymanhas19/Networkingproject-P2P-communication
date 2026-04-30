@@ -55,13 +55,6 @@ function renderBandwidthChart(data, ctx, chartName, rangeLabel, xAxis) {
     const ulReversed     = uplinkThroughputMbps.reverse();   // Reverse the data series to match the labels
     const labelsReversed = data.labels.reverse();            // Reverse the labels to maintain chronological order
 
-    // Spike detection: use the 95th percentile as the threshold.
-    // This is more robust than 3x median for Starlink data which has a very low
-    // baseline but occasional large legitimate bursts.
-    const sorted         = [...dlReversed].sort((a, b) => a - b);
-    const p95Index       = Math.floor(sorted.length * 0.95);
-    const p95Value       = sorted[p95Index] || 0;
-    const spikeThreshold = Math.max(p95Value, 0.5); // Minimum 0.5 Mbps to avoid noise flags
 
     // Compute summary values for the metric cards
     const peakDl = Math.max(...dlReversed).toFixed(3);
@@ -91,43 +84,67 @@ function renderBandwidthChart(data, ctx, chartName, rangeLabel, xAxis) {
             </div>
         </div>`;
         wrapper.insertAdjacentHTML('beforebegin', metricsHtml);
+
+        // Zoom preset buttons — visible only on Per-Minute tab, hidden on Real-Time
+        // Each button narrows the x-axis window without re-fetching data
+        if (!wrapper.parentElement.querySelector('.p2p-zoom-presets')) {
+            const zoomHtml = `
+            <div class="p2p-zoom-presets hidden flex items-center gap-2 mb-3 text-sm">
+                <span class="text-gray-500 dark:text-gray-400 text-xs">Zoom</span>
+                <button class="p2p-zoom-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-hours="1">1 Hour</button>
+                <button class="p2p-zoom-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-hours="3">3 Hours</button>
+                <button class="p2p-zoom-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-hours="6">6 Hours</button>
+                <button class="p2p-zoom-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-hours="12">12 Hours</button>
+                <button class="p2p-zoom-btn btn btn-sm border-primary text-primary hover:bg-primary hover:text-white" data-hours="24">All</button>
+            </div>`;
+            wrapper.insertAdjacentHTML('beforebegin', zoomHtml);
+
+            // Wire up zoom preset buttons — shift x-axis min without re-fetching
+            wrapper.parentElement.querySelectorAll('.p2p-zoom-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    wrapper.parentElement.querySelectorAll('.p2p-zoom-btn').forEach(b =>
+                        b.classList.remove('bg-primary', 'text-white'));
+                    this.classList.add('bg-primary', 'text-white');
+                    const hours = parseFloat(this.dataset.hours);
+                    const chart = window[chartName];
+                    if (!chart) return;
+                    const now = new Date();
+                    chart.options.scales.x.min = new Date(now.getTime() - hours * 3600000).toISOString();
+                    chart.options.scales.x.max = now.toISOString();
+                    chart.update();
+                });
+            });
+        }
     }
 
     const myChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: labelsReversed,
             datasets: [
                 {
                     label: 'Download',
                     data: dlReversed,
-                    // Spike bars render at full opacity; normal bars are more transparent
-                    backgroundColor: dlReversed.map(v => v > spikeThreshold ? 'rgba(29,158,117,0.9)' : 'rgba(29,158,117,0.5)'),
-                    borderColor: dlReversed.map(v => v > spikeThreshold ? '#1D9E75' : 'rgba(29,158,117,0.7)'),
-                    borderWidth: 0.5,
-                    borderRadius: 2,
+                    backgroundColor: 'rgba(29,158,117,0.15)',
+                    borderColor: '#1D9E75',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    fill: true,
+                    tension: 0.3,
                     order: 1
                 },
                 {
                     label: 'Upload',
                     data: ulReversed,
-                    backgroundColor: 'rgba(153, 102, 255, 0.3)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.1)',
                     borderColor: 'rgba(153, 102, 255, 0.8)',
-                    borderWidth: 0.5,
-                    borderRadius: 2,
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    fill: true,
+                    tension: 0.3,
                     order: 2
-                },
-                {
-                    // Scatter overlay marks spike positions with an orange triangle
-                    label: 'Spike',
-                    type: 'scatter',
-                    data: labelsReversed
-                        .map((label, i) => dlReversed[i] > spikeThreshold ? { x: label, y: dlReversed[i] * 1.08 } : null)
-                        .filter(Boolean),
-                    backgroundColor: '#f97316',
-                    pointStyle: 'triangle',
-                    radius: 6,
-                    order: 0
                 }
             ]
         },
@@ -350,28 +367,22 @@ function drawSignalBars(canvasId, numBars, maxBars, barColor='green') {
  */
 function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
 
-    // Map tab name → hours back from now
+    // Map tab → hours of data to fetch from the backend
     const rangeHours = {
-        realtime: 0.25,   // 15 minutes
-        hourly:   24,     // 24 hours
-        daily:    24 * 7, // 7 days
-        monthly:  24 * 30 // 30 days
+        realtime: 0.25,  // 15 minutes — live ticker
+        hourly:   24,    // full day per-minute report
     };
 
     // Human-readable label shown in the chart title per tab
     const rangeLabels = {
-        realtime: 'Last 15 min',
-        hourly:   'Last 24 hours',
-        daily:    'Last 7 days',
-        monthly:  'Last 30 days',
+        realtime: 'Real-Time (last 15 min)',
+        hourly:   'Per-Minute Report (last 24 hours)',
     };
 
-    // x-axis time configuration per tab so the scale matches the selected range
+    // x-axis time unit/format per tab
     const rangeXAxis = {
         realtime: { unit: 'minute', stepSize: 1,  displayFormat: 'HH:mm' },
-        hourly:   { unit: 'hour',   stepSize: 1,  displayFormat: 'H a'   },
-        daily:    { unit: 'day',    stepSize: 1,  displayFormat: 'MMM D' },
-        monthly:  { unit: 'week',   stepSize: 1,  displayFormat: 'MMM D' },
+        hourly:   { unit: 'minute', stepSize: 15, displayFormat: 'HH:mm' },
     };
 
     // Track the realtime auto-refresh intervals so we can clear them on tab switch
@@ -478,6 +489,21 @@ function initStarlinkTabs(idx, bwUrl, uptimeUrl) {
 
             // Load data immediately
             loadFn(range);
+
+            // Show zoom preset buttons only on Per-Minute (hourly) tab
+            if (chartType === 'bandwidth') {
+                const zoomBar = tabBar.closest('.card, div').querySelector('.p2p-zoom-presets');
+                if (zoomBar) {
+                    if (range === 'hourly') {
+                        zoomBar.classList.remove('hidden');
+                        // Default to 1 Hour zoom on Per-Minute load
+                        const defaultBtn = zoomBar.querySelector('[data-hours="1"]');
+                        if (defaultBtn) defaultBtn.click();
+                    } else {
+                        zoomBar.classList.add('hidden');
+                    }
+                }
+            }
 
             // For realtime, set up auto-refresh every 60 seconds
             if (range === 'realtime') {
